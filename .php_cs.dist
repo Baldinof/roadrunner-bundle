@@ -1,0 +1,14 @@
+<?php
+
+$finder = PhpCsFixer\Finder::create()
+    ->in(['src', 'tests'])
+;
+
+return PhpCsFixer\Config::create()
+    ->setFinder($finder)
+    ->setRules([
+        '@Symfony' => true,
+        'array_syntax' => ['syntax' => 'short'],
+        'ordered_class_elements' => true,
+    ])
+;

@@ -1,0 +1,7 @@
+parameters:
+    inferPrivatePropertyTypeFromConstructor: true
+    ignoreErrors:
+        - message: '#Access to protected property Symfony\\Component\\HttpKernel\\Kernel::\$startTime.#'
+          path: 'src/Worker/Worker.php'
+        - message: '#Call to an undefined method Symfony\\Component\\HttpKernel\\KernelInterface::(terminate|reboot)\(\).#'
+          path: 'src/Worker/Worker.php'

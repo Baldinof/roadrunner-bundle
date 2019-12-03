@@ -1,0 +1,39 @@
+services:
+  Spiral\RoadRunner\Worker:
+    autowire: true
+
+  Spiral\RoadRunner\PSR7Client:
+    autowire: true
+
+  Spiral\Goridge\SocketRelay:
+    arguments:
+      - '%kernel.project_dir%/var/roadrunner.sock'
+      - null
+      - !php/const Spiral\Goridge\SocketRelay::SOCK_UNIX
+
+  Spiral\Goridge\RelayInterface: '@Spiral\Goridge\SocketRelay'
+
+  Baldinof\RoadRunnerBundle\Worker\Configuration: null
+
+  Baldinof\RoadRunnerBundle\Worker\Worker:
+    autowire: true
+
+  Baldinof\RoadRunnerBundle\Worker\WorkerInterface: '@Baldinof\RoadRunnerBundle\Worker\Worker'
+
+  Baldinof\RoadRunnerBundle\Command\WorkerCommand:
+    autowire: true
+    autoconfigure: true
+
+  baldinof_roadrunner.http_foundation_factory:
+    class: 'Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory'
+
+  baldinof_roadrunner.psr_message_factory:
+    class: 'Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory'
+    arguments:
+      - '@Psr\Http\Message\ServerRequestFactoryInterface'
+      - '@Psr\Http\Message\StreamFactoryInterface'
+      - '@Psr\Http\Message\UploadedFileFactoryInterface'
+      - '@Psr\Http\Message\ResponseFactoryInterface'
+
+  Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface: '@baldinof_roadrunner.psr_message_factory'
+  Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface: '@baldinof_roadrunner.http_foundation_factory'

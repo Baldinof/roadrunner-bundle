@@ -1,0 +1,36 @@
+{
+    "name": "baldinof/roadrunner-bundle",
+    "type": "symfony-bundle",
+    "description": "A RoadRunner worker as a Symfony Bundle",
+    "authors": [
+        {
+            "name": "Florent Baldino",
+            "email": "baldinof@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Baldinof\\RoadRunnerBundle\\": "src",
+            "Tests\\Baldinof\\RoadRunnerBundle\\": "tests"
+        }
+    },
+    "require": {
+        "php": "^7.3",
+        "symfony/config": "^4.0 || ^5.0",
+        "symfony/dependency-injection": "^4.0 || ^5.0",
+        "symfony/http-kernel": "^4.0 || ^5.0",
+        "symfony/yaml": "^4.0 || ^5.0",
+        "spiral/roadrunner": "^1.5",
+        "symfony/psr-http-message-bridge": "^1.2",
+        "psr/http-factory": "^1.0"
+    },
+    "suggest": {
+        "nyholm/psr7": "For a super lightweight PSR-7/17 implementation"
+    },
+    "require-dev": {
+        "symfony/var-dumper": "^4.0||^5.0",
+        "phpunit/phpunit": "^8.5",
+        "friendsofphp/php-cs-fixer": "^2.16",
+        "phpstan/phpstan": "^0.12.2"
+    }
+}

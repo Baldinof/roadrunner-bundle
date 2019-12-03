@@ -1,0 +1,13 @@
+http:
+  address: "0.0.0.0:8080"
+
+  uploads:
+    forbid: [".php", ".exe", ".bat"]
+
+  workers:
+    command: "php bin/console baldinof:roadrunner:worker"
+    relay: "unix://var/roadrunner.sock"
+
+static:
+  dir:   "public"
+  forbid: [".php", ".htaccess"]

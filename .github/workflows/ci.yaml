@@ -1,0 +1,43 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    name: PHPUnit with PHP ${{ matrix.php-versions }} on ${{ matrix.operating-system }}
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.3', '7.4']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v1
+        with:
+          php-version: '${{ matrix.php-versions }}'
+          extensions: mbstring,intl
+      - name: Install dependencies
+        run: composer install --prefer-dist
+      - name: PHPUnit
+        run: vendor/bin/phpunit
+
+  static-analysis:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v1
+        with:
+          php-version: '7.4'
+          extensions: mbstring,intl
+      - name: Install dependencies
+        run: composer install --prefer-dist
+      - name: PHP CS Fixer
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff
+      - name: PHPStan
+        run: vendor/bin/phpstan analyse src --level max --no-progress
