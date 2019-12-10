@@ -76,3 +76,35 @@ bin/rr serve -o 'http.workers.pool.numWorkers=1' -o 'http.workers.pool.maxJobs=1
 Reference: https://roadrunner.dev/docs/php-developer
 
 If you use the Symfony VarDumper, dumps will not be shown in the HTTP Response body. You can view dumps with `bin/console server:dump` or in the profiler.
+
+
+## Usage with Docker
+
+```Dockerfile
+# Dockerfile
+FROM php:7.4-alpine
+
+RUN apk add --no-cache autoconf openssl-dev g++ make pcre-dev icu-dev zlib-dev libzip-dev && \
+    docker-php-ext-install bcmath intl opcache zip sockets && \
+    apk del --purge autoconf g++ make
+
+WORKDIR /usr/src/app
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+COPY composer.json composer.lock ./
+
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-plugins --prefer-dist --no-progress --no-interaction
+
+RUN ./vendor/bin/rr get-binary --location /usr/local/bin
+
+COPY . .
+
+ENV APP_ENV=prod
+
+RUN php bin/console cache:warmup
+
+EXPOSE 8080
+
+CMD ["rr", "serve"]
+```
