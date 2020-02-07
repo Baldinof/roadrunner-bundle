@@ -17,12 +17,23 @@ services:
 
   Baldinof\RoadRunnerBundle\Worker\Worker:
     autowire: true
+    arguments:
+      $middlewareStack: '@Baldinof\RoadRunnerBundle\Http\MiddlewareStack'
 
   Baldinof\RoadRunnerBundle\Worker\WorkerInterface: '@Baldinof\RoadRunnerBundle\Worker\Worker'
 
   Baldinof\RoadRunnerBundle\Command\WorkerCommand:
     autowire: true
     autoconfigure: true
+
+  Baldinof\RoadRunnerBundle\Http\KernelHandler:
+    autowire: true
+
+  Baldinof\RoadRunnerBundle\Http\MiddlewareStack:
+    arguments: [ '@Baldinof\RoadRunnerBundle\Http\KernelHandler' ]
+    public: true
+
+  Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware: null
 
   baldinof_roadrunner.http_foundation_factory:
     class: 'Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory'

@@ -2,55 +2,42 @@
 
 namespace Baldinof\RoadRunnerBundle\Worker;
 
+use function Baldinof\RoadRunnerBundle\consumes;
+use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
+use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
+use Psr\Log\LoggerInterface;
 use Spiral\RoadRunner\PSR7Client;
-use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
-use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
-use Symfony\Component\HttpKernel\TerminableInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 final class Worker implements WorkerInterface
 {
     private $kernel;
-    private $httpMessageFactory;
-    private $httpFoundationFactory;
     private $eventDispatcher;
     private $configuration;
+    private $middlewareStack;
     private $psrClient;
-
-    /**
-     * @var \Closure
-     */
-    private $startTimeReset;
+    private $logger;
 
     public function __construct(
         KernelInterface $kernel,
-        HttpMessageFactoryInterface $httpMessageFactory,
-        HttpFoundationFactoryInterface $httpFoundationFactory,
         EventDispatcherInterface $eventDispatcher,
         Configuration $configuration,
+        IteratorRequestHandlerInterface $middlewareStack,
+        LoggerInterface $logger,
         PSR7Client $psrClient
     ) {
         $this->kernel = $kernel;
-        $this->httpMessageFactory = $httpMessageFactory;
-        $this->httpFoundationFactory = $httpFoundationFactory;
         $this->eventDispatcher = $eventDispatcher;
         $this->configuration = $configuration;
+        $this->middlewareStack = $middlewareStack;
         $this->psrClient = $psrClient;
-
-        if ($kernel->isDebug() && $kernel instanceof Kernel) {
-            $this->startTimeReset = (function () use ($kernel) {
-                $kernel->startTime = microtime(true);
-            })->bindTo(null, Kernel::class);
-        } else {
-            $this->startTimeReset = function () {
-            };
-        }
+        $this->logger = $logger;
 
         $withReboot = $this->configuration->shouldRebootKernel();
 
@@ -61,7 +48,6 @@ final class Worker implements WorkerInterface
 
     public function start(): void
     {
-        $debug = $this->kernel->isDebug();
         $withReboot = $this->configuration->shouldRebootKernel();
 
         if ($trustedProxies = $_SERVER['TRUSTED_PROXIES'] ?? $_ENV['TRUSTED_PROXIES'] ?? false) {
@@ -72,30 +58,29 @@ final class Worker implements WorkerInterface
             Request::setTrustedHosts(explode(',', $trustedHosts));
         }
 
-        $isTerminable = $this->kernel instanceof TerminableInterface;
-
         $this->eventDispatcher->dispatch(new WorkerStartEvent());
 
+        $middlewareStack = $this->middlewareStack;
         while ($psrRequest = $this->psrClient->acceptRequest()) {
             try {
-                ($this->startTimeReset)();
+                $gen = $middlewareStack->handle($psrRequest);
 
-                $request = $this->httpFoundationFactory->createRequest($psrRequest);
+                $this->psrClient->respond($gen->current());
 
-                $response = $this->kernel->handle($request);
-
-                $this->psrClient->respond($this->httpMessageFactory->createResponse($response));
-
-                if ($isTerminable) {
-                    $this->kernel->terminate($request, $response);
-                }
+                consumes($gen);
 
                 if ($withReboot) {
                     $this->kernel->reboot(null);
+                    /** @var MiddlewareStack $middlewareStack */
+                    $middlewareStack = $this->kernel->getContainer()->get(MiddlewareStack::class);
                 }
             } catch (\Throwable $e) {
-                $this->psrClient->getWorker()->error($debug ? (string) $e : 'Internal server error');
-                $this->psrClient->getWorker()->stop();
+                $this->psrClient->getWorker()->error($this->kernel->isDebug() ? (string) $e : 'Internal server error');
+                $this->logger->error('An error occured: '.$e->getMessage(), ['throwable' => $e]);
+
+                $this->eventDispatcher->dispatch(new WorkerExceptionEvent($e));
+
+                break;
             }
         }
 

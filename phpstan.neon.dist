@@ -1,7 +1,11 @@
 parameters:
     inferPrivatePropertyTypeFromConstructor: true
+    treatPhpDocTypesAsCertain: false
+    checkMissingIterableValueType: false
     ignoreErrors:
         - message: '#Access to protected property Symfony\\Component\\HttpKernel\\Kernel::\$startTime.#'
-          path: 'src/Worker/Worker.php'
+          path: 'src/Http/KernelHandler.php'
         - message: '#Call to an undefined method Symfony\\Component\\HttpKernel\\KernelInterface::(terminate|reboot)\(\).#'
           path: 'src/Worker/Worker.php'
+        - message: '#Cannot call method end() on Symfony\\Component\\Config\\Definition\\Builder\\NodeParentInterface|null#'
+          path: 'src/DependencyInjection'

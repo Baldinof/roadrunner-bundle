@@ -4,6 +4,9 @@ namespace Baldinof\RoadRunnerBundle\DependencyInjection;
 
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\EventListener\ConfigureVarDumperListener;
+use Baldinof\RoadRunnerBundle\EventListener\SentryListener;
+use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
+use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Worker\Configuration as WorkerConfiguration;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -41,6 +44,20 @@ class BaldinofRoadRunnerExtension extends Extension
             $container->getDefinition(WorkerConfiguration::class)->setArgument(0, true);
         }
 
+        $this->loadPsrFactories($container);
+        $this->loadMiddlewares($container, $config);
+    }
+
+    private function loadDebug(ContainerBuilder $container): void
+    {
+        $container->register(ConfigureVarDumperListener::class, ConfigureVarDumperListener::class)
+            ->addTag('kernel.event_listener', ['event' => WorkerStartEvent::class])
+            ->addArgument(new Reference('data_collector.dump'))
+            ->addArgument(new Reference('var_dumper.cloner'));
+    }
+
+    private function loadPsrFactories(ContainerBuilder $container): void
+    {
         if ($this->hasAllDefinitions($container, ServerRequestFactoryInterface::class, StreamFactoryInterface::class, UploadedFileFactoryInterface::class, ResponseFactoryInterface::class)) {
             return;
         }
@@ -68,12 +85,28 @@ class BaldinofRoadRunnerExtension extends Extension
         }
     }
 
-    public function loadDebug(ContainerBuilder $container): void
+    private function loadMiddlewares(ContainerBuilder $container, array $config): void
     {
-        $container->register(ConfigureVarDumperListener::class, ConfigureVarDumperListener::class)
-            ->addTag('kernel.event_listener', ['event' => WorkerStartEvent::class])
-            ->addArgument(new Reference('data_collector.dump'))
-            ->addArgument(new Reference('var_dumper.cloner'));
+        $beforeMiddlewares = [];
+        $lastMiddlewares = [];
+
+        if ($config['default_middlewares']) {
+            $bundles = $container->getParameter('kernel.bundles');
+
+            if (isset($bundles['SentryBundle'])) {
+                $container->autowire(SentryMiddleware::class);
+
+                $container->autowire(SentryListener::class)
+                    ->setAutoconfigured(true);
+
+                $beforeMiddlewares[] = SentryMiddleware::class;
+            }
+
+            $beforeMiddlewares[] = NativeSessionMiddleware::class;
+        }
+
+        $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
+        $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
     }
 
     private function hasAllDefinitions(ContainerBuilder $container, string ...$definitions): bool

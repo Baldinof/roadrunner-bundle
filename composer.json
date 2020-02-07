@@ -10,6 +10,7 @@
         }
     ],
     "autoload": {
+        "files": ["src/functions.php"],
         "psr-4": {
             "Baldinof\\RoadRunnerBundle\\": "src",
             "Tests\\Baldinof\\RoadRunnerBundle\\": "tests"
@@ -23,7 +24,10 @@
         "symfony/yaml": "^4.0 || ^5.0",
         "spiral/roadrunner": "^1.5",
         "symfony/psr-http-message-bridge": "^1.2",
-        "psr/http-factory": "^1.0"
+        "psr/http-factory": "^1.0",
+        "psr/http-server-handler": "^1.0",
+        "psr/http-server-middleware": "^1.0",
+        "dflydev/fig-cookies": "^2.0"
     },
     "suggest": {
         "nyholm/psr7": "For a super lightweight PSR-7/17 implementation"
@@ -32,6 +36,9 @@
         "symfony/var-dumper": "^4.0||^5.0",
         "phpunit/phpunit": "^8.5",
         "friendsofphp/php-cs-fixer": "^2.16",
-        "phpstan/phpstan": "^0.12.2"
+        "phpstan/phpstan": "^0.12.2",
+        "sentry/sentry-symfony": "^3.4",
+        "symfony/framework-bundle": "^5.0",
+        "nyholm/psr7": "^1.2"
     }
 }

@@ -16,7 +16,12 @@ class Configuration implements ConfigurationInterface
         $root = $treeBuilder->getRootNode();
         $root
             ->children()
-                ->booleanNode('should_reboot_kernel')->defaultFalse()
+                ->arrayNode('middlewares')
+                    ->defaultValue([])
+                    ->scalarPrototype()->end()
+                ->end()
+                ->booleanNode('should_reboot_kernel')->defaultFalse()->end()
+                ->booleanNode('default_middlewares')->defaultTrue()->end()
             ->end();
 
         return $treeBuilder;

@@ -2,6 +2,9 @@
 
 namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 
+use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
+use Baldinof\RoadRunnerBundle\Http\KernelHandler;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Worker\Configuration;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -10,6 +13,7 @@ use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\NullLogger;
 use Spiral\RoadRunner\PSR7Client;
 use Spiral\RoadRunner\Worker as RoadrunnerWorker;
 use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
@@ -51,13 +55,16 @@ class WorkerTest extends TestCase
             ->willImplement(TerminableInterface::class);
 
         $this->kernel->isDebug()->willReturn(false);
+        $this->kernel->boot()->willReturn(null);
+
+        $this->stack = new MiddlewareStack(new KernelHandler($this->kernel->reveal(), new PsrHttpFactory($psrFactory, $psrFactory, $psrFactory, $psrFactory), new HttpFoundationFactory()));
 
         $this->worker = new Worker(
             $this->kernel->reveal(),
-            new PsrHttpFactory($psrFactory, $psrFactory, $psrFactory, $psrFactory),
-            new HttpFoundationFactory(),
             $this->eventDispatcher,
             new Configuration(false),
+            $this->stack,
+            new NullLogger(),
             $this->psrClient->reveal()
         );
     }
@@ -67,14 +74,12 @@ class WorkerTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('The worker is configured to reboot the kernel, but the passed kernel does not implement Symfony\Component\HttpKernel\RebootableInterface');
 
-        $psrFactory = new Psr17Factory();
-
-        $worker = new Worker(
+        new Worker(
             $this->prophesize(KernelInterface::class)->reveal(),
-            new PsrHttpFactory($psrFactory, $psrFactory, $psrFactory, $psrFactory),
-            new HttpFoundationFactory(),
             new EventDispatcher(),
             new Configuration(true),
+            $this->stack,
+            new NullLogger(),
             $this->prophesize(PSR7Client::class)->reveal()
         );
     }
@@ -142,6 +147,7 @@ class WorkerTest extends TestCase
     public function test_an_error_stops_the_worker()
     {
         $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
+        $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
 
         $this->kernel->handle(Argument::any())
             ->shouldBeCalled()
@@ -149,14 +155,23 @@ class WorkerTest extends TestCase
                 throw new \RuntimeException('error');
             });
 
+        $called = false;
+        $this->eventDispatcher->addListener(WorkerStopEvent::class, function () use (&$called) {
+            $called = true;
+        });
+
         $this->roadrunnerWorker->error('Internal server error')->shouldBeCalled();
-        $this->roadrunnerWorker->stop()->shouldBeCalled();
 
         $this->worker->start();
+
+        $this->assertTrue($called, WorkerStopEvent::class.' has not been dispatched');
+
+        $this->assertCount(1, $this->requests);
     }
 
     public function test_an_error_in_debug_mode_shows_the_trace_and_stops_the_worker()
     {
+        $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
         $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
 
         $this->kernel->isDebug()->willReturn(true);
@@ -167,13 +182,21 @@ class WorkerTest extends TestCase
                 throw new \RuntimeException('error in debug');
             });
 
+        $called = false;
+        $this->eventDispatcher->addListener(WorkerStopEvent::class, function () use (&$called) {
+            $called = true;
+        });
+
         $this->roadrunnerWorker->error(Argument::type('string'))
             ->shouldBeCalled()
             ->will(function (array $args) {
                 Assert::assertStringContainsString('error in debug', $args[0]);
             });
-        $this->roadrunnerWorker->stop()->shouldBeCalled();
 
         $this->worker->start();
+
+        $this->assertTrue($called, WorkerStopEvent::class.' has not been dispatched');
+
+        $this->assertCount(1, $this->requests);
     }
 }

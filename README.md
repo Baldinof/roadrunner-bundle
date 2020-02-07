@@ -43,6 +43,30 @@ http:
     relay: "tcp://localhost:7000"
 ```
 
+## Middlewares
+
+You can use middlewares to manipulate PSR request & responses. Middlewares can implements either PSR [`MiddlewareInterface`](https://www.php-fig.org/psr/psr-15/#22-psrhttpservermiddlewareinterface)
+or [`Baldinof\RoadRunnerBundle\Http\IteratorMiddlewareInterface`](./src/Http/IteratorMiddlewareInterface.php).
+
+`IteratorMiddlewareInterface` allows to do work after the response has been sent to the client, you just have to `yield` the response instead of returning it.
+
+Example configuration:
+
+```yaml
+baldinof_road_runner:
+    default_middlewares: true
+    middlewares:
+        - App\Middleware\YourMiddleware
+```
+
+Some default middlewares are enabled by default, depending on your configuration:
+- Sentry: configure the request context (if the [`SentryBundle`](https://github.com/getsentry/sentry-symfony) is installed)
+- Sessions: add the session cookie to the PSR response (if `framework.sessions.enabled` config is `true`)
+
+Beware that
+- middlewares are run outside of Symfony `Kernel::handle()`
+- the middleware stack is always resolved at worker start (can be a performance issue if your middleware initialization takes time)
+
 ## Limitations
 
 ### Long running kernel
@@ -57,12 +81,6 @@ baldinof_road_runner:
 
 If you want to reset just some services between requests (database connections), you can create service resetters by implementing `Symfony\Contracts\Service\ResetInterface`.
 
-### Sessions
-
-Currently RoadRunner is not compatible with Symfony Sessions, symfony use the native php session mecanism and does not set cookies on symfony responses.
-
-See: https://github.com/spiral/roadrunner/issues/18
-
 ### Development mode
 
 As everything is loaded in memory at startup, you should restart roadrunner after code changes.
@@ -76,7 +94,6 @@ bin/rr serve -o 'http.workers.pool.numWorkers=1' -o 'http.workers.pool.maxJobs=1
 Reference: https://roadrunner.dev/docs/php-developer
 
 If you use the Symfony VarDumper, dumps will not be shown in the HTTP Response body. You can view dumps with `bin/console server:dump` or in the profiler.
-
 
 ## Usage with Docker
 
