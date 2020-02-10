@@ -2,7 +2,9 @@
 
 namespace Baldinof\RoadRunnerBundle\Http\Middleware;
 
+use Baldinof\RoadRunnerBundle\Exception\HeadersAlreadySentException;
 use Baldinof\RoadRunnerBundle\Http\IteratorMiddlewareInterface;
+use Dflydev\FigCookies\FigRequestCookies;
 use Dflydev\FigCookies\FigResponseCookies;
 use Dflydev\FigCookies\Modifier\SameSite;
 use Dflydev\FigCookies\SetCookie;
@@ -13,11 +15,13 @@ class NativeSessionMiddleware implements IteratorMiddlewareInterface
 {
     public function process(ServerRequestInterface $request, RequestHandlerInterface $next): \Iterator
     {
-        session_unset();
+        if (headers_sent()) {
+            throw new HeadersAlreadySentException('Headers has already been sent. Something have been echoed on stdout.');
+        }
 
-        $cookies = $request->getCookieParams();
+        unset($_SESSION);
 
-        $oldId = $cookies[session_name()] ?? '';
+        $oldId = FigRequestCookies::get($request, session_name())->getValue() ?: '';
 
         session_id($oldId); // Set to current session or reset to nothing
 
@@ -35,18 +39,23 @@ class NativeSessionMiddleware implements IteratorMiddlewareInterface
                 ->withDomain($params['domain'])
                 ->withSecure($params['secure'])
                 ->withHttpOnly($params['httponly'])
-                ->withSameSite(SameSite::fromString($params['samesite']))
             ;
 
-            $lifetime = $params['lifetime'];
+            if ($params['lifetime'] > 0) {
+                $setCookie = $setCookie->withExpires(time() + $params['lifetime']);
+            }
 
-            if ($lifetime > 0) {
-                $setCookie = $setCookie->withExpires(time() + $lifetime);
+            if ($params['samesite']) {
+                $setCookie = $setCookie->withSameSite(SameSite::fromString($params['samesite']));
             }
 
             $response = FigResponseCookies::set($response, $setCookie);
         }
 
         yield $response;
+
+        if (PHP_SESSION_ACTIVE === session_status()) {
+            session_commit();
+        }
     }
 }
