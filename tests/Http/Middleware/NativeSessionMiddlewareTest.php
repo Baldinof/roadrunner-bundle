@@ -3,7 +3,6 @@
 namespace Tests\Baldinof\RoadRunnerBundle\Http\Middleware;
 
 use function Baldinof\RoadRunnerBundle\consumes;
-
 use Baldinof\RoadRunnerBundle\Exception\HeadersAlreadySentException;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
 use Dflydev\FigCookies\FigResponseCookies;
