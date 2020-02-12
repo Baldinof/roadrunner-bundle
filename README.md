@@ -43,6 +43,21 @@ http:
     relay: "tcp://localhost:7000"
 ```
 
+## Integrations
+
+Depending on installed bundle & your configuration, this bundles add some integrations:
+
+- Sentry: configure the request context (if the [`SentryBundle`](https://github.com/getsentry/sentry-symfony) is installed)
+- Sessions: add the session cookie to the PSR response (if `framework.sessions.enabled` config is `true`)
+- Doctrine Mongo Bundle: call `clear()` on all opened manager after each requests (not needed for regular doctrine bundle)
+
+Default integrations can be disabled:
+
+```yaml
+baldinof_road_runner:
+  default_integrations: false
+```
+
 ## Middlewares
 
 You can use middlewares to manipulate PSR request & responses. Middlewares can implements either PSR [`MiddlewareInterface`](https://www.php-fig.org/psr/psr-15/#22-psrhttpservermiddlewareinterface)
@@ -54,14 +69,9 @@ Example configuration:
 
 ```yaml
 baldinof_road_runner:
-    default_middlewares: true
     middlewares:
         - App\Middleware\YourMiddleware
 ```
-
-Some default middlewares are enabled by default, depending on your configuration:
-- Sentry: configure the request context (if the [`SentryBundle`](https://github.com/getsentry/sentry-symfony) is installed)
-- Sessions: add the session cookie to the PSR response (if `framework.sessions.enabled` config is `true`)
 
 Beware that
 - middlewares are run outside of Symfony `Kernel::handle()`

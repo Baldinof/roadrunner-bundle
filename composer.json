@@ -39,6 +39,7 @@
         "phpstan/phpstan": "^0.12.2",
         "sentry/sentry-symfony": "^3.4",
         "symfony/framework-bundle": "^5.0",
-        "nyholm/psr7": "^1.2"
+        "nyholm/psr7": "^1.2",
+        "doctrine/mongodb-odm-bundle": "^4.1"
     }
 }

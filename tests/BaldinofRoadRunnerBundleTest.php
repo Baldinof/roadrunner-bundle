@@ -39,9 +39,9 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $this->assertFalse($c->has(SentryMiddleware::class));
     }
 
-    public function test_it_does_not_load_default_middlewares_according_to_config()
+    public function test_it_does_not_load_default_integrations_according_to_config()
     {
-        $k = $this->getKernel(['default_middlewares' => false], [
+        $k = $this->getKernel(['default_integrations' => false], [
             new SentryBundle(),
         ]);
 

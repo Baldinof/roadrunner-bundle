@@ -4,6 +4,7 @@ namespace Baldinof\RoadRunnerBundle\DependencyInjection;
 
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\EventListener\ConfigureVarDumperListener;
+use Baldinof\RoadRunnerBundle\EventListener\DoctrineMongoDBListener;
 use Baldinof\RoadRunnerBundle\EventListener\SentryListener;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
@@ -44,8 +45,10 @@ class BaldinofRoadRunnerExtension extends Extension
             $container->getDefinition(WorkerConfiguration::class)->setArgument(0, true);
         }
 
+        $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
+
         $this->loadPsrFactories($container);
-        $this->loadMiddlewares($container, $config);
+        $this->loadIntegrations($container, $config);
     }
 
     private function loadDebug(ContainerBuilder $container): void
@@ -85,28 +88,39 @@ class BaldinofRoadRunnerExtension extends Extension
         }
     }
 
-    private function loadMiddlewares(ContainerBuilder $container, array $config): void
+    private function loadIntegrations(ContainerBuilder $container, array $config): void
     {
         $beforeMiddlewares = [];
         $lastMiddlewares = [];
 
-        if ($config['default_middlewares']) {
-            $bundles = $container->getParameter('kernel.bundles');
+        if (!$config['default_integrations']) {
+            $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
 
-            if (isset($bundles['SentryBundle'])) {
-                $container->autowire(SentryMiddleware::class);
-
-                $container->autowire(SentryListener::class)
-                    ->setAutoconfigured(true);
-
-                $beforeMiddlewares[] = SentryMiddleware::class;
-            }
-
-            $beforeMiddlewares[] = NativeSessionMiddleware::class;
+            return;
         }
 
+        $bundles = $container->getParameter('kernel.bundles');
+
+        if (isset($bundles['SentryBundle'])) {
+            $container->autowire(SentryMiddleware::class);
+
+            $container
+                ->autowire(SentryListener::class)
+                ->setAutoconfigured(true);
+
+            $beforeMiddlewares[] = SentryMiddleware::class;
+        }
+
+        if (isset($bundles['DoctrineMongoDBBundle'])) {
+            $container
+                ->register(DoctrineMongoDBListener::class)
+                ->addArgument(new Reference('service_container'))
+                ->setAutoconfigured(true);
+        }
+
+        $beforeMiddlewares[] = NativeSessionMiddleware::class;
+
         $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
-        $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
     }
 
     private function hasAllDefinitions(ContainerBuilder $container, string ...$definitions): bool

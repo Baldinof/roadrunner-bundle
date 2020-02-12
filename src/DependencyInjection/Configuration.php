@@ -21,7 +21,7 @@ class Configuration implements ConfigurationInterface
                     ->scalarPrototype()->end()
                 ->end()
                 ->booleanNode('should_reboot_kernel')->defaultFalse()->end()
-                ->booleanNode('default_middlewares')->defaultTrue()->end()
+                ->booleanNode('default_integrations')->defaultTrue()->end()
             ->end();
 
         return $treeBuilder;
