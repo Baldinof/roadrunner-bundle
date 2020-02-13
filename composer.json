@@ -40,6 +40,7 @@
         "sentry/sentry-symfony": "^3.4",
         "symfony/framework-bundle": "^5.0",
         "nyholm/psr7": "^1.2",
-        "doctrine/mongodb-odm-bundle": "^4.1"
+        "doctrine/mongodb-odm-bundle": "^4.1",
+        "blackfire/php-sdk": "^1.21"
     }
 }
