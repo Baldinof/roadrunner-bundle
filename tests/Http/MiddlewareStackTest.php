@@ -24,7 +24,7 @@ class MiddlewareStackTest extends TestCase
         self::$out = '';
     }
 
-    public function test_call_order()
+    public function test_it_calls_middlewares_in_expected_order()
     {
         $stack = new MiddlewareStack(new class() implements IteratorRequestHandlerInterface {
             public function handle(ServerRequestInterface $request): \Iterator
@@ -65,7 +65,7 @@ class MiddlewareStackTest extends TestCase
         TXT, $this->getOut());
     }
 
-    public function test_with_psr_handler()
+    public function test_it_works_with_psr_handler()
     {
         $handler = $this->prophesize(RequestHandlerInterface::class);
         $handler->handle(Argument::any())->willReturn($response = new Response());
@@ -76,7 +76,7 @@ class MiddlewareStackTest extends TestCase
         $this->assertSame($response, $gen->current());
     }
 
-    public function test_middleware_can_modify_the_response()
+    public function test_a_middleware_can_modify_the_response()
     {
         $handler = $this->prophesize(RequestHandlerInterface::class);
         $handler->handle(Argument::any())->willReturn($response = new Response());

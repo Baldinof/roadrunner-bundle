@@ -100,7 +100,7 @@ class WorkerTest extends TestCase
      * @testWith [ "Baldinof\\RoadRunnerBundle\\Event\\WorkerStartEvent" ]
      *           [ "Baldinof\\RoadRunnerBundle\\Event\\WorkerStopEvent" ]
      */
-    public function test_it_dispatches_start_and_stop_events($eventName)
+    public function test_it_dispatches_events($eventName)
     {
         $called = false;
         $this->eventDispatcher->addListener($eventName, function () use (&$called) {

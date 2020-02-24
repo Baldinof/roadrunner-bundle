@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist
       - name: PHPUnit
-        run: vendor/bin/phpunit
+        run: vendor/bin/phpunit --testdox
 
   static-analysis:
     name: Static analysis
