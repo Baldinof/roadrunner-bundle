@@ -27,7 +27,7 @@ class NativeSessionMiddlewareTest extends TestCase
      * @runInSeparateProcess
      * @preserveGlobalState disabled
      */
-    public function test_sessions()
+    public function test_sessions_works()
     {
         $response = $this->process($this->emptyRequest());
 
@@ -75,6 +75,28 @@ class NativeSessionMiddlewareTest extends TestCase
         $this->assertEquals($now + $lifetime, $cookie->getExpires());
     }
 
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function test_it_closes_session_if_the_handler_throws()
+    {
+        $expectedException = new \Exception('Error during handler');
+        try {
+            $this->process($this->emptyRequest(), function ($req) use ($expectedException) {
+                session_start();
+
+                throw $expectedException;
+            });
+        } catch (\Throwable $e) {
+            if ($e !== $expectedException) {
+                throw $e;
+            }
+
+            $this->assertEquals(PHP_SESSION_NONE, session_status());
+        }
+    }
+
     public function test_it_throws_if_headers_already_sent()
     {
         if (!headers_sent()) {
@@ -97,11 +119,10 @@ class NativeSessionMiddlewareTest extends TestCase
         return $request;
     }
 
-    private function process(ServerRequestInterface $request): ResponseInterface
+    private function process(ServerRequestInterface $request, ?callable $handler = null): ResponseInterface
     {
-        $it = $this->middleware->process($request, new class() implements RequestHandlerInterface {
-            public function handle(ServerRequestInterface $request): ResponseInterface
-            {
+        if (null === $handler) {
+            $handler = function (ServerRequestInterface $request): ResponseInterface {
                 session_start();
 
                 $counter = ($_SESSION['counter'] ?? 0) + 1;
@@ -109,6 +130,18 @@ class NativeSessionMiddlewareTest extends TestCase
                 $_SESSION['counter'] = $counter;
 
                 return new Response(200, [], (string) $counter);
+            };
+        }
+
+        $it = $this->middleware->process($request, new class($handler) implements RequestHandlerInterface {
+            public function __construct(callable $handler)
+            {
+                $this->handler = $handler;
+            }
+
+            public function handle(ServerRequestInterface $request): ResponseInterface
+            {
+                return ($this->handler)($request);
             }
         });
 
