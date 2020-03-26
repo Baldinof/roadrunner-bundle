@@ -2,25 +2,25 @@
 
 namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 
+use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
-use Baldinof\RoadRunnerBundle\Http\KernelHandler;
-use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
+use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Worker\Configuration;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
+use Iterator;
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\Response;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\NullLogger;
 use Spiral\RoadRunner\PSR7Client;
 use Spiral\RoadRunner\Worker as RoadrunnerWorker;
-use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
-use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 
@@ -28,6 +28,7 @@ class WorkerTest extends TestCase
 {
     private $worker;
     private $requests;
+    private $responder;
 
     /**
      * @var EventDispatcher
@@ -57,13 +58,33 @@ class WorkerTest extends TestCase
         $this->kernel->isDebug()->willReturn(false);
         $this->kernel->boot()->willReturn(null);
 
-        $this->stack = new MiddlewareStack(new KernelHandler($this->kernel->reveal(), new PsrHttpFactory($psrFactory, $psrFactory, $psrFactory, $psrFactory), new HttpFoundationFactory()));
+        $handler = function ($request) {
+            if (!is_callable($this->responder)) {
+                $this->fail('Unexpected call on the request handler');
+            }
+
+            yield from ($this->responder)($request);
+        };
+
+        $this->handler = new class($handler) implements IteratorRequestHandlerInterface {
+            private $handler;
+
+            public function __construct(callable $handler)
+            {
+                $this->handler = $handler;
+            }
+
+            public function handle(ServerRequestInterface $request): Iterator
+            {
+                yield from ($this->handler)($request);
+            }
+        };
 
         $this->worker = new Worker(
             $this->kernel->reveal(),
             $this->eventDispatcher,
             new Configuration(false),
-            $this->stack,
+            $this->handler,
             new NullLogger(),
             $this->psrClient->reveal()
         );
@@ -78,7 +99,7 @@ class WorkerTest extends TestCase
             $this->prophesize(KernelInterface::class)->reveal(),
             new EventDispatcher(),
             new Configuration(true),
-            $this->stack,
+            $this->handler,
             new NullLogger(),
             $this->prophesize(PSR7Client::class)->reveal()
         );
@@ -112,36 +133,38 @@ class WorkerTest extends TestCase
         $this->assertTrue($called);
     }
 
-    public function test_it_calls_the_kernel()
+    public function test_it_calls_the_handler()
     {
+        // Force re-throw caught exception.
+        $this->eventDispatcher->addListener(WorkerExceptionEvent::class, function (WorkerExceptionEvent $e) {
+            throw $e->getException();
+        });
+
         $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
 
-        $response = new Response('hello');
+        $terminated = false;
+        $this->responder = function () use (&$terminated) {
+            yield new Response(200, [], 'hello');
 
-        $this->kernel->handle(Argument::any())
-            ->shouldBeCalled()
-            ->will(function (array $args) use ($response) {
-                $request = $args[0];
+            $terminated = true;
+        };
 
-                Assert::assertInstanceOf(Request::class, $request);
-                Assert::assertSame('http://example.org/', $request->getUri());
-                Assert::assertSame('GET', $request->getMethod());
-
-                return $response;
-            });
-
-        $this->kernel->terminate(Argument::any(), $response)->shouldBeCalled();
-
+        $psrClientCalled = false;
         $this->psrClient->respond(Argument::any())
             ->shouldBeCalled()
-            ->will(function (array $args) {
+            ->will(function (array $args) use (&$terminated, &$psrClientCalled) {
                 $psrResponse = $args[0];
 
                 Assert::assertInstanceOf(ResponseInterface::class, $psrResponse);
                 Assert::assertSame('hello', (string) $psrResponse->getBody());
+                Assert::assertFalse($terminated);
+                $psrClientCalled = true;
             });
 
         $this->worker->start();
+
+        $this->assertTrue($terminated);
+        $this->assertTrue($psrClientCalled, 'PSR Client seems to not have been called.');
     }
 
     public function test_an_error_stops_the_worker()
@@ -149,11 +172,9 @@ class WorkerTest extends TestCase
         $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
         $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
 
-        $this->kernel->handle(Argument::any())
-            ->shouldBeCalled()
-            ->will(function () {
-                throw new \RuntimeException('error');
-            });
+        $this->responder = function () {
+            throw new \RuntimeException('error');
+        };
 
         $called = false;
         $this->eventDispatcher->addListener(WorkerStopEvent::class, function () use (&$called) {
@@ -176,11 +197,9 @@ class WorkerTest extends TestCase
 
         $this->kernel->isDebug()->willReturn(true);
 
-        $this->kernel->handle(Argument::any())
-            ->shouldBeCalled()
-            ->will(function () {
-                throw new \RuntimeException('error in debug');
-            });
+        $this->responder = function () {
+            throw new \RuntimeException('error in debug');
+        };
 
         $called = false;
         $this->eventDispatcher->addListener(WorkerStopEvent::class, function () use (&$called) {
