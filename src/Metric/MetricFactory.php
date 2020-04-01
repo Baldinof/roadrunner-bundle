@@ -4,35 +4,34 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Metric;
 
+use Spiral\Goridge\RPC;
 use Spiral\RoadRunner\Metrics;
 use Spiral\RoadRunner\MetricsInterface;
 
 class MetricFactory
 {
     /**
-     * @var NullMetrics
+     * @var RPC
      */
-    private $nullMetrics;
-
-    /**
-     * @var Metrics
-     */
-    private $metrics;
+    private $rpcService;
 
     /**
      * @var bool
      */
     private $metricsEnabled;
 
-    public function __construct(NullMetrics $nullMetrics, Metrics $metrics, bool $metricsEnabled)
+    public function __construct(RPC $rpcService, bool $metricsEnabled)
     {
-        $this->nullMetrics = $nullMetrics;
-        $this->metrics = $metrics;
+        $this->rpcService = $rpcService;
         $this->metricsEnabled = $metricsEnabled;
     }
 
     public function getMetricService(): MetricsInterface
     {
-        return $this->metricsEnabled ? $this->metrics : $this->nullMetrics;
+        if ($this->metricsEnabled) {
+            return new Metrics($this->rpcService);
+        }
+
+        return new NullMetrics();
     }
 }
