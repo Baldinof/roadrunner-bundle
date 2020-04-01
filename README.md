@@ -77,6 +77,40 @@ Beware that
 - middlewares are run outside of Symfony `Kernel::handle()`
 - the middleware stack is always resolved at worker start (can be a performance issue if your middleware initialization takes time)
 
+## Metrics
+Roadrunner have ability to collect application metrics, more info here - https://roadrunner.dev/docs/beep-beep-metrics
+
+This bundle support metrics collection, if you want use it, then you should enable metric collection in config:
+```
+baldinof_road_runner:
+    metrics_enabled: true
+```
+
+and then simple request `Spiral\RoadRunner\MetricsInterface` in you services.
+
+If you use `Spiral\RoadRunner\MetricsInterface`, but not enable metric collection in config, 
+metrics not be collected, and null collector will be provided (see `Baldinof\RoadRunnerBundle\Metric\NullMetrics`).
+
+Roadrunner should have enabled RPC, as unix-socket:
+
+```
+rpc:
+  enable: true
+  listen: unix://var/roadrunner_rpc.sock
+```
+
+If you want use different transport for rpc communication, you should redefine service `baldinof_road_runner.rr.rpc_relay`.
+
+Define list of metrics to collect (more examples in roadruner documentation):
+```
+metrics:
+  address: localhost:2112
+  collect:
+    app_metric_counter:
+      type: counter
+      help: "Application counter."
+```
+
 ## Limitations
 
 ### Long running kernel

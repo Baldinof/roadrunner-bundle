@@ -48,3 +48,30 @@ services:
 
   Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface: '@baldinof_roadrunner.psr_message_factory'
   Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface: '@baldinof_roadrunner.http_foundation_factory'
+
+  baldinof_road_runner.rr.rpc_relay:
+    class: Spiral\Goridge\SocketRelay
+    arguments:
+      - '%kernel.project_dir%/var/roadrunner_rpc.sock'
+      - null
+      - !php/const Spiral\Goridge\SocketRelay::SOCK_UNIX
+
+  baldinof_road_runner.rr.rpc:
+    class: Spiral\Goridge\RPC
+    arguments:
+      - "@baldinof_road_runner.rr.rpc_relay"
+
+  Spiral\RoadRunner\Metrics:
+    arguments:
+      - "@baldinof_road_runner.rr.rpc"
+
+  Baldinof\RoadRunnerBundle\Metric\NullMetrics:
+      autowire: true
+
+  Baldinof\RoadRunnerBundle\Metric\MetricFactory:
+      autowire: true
+      arguments:
+        $metricsEnabled: '%baldinof_road_runner.metrics_enabled%'
+
+  Spiral\RoadRunner\MetricsInterface:
+      factory: ['@Baldinof\RoadRunnerBundle\Metric\MetricFactory', 'getMetricService' ]

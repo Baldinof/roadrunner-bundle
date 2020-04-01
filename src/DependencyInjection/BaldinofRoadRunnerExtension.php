@@ -47,6 +47,7 @@ class BaldinofRoadRunnerExtension extends Extension
         }
 
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
+        $container->setParameter('baldinof_road_runner.metrics_enabled', $config['metrics_enabled']);
 
         $this->loadPsrFactories($container);
         $this->loadIntegrations($container, $config);

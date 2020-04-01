@@ -22,6 +22,7 @@ class Configuration implements ConfigurationInterface
                 ->end()
                 ->booleanNode('should_reboot_kernel')->defaultFalse()->end()
                 ->booleanNode('default_integrations')->defaultTrue()->end()
+                ->booleanNode('metrics_enabled')->defaultFalse()->end()
             ->end();
 
         return $treeBuilder;
