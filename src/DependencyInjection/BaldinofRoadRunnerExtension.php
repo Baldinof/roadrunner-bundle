@@ -15,7 +15,6 @@ use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
-use Spiral\Goridge\SocketRelay;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -52,10 +51,6 @@ class BaldinofRoadRunnerExtension extends Extension
 
         $this->loadPsrFactories($container);
         $this->loadIntegrations($container, $config);
-
-        if ($config['metrics_enabled']) {
-            $this->registerRpcRelay($container);
-        }
     }
 
     private function loadDebug(ContainerBuilder $container): void
@@ -162,36 +157,5 @@ class BaldinofRoadRunnerExtension extends Extension
         }
 
         $container->setAlias($alias, $id);
-    }
-
-    private function registerRpcRelay(ContainerBuilder $container): void
-    {
-        $rpcDsn = parse_url((string) getenv('RR_RPC'));
-        if (!is_array($rpcDsn) || !array_key_exists('scheme', $rpcDsn)) {
-            return;
-        }
-
-        switch ($rpcDsn['scheme']) {
-            case 'tcp':
-                $container->getDefinition('baldinof_road_runner.rr.rpc_relay')->setArguments([
-                    $rpcDsn['host'],
-                    $rpcDsn['port'],
-                    SocketRelay::SOCK_TCP,
-                ]);
-                break;
-            case 'unix':
-                $soketPath = $rpcDsn['host'].$rpcDsn['path'];
-                //is path relative? Make it absolute, from project root.
-                if ('/' !== $soketPath[0]) {
-                    $soketPath = $container->getParameter('kernel.project_dir').'/'.$soketPath;
-                }
-
-                $container->getDefinition('baldinof_road_runner.rr.rpc_relay')->setArguments([
-                    $soketPath,
-                    null,
-                    SocketRelay::SOCK_UNIX,
-                ]);
-                break;
-        }
     }
 }

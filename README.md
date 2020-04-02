@@ -99,7 +99,7 @@ rpc:
   listen: unix://var/roadrunner_rpc.sock
 ```
 
-This bundle support TCP and UNIX socket, if you want use different transport for rpc communication, you should redefine service `baldinof_road_runner.rr.rpc_relay`.
+This bundle support TCP and UNIX socket, if you want use different transport for rpc communication, you should redefine service `Baldinof\RoadRunnerBundle\Metric\MetricFactory`.
 
 Define list of metrics to collect (more examples in roadruner documentation):
 ```
