@@ -15,14 +15,14 @@ class MetricFactoryTest extends TestCase
 {
     public function test_is_metrics_enabled_but_rpc_not_configured(): void
     {
-        $metricFactory = new MetricFactory('', '', true);
+        $metricFactory = new MetricFactory(null, '', true);
         $this->expectException(BadConfigurationException::class);
         $metricFactory->getMetricService();
     }
 
     public function test_is_null_metrics_created_when_metrics_disabled()
     {
-        $metricFactory = new MetricFactory('', '', false);
+        $metricFactory = new MetricFactory(null, '', false);
         $this->assertInstanceOf(NullMetrics::class, $metricFactory->getMetricService());
     }
 
