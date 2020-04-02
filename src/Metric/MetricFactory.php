@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Metric;
 
+use Baldinof\RoadRunnerBundle\Exception\BadConfigurationException;
 use Baldinof\RoadRunnerBundle\Exception\UnknownRpcTransportException;
 use Spiral\Goridge\RPC;
 use Spiral\Goridge\SocketRelay;
 use Spiral\RoadRunner\Metrics;
 use Spiral\RoadRunner\MetricsInterface;
 
-class MetricFactory
+final class MetricFactory
 {
     /**
      * @var bool
@@ -38,33 +39,58 @@ class MetricFactory
     {
         $nullMetrics = new NullMetrics();
 
-        if (!$this->metricsEnabled || !$this->rrRpc) {
+        if (!$this->metricsEnabled) {
             return $nullMetrics;
         }
 
-        $rpcDsn = parse_url($this->rrRpc);
-        if (!is_array($rpcDsn) || !array_key_exists('scheme', $rpcDsn)) {
-            return $nullMetrics;
+        if (empty($this->rrRpc)) {
+            throw new BadConfigurationException('RPC not configured in RR config, please enable it - https://roadrunner.dev/docs/beep-beep-rpc.');
         }
 
-        $rpcService = null;
-        switch ($rpcDsn['scheme']) {
+        //https://github.com/spiral/roadrunner/blob/master/util/network.go
+        $rpcDsn = explode('://', $this->rrRpc);
+
+        if (!is_array($rpcDsn) || 2 !== count($rpcDsn)) {
+            throw new UnknownRpcTransportException('Unable to parse RPC dsn - '.$this->rrRpc);
+        }
+
+        return new Metrics(new RPC($this->createRpcRelay($rpcDsn)));
+    }
+
+    private function createRpcRelay(array $rpcDsn): SocketRelay
+    {
+        switch ($rpcDsn[0]) {
             case 'tcp':
-                $rpcRelay = new SocketRelay($rpcDsn['host'], $rpcDsn['port'], SocketRelay::SOCK_TCP);
-                break;
+                return $this->createTcpRelay($rpcDsn);
             case 'unix':
-                $soketPath = $rpcDsn['host'].$rpcDsn['path'];
-                //Is path relative? Make it absolute, from project root.
-                if ('/' !== $soketPath[0]) {
-                    $soketPath = $this->kernelProjectDir.'/'.$soketPath;
-                }
-
-                $rpcRelay = new SocketRelay($soketPath, null, SocketRelay::SOCK_UNIX);
-                break;
-            default:
-                throw new UnknownRpcTransportException('Invalid RPC transport - '.$rpcDsn['scheme']);
+                return $this->createUnixRelay($rpcDsn);
         }
 
-        return new Metrics(new RPC($rpcRelay));
+        throw new UnknownRpcTransportException('Invalid RPC transport - '.$this->rrRpc);
+    }
+
+    private function createTcpRelay(array $rpcDsn): SocketRelay
+    {
+        $tcpHost = explode(':', $rpcDsn[1]);
+        if (!is_array($tcpHost) || 2 !== count($tcpHost)) {
+            throw new UnknownRpcTransportException('Invalid TCP RPC - '.$rpcDsn[1]);
+        }
+
+        if (empty($tcpHost[0])) {
+            $tcpHost[0] = '127.0.0.1';
+        }
+
+        return new SocketRelay($tcpHost[0], (int) $tcpHost[1], SocketRelay::SOCK_TCP);
+    }
+
+    private function createUnixRelay(array $rpcDsn): SocketRelay
+    {
+        $socketPath = $rpcDsn[1];
+        //Is path relative? Make it absolute, from project root.
+        if ('/' !== $socketPath[0]) {
+            $socketPath = $this->kernelProjectDir.'/'.$socketPath;
+        }
+
+        return new SocketRelay($socketPath, null, SocketRelay::SOCK_UNIX);
     }
 }
