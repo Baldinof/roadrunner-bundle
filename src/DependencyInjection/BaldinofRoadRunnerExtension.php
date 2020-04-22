@@ -9,6 +9,7 @@ use Baldinof\RoadRunnerBundle\EventListener\SentryListener;
 use Baldinof\RoadRunnerBundle\Http\Middleware\BlackfireMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
+use Baldinof\RoadRunnerBundle\Http\Middleware\WebpackEncoreMiddleware;
 use Baldinof\RoadRunnerBundle\Worker\Configuration as WorkerConfiguration;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -123,6 +124,12 @@ class BaldinofRoadRunnerExtension extends Extension
                 ->register(DoctrineMongoDBListener::class)
                 ->addArgument(new Reference('service_container'))
                 ->setAutoconfigured(true);
+        }
+
+        if (isset($bundles['WebpackEncoreBundle'])) {
+            $container->autowire(WebpackEncoreMiddleware::class);
+
+            $beforeMiddlewares[] = WebpackEncoreMiddleware::class;
         }
 
         $beforeMiddlewares[] = NativeSessionMiddleware::class;

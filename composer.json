@@ -41,6 +41,7 @@
         "symfony/framework-bundle": "^5.0",
         "nyholm/psr7": "^1.2",
         "doctrine/mongodb-odm-bundle": "^4.1",
-        "blackfire/php-sdk": "^1.21"
+        "blackfire/php-sdk": "^1.21",
+        "symfony/webpack-encore-bundle": "^1.7"
     }
 }
