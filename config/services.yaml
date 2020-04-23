@@ -28,6 +28,8 @@ services:
 
   Baldinof\RoadRunnerBundle\Http\KernelHandler:
     autowire: true
+    arguments:
+      $kernel: '@kernel'
 
   Baldinof\RoadRunnerBundle\Http\MiddlewareStack:
     arguments: [ '@Baldinof\RoadRunnerBundle\Http\KernelHandler' ]
