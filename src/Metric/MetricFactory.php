@@ -28,16 +28,22 @@ final class MetricFactory
      */
     private $kernelProjectDir;
 
-    public function __construct(?string $rrRpc, string $kernelProjectDir, bool $metricsEnabled)
+    /**
+     * @var bool|null
+     */
+    private $rrEnabled;
+
+    public function __construct(?string $rrRpc, ?bool $rrEnabled, string $kernelProjectDir, bool $metricsEnabled)
     {
         $this->rrRpc = $rrRpc;
+        $this->rrEnabled = $rrEnabled;
         $this->kernelProjectDir = $kernelProjectDir;
         $this->metricsEnabled = $metricsEnabled;
     }
 
     public function getMetricService(): MetricsInterface
     {
-        if (!$this->metricsEnabled) {
+        if (!$this->metricsEnabled || !$this->rrEnabled) {
             return new NullMetrics();
         }
 

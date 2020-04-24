@@ -53,6 +53,7 @@ services:
       autowire: true
       arguments:
         $rrRpc: '%env(default::RR_RPC)%'
+        $rrEnabled: '%env(bool:default::RR)%'
         $metricsEnabled: '%baldinof_road_runner.metrics_enabled%'
         $kernelProjectDir: '%kernel.project_dir%'
 
