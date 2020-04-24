@@ -1,6 +1,8 @@
 # Roadrunner Bundle
 
-**Roadrunner Bundle** provides a [RoadRunner](https://roadrunner.dev/) worker integrated in symfony.
+[RoadRunner](https://roadrunner.dev/) is a high-performance PHP application server, load-balancer, and process manager written in Golang.
+
+This bundles provides a RoadRunner Worker integrated in Symfony, it's easily configurable and extendable.
 
 ## Installation
 
@@ -12,7 +14,7 @@ composer require baldinof/roadrunner-bundle
 
 If you don't use Symfony Flex:
 - register `Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle` in your kernel
-- copy the default RoadRunner configuration: `cp vendor/baldinof/roadrunner-bundle/.rr.yaml .`
+- copy default RoadRunner configuration files: `cp vendor/baldinof/roadrunner-bundle/.rr.* .`
 
 ## Usage
 
@@ -88,7 +90,7 @@ baldinof_road_runner:
 
 and then simple request `Spiral\RoadRunner\MetricsInterface` in you services.
 
-If you use `Spiral\RoadRunner\MetricsInterface`, but metrics collection is disabled in config, 
+If you use `Spiral\RoadRunner\MetricsInterface`, but metrics collection is disabled in config,
 metrics will not be collected, and a null collector will be provided (see `Baldinof\RoadRunnerBundle\Metric\NullMetrics`).
 
 Roadrunner should have enabled RPC, e.g.:
@@ -125,15 +127,15 @@ If you want to reset just some services between requests (database connections),
 
 ### Development mode
 
-As everything is loaded in memory at startup, you should restart roadrunner after code changes.
+Copy the dev config file if it's not present: `cp vendor/baldinof/roadrunner-bundle/.rr.dev.yaml .`
 
-You can use a configuration that reload the worker after each request:
+Start RoadRunner with the dev config file:
 
 ```
-bin/rr serve -o 'http.workers.pool.numWorkers=1' -o 'http.workers.pool.maxJobs=1'
+bin/rr serve -c .rr.dev.yaml
 ```
 
-Reference: https://roadrunner.dev/docs/php-developer
+Reference: https://roadrunner.dev/docs/beep-beep-reload
 
 If you use the Symfony VarDumper, dumps will not be shown in the HTTP Response body. You can view dumps with `bin/console server:dump` or in the profiler.
 
