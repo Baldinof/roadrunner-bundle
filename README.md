@@ -2,7 +2,7 @@
 
 [RoadRunner](https://roadrunner.dev/) is a high-performance PHP application server, load-balancer, and process manager written in Golang.
 
-This bundles provides a RoadRunner Worker integrated in Symfony, it's easily configurable and extendable.
+This bundle provides a RoadRunner Worker integrated in Symfony, it's easily configurable and extendable.
 
 ## Installation
 
