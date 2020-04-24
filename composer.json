@@ -23,7 +23,7 @@
         "symfony/http-kernel": "^4.0 || ^5.0",
         "symfony/yaml": "^4.0 || ^5.0",
         "spiral/roadrunner": "^1.5",
-        "symfony/psr-http-message-bridge": "^1.2",
+        "symfony/psr-http-message-bridge": "^1.1 || ^2.0",
         "psr/http-factory": "^1.0",
         "psr/http-server-handler": "^1.0",
         "psr/http-server-middleware": "^1.0",

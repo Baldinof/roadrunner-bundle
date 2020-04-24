@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2020-04-24
+### Added
+- Compatibility with `symfony/psr-http-message-bridge` 2.*
+
 ## [1.2.0] - 2020-04-24
 ### Added
 - DEV mode config file (`.rr.dev.yaml`), with auto-reloading on php files changes.
