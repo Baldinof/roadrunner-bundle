@@ -115,7 +115,7 @@ class KernelHandlerTest extends TestCase
                 $this->callback = $callback;
             }
 
-            public function handle(Request $request, int $type = self::MASTER_REQUEST, bool $catch = true): Response
+            public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true)
             {
                 return ($this->callback)($request);
             }

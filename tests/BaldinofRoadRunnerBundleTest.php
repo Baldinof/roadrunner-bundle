@@ -95,7 +95,11 @@ class TestKernel extends Kernel
 
     protected function configureContainer(ContainerBuilder $c, LoaderInterface $loader)
     {
-        $c->loadFromExtension('framework', ['test' => true]);
+        $c->loadFromExtension('framework', [
+            'test' => true,
+            'secret' => 'secret',
+        ]);
+
         $c->loadFromExtension('baldinof_road_runner', $this->config);
     }
 }

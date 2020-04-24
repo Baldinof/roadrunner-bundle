@@ -2,6 +2,7 @@
 
 $finder = PhpCsFixer\Finder::create()
     ->in(['src', 'tests'])
+    ->notPath('__cache')
 ;
 
 return PhpCsFixer\Config::create()
