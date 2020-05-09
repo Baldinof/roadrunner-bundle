@@ -47,9 +47,24 @@ final class KernelHandler implements IteratorRequestHandlerInterface
 
         $this->handleBasicAuth($symfonyRequest);
 
-        $symfonyResponse = $this->kernel->handle($symfonyRequest);
+        $tempBuffer = new \SplTempFileObject();
+        ob_start(function ($buffer) use (&$tempBuffer) {
+            $tempBuffer->fwrite($buffer);
+        });
 
-        yield $this->httpMessageFactory->createResponse($symfonyResponse);
+        $symfonyResponse = $this->kernel->handle($symfonyRequest);
+        $psrResponse = $this->httpMessageFactory->createResponse($symfonyResponse);
+        ob_end_clean();
+
+        if ($symfonyResponse instanceof StreamedResponse) {
+            $dataSize = $tempBuffer->ftell();
+            $tempBuffer->rewind();
+            $psrResponse->getBody()->write($tempBuffer->fread($dataSize));
+        }
+
+        unset($tempBuffer);
+
+        yield $psrResponse;
 
         if ($this->kernel instanceof TerminableInterface) {
             $this->kernel->terminate($symfonyRequest, $symfonyResponse);
