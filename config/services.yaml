@@ -61,3 +61,9 @@ services:
 
   Spiral\RoadRunner\MetricsInterface:
       factory: ['@Baldinof\RoadRunnerBundle\Metric\MetricFactory', 'getMetricService' ]
+
+  Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener:
+      decorates: streamed_response_listener
+      arguments:
+        $symfonyListener: '@Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener.inner'
+        $rrEnabled: '%env(bool:default::RR)%'
