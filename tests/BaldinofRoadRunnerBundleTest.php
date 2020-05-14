@@ -3,6 +3,7 @@
 namespace Tests\Baldinof\RoadRunnerBundle;
 
 use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
+use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
 use PHPUnit\Framework\TestCase;
 use Sentry\SentryBundle\SentryBundle;
@@ -50,6 +51,17 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $c = $k->getContainer()->get('test.service_container');
 
         $this->assertFalse($c->has(SentryMiddleware::class));
+    }
+
+    public function test_it_decorates_StreamedResponseListener()
+    {
+        $k = $this->getKernel([], []);
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertInstanceOf(StreamedResponseListener::class, $c->get('streamed_response_listener'));
     }
 
     public function getKernel(array $config, array $extraBundles)
