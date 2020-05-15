@@ -28,7 +28,8 @@
         "psr/http-factory": "^1.0",
         "psr/http-server-handler": "^1.0",
         "psr/http-server-middleware": "^1.0",
-        "dflydev/fig-cookies": "^2.0"
+        "dflydev/fig-cookies": "^2.0",
+        "symfony/proxy-manager-bridge": "^5.0"
     },
     "suggest": {
         "nyholm/psr7": "For a super lightweight PSR-7/17 implementation"
@@ -42,7 +43,9 @@
         "symfony/framework-bundle": "^4.0||^5.0",
         "nyholm/psr7": "^1.2",
         "doctrine/mongodb-odm-bundle": "^4.1",
-        "blackfire/php-sdk": "^1.21"
+        "blackfire/php-sdk": "^1.21",
+        "doctrine/doctrine-bundle": "^2.0",
+        "doctrine/orm": "^2.7"
     },
     "scripts": {
         "test": "phpunit --testdox --colors=always",

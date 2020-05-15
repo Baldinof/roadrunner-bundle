@@ -36,6 +36,7 @@ services:
     public: true
 
   Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware: null
+  Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware: null
 
   baldinof_roadrunner.http_foundation_factory:
     class: 'Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory'
