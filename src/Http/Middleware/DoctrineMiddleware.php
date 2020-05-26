@@ -37,11 +37,6 @@ class DoctrineMiddleware implements MiddlewareInterface
             if ($connection->isConnected()) {
                 if (false === $connection->ping()) {
                     $connection->close();
-                    $connection->connect();
-                }
-
-                if (!$manager->isOpen()) {
-                    $this->managerRegistry->resetManager($name);
                 }
             }
         }
