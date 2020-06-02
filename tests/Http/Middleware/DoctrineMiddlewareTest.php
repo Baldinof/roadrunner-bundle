@@ -6,43 +6,42 @@ namespace Tests\Baldinof\RoadRunnerBundle\Http\Middleware;
 
 use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
 use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class DoctrineMiddlewareTest extends TestCase
 {
     private $managerRegistryMock;
-    private $entityManagerMock;
     private $connectionMock;
     private $requestMock;
     private $handlerMock;
     private $middleware;
+    private $containerMock;
 
     public function setUp(): void
     {
         $this->managerRegistryMock = $this->createMock(ManagerRegistry::class);
-        $this->entityManagerMock = $this->createMock(EntityManagerInterface::class);
         $this->connectionMock = $this->createMock(Connection::class);
+        $this->containerMock = $this->createMock(ContainerInterface::class);
 
-        $this->entityManagerMock->method('getConnection')->willReturn($this->connectionMock);
-        $this->managerRegistryMock->method('getManagers')->willReturn([$this->entityManagerMock]);
+        $this->containerMock->method('initialized')->willReturn(true);
+        $this->containerMock->method('get')->with('xxx')->willReturn($this->connectionMock);
+        $this->managerRegistryMock->method('getConnectionNames')->willReturn(['xxx']);
 
         $this->requestMock = $this->createMock(ServerRequestInterface::class);
         $this->handlerMock = $this->createMock(RequestHandlerInterface::class);
-        $this->middleware = new DoctrineMiddleware($this->managerRegistryMock);
+        $this->middleware = new DoctrineMiddleware($this->managerRegistryMock, $this->containerMock);
     }
 
     public function test_skip_when_not_connected(): void
     {
         $this->connectionMock->method('isConnected')->willReturn(false);
         $this->connectionMock->expects($this->never())->method('ping');
+        $this->connectionMock->expects($this->never())->method('close');
         $this->connectionMock->expects($this->never())->method('connect');
-        $this->connectionMock->expects($this->never())->method('connect');
-
-        $this->managerRegistryMock->expects($this->never())->method('resetManager');
 
         $this->middleware->process($this->requestMock, $this->handlerMock);
     }

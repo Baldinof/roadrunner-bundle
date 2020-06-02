@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Http\Middleware;
 
-use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class DoctrineMiddleware implements MiddlewareInterface
 {
@@ -18,9 +19,15 @@ class DoctrineMiddleware implements MiddlewareInterface
      */
     private $managerRegistry;
 
-    public function __construct(ManagerRegistry $managerRegistry)
+    /**
+     * @var ContainerInterface
+     */
+    private $container;
+
+    public function __construct(ManagerRegistry $managerRegistry, ContainerInterface $container)
     {
         $this->managerRegistry = $managerRegistry;
+        $this->container = $container;
     }
 
     /**
@@ -28,16 +35,18 @@ class DoctrineMiddleware implements MiddlewareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        foreach ($this->managerRegistry->getManagers() as $name => $manager) {
-            assert($manager instanceof EntityManagerInterface);
+        $connectionServices = $this->managerRegistry->getConnectionNames();
 
-            /** @var \Doctrine\DBAL\Connection $connection */
-            $connection = $manager->getConnection();
+        foreach ($connectionServices as $connectionServiceName) {
+            if (!$this->container->initialized($connectionServiceName)) {
+                continue;
+            }
 
-            if ($connection->isConnected()) {
-                if (false === $connection->ping()) {
-                    $connection->close();
-                }
+            $connection = $this->container->get($connectionServiceName);
+            assert($connection instanceof Connection);
+
+            if ($connection->isConnected() && false === $connection->ping()) {
+                $connection->close();
             }
         }
 
