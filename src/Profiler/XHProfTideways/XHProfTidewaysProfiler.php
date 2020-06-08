@@ -15,8 +15,19 @@ class XHProfTidewaysProfiler implements ProfilerInterface
     private $ratio;
     private $skipBuiltIn;
 
+    /**
+     * @var string
+     */
     private $requestTimeFloat = '';
+
+    /**
+     * @var string
+     */
     private $requestUri = '';
+
+    /**
+     * @var bool
+     */
     private $isStarted = false;
 
     public function __construct(StorageInterface $dataStorage, int $ratio = 0, bool $skipBuiltIn = false)
@@ -53,7 +64,7 @@ class XHProfTidewaysProfiler implements ProfilerInterface
     protected function makeData(): array
     {
         $time = \time();
-        $requestTimeFloat = \explode('.', $this->requestTimeFloat);
+        $requestTimeFloatParts = \explode('.', $this->requestTimeFloat);
 
         return [
             'profile' => \tideways_xhprof_disable(),
@@ -68,8 +79,8 @@ class XHProfTidewaysProfiler implements ProfilerInterface
                     'usec' => 0,
                 ],
                 'request_ts_micro' => [
-                    'sec' => $requestTimeFloat[0],
-                    'usec' => $requestTimeFloat[1] ?? 0,
+                    'sec' => $requestTimeFloatParts[0],
+                    'usec' => $requestTimeFloatParts[1] ?? 0,
                 ],
                 'request_date' => \date('Y-m-d', $time),
             ],

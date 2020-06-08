@@ -35,15 +35,14 @@ class MongoStorage implements StorageInterface
     public function store(array $data): void
     {
         try {
-            $data = $this->prepare($data);
-
             $client = $this->openConnection();
             $database = $client->selectDatabase($this->databaseName);
             $collection = $database->selectCollection($this->collectionName);
 
+            $data = $this->prepare($data);
             $collection->insertOne($data);
-        } catch (\Exception $exception) {
-            $this->logger->error($exception);
+        } catch (\Exception $e) {
+            $this->logger->error('An error occured: '.$e->getMessage(), ['throwable' => $e]);
         }
     }
 
