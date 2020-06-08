@@ -111,6 +111,53 @@ metrics:
       help: "Application counter."
 ```
 
+## Profiler
+This bundle support request profiling, if you want use it, then you should enable profiler in config:
+```
+  profiler:
+    service_id: 'ProfilerServiceName' // Must implement Baldinof\RoadRunnerBundle\Profiler\ProfilerInterface
+```
+You can create your own profiler or use the ready-made ones from the list below.
+
+### XHProf (Tideways)
+Official PHP extension [repository](https://github.com/tideways/php-xhprof-extension).  
+[XHGui](https://github.com/perftools/xhgui) — web GUI for collect and visualization profiler data.
+
+#### Setup profiler client
+If you want use it, then you should enable profiler in config:
+```
+  profiler:
+    service_id: 'BaldinofXHProfTidewaysProfiler'
+
+services:
+  Baldinof\RoadRunnerBundle\Profiler\XHProfTideways\Storage\MongoStorage:
+    autowire: true
+    arguments:
+      $connectionUri: '%env(PROFILER_MONGODB_DSN)%'
+      $databaseName: '%env(PROFILER_MONGODB_DB)%'
+      $uriOptions:
+        connectTimeoutMS: '%env(int:PROFILER_MONGODB_TIMEOUT)%'
+
+  BaldinofXHProfTidewaysProfiler:
+    class: Baldinof\RoadRunnerBundle\Profiler\XHProfTideways\XHProfTidewaysProfiler
+    autowire: true
+    arguments:
+      $dataStorage: '@Baldinof\RoadRunnerBundle\Profiler\XHProfTideways\Storage\MongoStorage'
+      $ratio: '%env(int:PROFILER_RATIO)%'
+```
+and put this to `.env`
+```
+###> Baldinof\RoadRunnerBundle\Profiler\XHProfTideways ###
+PROFILER_RATIO=100
+PROFILER_MONGODB_DSN=mongodb://127.0.0.1:27017
+PROFILER_MONGODB_DB=xhprof
+PROFILER_MONGODB_TIMEOUT=5000
+###< Baldinof\RoadRunnerBundle\Profiler\XHProfTideways ###
+```
+
+#### Setup data server
+Follow this XHGui [setup guide](https://github.com/perftools/xhgui#installation-with-docker).
+
 ## Limitations
 
 ### Long running kernel

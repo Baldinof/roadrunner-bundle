@@ -9,6 +9,7 @@ use Baldinof\RoadRunnerBundle\EventListener\SentryListener;
 use Baldinof\RoadRunnerBundle\Http\Middleware\BlackfireMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
+use Baldinof\RoadRunnerBundle\Profiler\NullProfiler;
 use Baldinof\RoadRunnerBundle\Worker\Configuration as WorkerConfiguration;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -16,6 +17,7 @@ use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\Alias;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
@@ -51,6 +53,7 @@ class BaldinofRoadRunnerExtension extends Extension
 
         $this->loadPsrFactories($container);
         $this->loadIntegrations($container, $config);
+        $this->loadProfiler($container, $config);
     }
 
     private function loadDebug(ContainerBuilder $container): void
@@ -128,6 +131,22 @@ class BaldinofRoadRunnerExtension extends Extension
         $beforeMiddlewares[] = NativeSessionMiddleware::class;
 
         $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
+    }
+
+    private function loadProfiler(ContainerBuilder $container, array $config): void
+    {
+        $profilerConfig = $config['profiler'];
+
+        $container->setParameter('baldinof_road_runner.profiler.config', $profilerConfig);
+
+        $serviceId = $profilerConfig['service_id'];
+
+        if (empty($serviceId)) {
+            $serviceId = 'baldinof_road_runner.profiler.null';
+            $container->register($serviceId, NullProfiler::class, );
+        }
+
+        $container->setAlias('baldinof_road_runner.profiler', new Alias($serviceId, false));
     }
 
     private function hasAllDefinitions(ContainerBuilder $container, string ...$definitions): bool

@@ -9,3 +9,5 @@ parameters:
           path: 'src/Worker/Worker.php'
         - message: '#Cannot call method end() on Symfony\\Component\\Config\\Definition\\Builder\\NodeParentInterface|null#'
           path: 'src/DependencyInjection'
+        - message: '#(Function|Constant) (tideways_xhprof_|TIDEWAYS_XHPROF_FLAGS_)(.+) not found.#'
+          path: 'src/Profiler/XHProfTideways/XHProfTidewaysProfiler.php'

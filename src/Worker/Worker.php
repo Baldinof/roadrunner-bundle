@@ -8,6 +8,7 @@ use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
+use Baldinof\RoadRunnerBundle\Profiler\ProfilerInterface;
 use Psr\Log\LoggerInterface;
 use Spiral\RoadRunner\PSR7Client;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,6 +24,7 @@ final class Worker implements WorkerInterface
     private $middlewareStack;
     private $psrClient;
     private $logger;
+    private $profiler;
 
     public function __construct(
         KernelInterface $kernel,
@@ -30,7 +32,8 @@ final class Worker implements WorkerInterface
         Configuration $configuration,
         IteratorRequestHandlerInterface $middlewareStack,
         LoggerInterface $logger,
-        PSR7Client $psrClient
+        PSR7Client $psrClient,
+        ProfilerInterface $profiler
     ) {
         $this->kernel = $kernel;
         $this->eventDispatcher = $eventDispatcher;
@@ -38,6 +41,7 @@ final class Worker implements WorkerInterface
         $this->middlewareStack = $middlewareStack;
         $this->psrClient = $psrClient;
         $this->logger = $logger;
+        $this->profiler = $profiler;
 
         $withReboot = $this->configuration->shouldRebootKernel();
 
@@ -63,6 +67,8 @@ final class Worker implements WorkerInterface
         $middlewareStack = $this->middlewareStack;
         while ($psrRequest = $this->psrClient->acceptRequest()) {
             try {
+                $this->profiler->start($psrRequest);
+
                 $gen = $middlewareStack->handle($psrRequest);
 
                 $this->psrClient->respond($gen->current());
@@ -81,6 +87,8 @@ final class Worker implements WorkerInterface
                 $this->eventDispatcher->dispatch(new WorkerExceptionEvent($e));
 
                 break;
+            } finally {
+                $this->profiler->finish();
             }
         }
 

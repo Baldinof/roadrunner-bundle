@@ -5,6 +5,7 @@ namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
+use Baldinof\RoadRunnerBundle\Profiler\NullProfiler;
 use Baldinof\RoadRunnerBundle\Worker\Configuration;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Iterator;
@@ -86,7 +87,8 @@ class WorkerTest extends TestCase
             new Configuration(false),
             $this->handler,
             new NullLogger(),
-            $this->psrClient->reveal()
+            $this->psrClient->reveal(),
+            new NullProfiler()
         );
     }
 
@@ -101,7 +103,8 @@ class WorkerTest extends TestCase
             new Configuration(true),
             $this->handler,
             new NullLogger(),
-            $this->prophesize(PSR7Client::class)->reveal()
+            $this->prophesize(PSR7Client::class)->reveal(),
+            new NullProfiler()
         );
     }
 
