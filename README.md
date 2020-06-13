@@ -145,7 +145,7 @@ services:
       $dataStorage: '@Baldinof\RoadRunnerBundle\Profiler\XHProfTideways\Storage\MongoStorage'
       $ratio: '%env(int:PROFILER_RATIO)%'
 ```
-and put this to `.env`
+and add this to `.env`
 ```
 ###> Baldinof\RoadRunnerBundle\Profiler\XHProfTideways ###
 PROFILER_RATIO=100
