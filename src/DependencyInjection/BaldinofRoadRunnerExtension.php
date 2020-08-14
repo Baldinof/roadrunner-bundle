@@ -19,15 +19,13 @@ use Psr\Http\Message\UploadedFileFactoryInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
-use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
-use Zend\Diactoros\ResponseFactory as DiactorosResponseFactory;
-use Zend\Diactoros\ServerRequestFactory as DiactorosServerRequestFactory;
-use Zend\Diactoros\StreamFactory as DiactorosStreamFactory;
-use Zend\Diactoros\UploadedFileFactory as DiactorosUploadedFileFactory;
 
 class BaldinofRoadRunnerExtension extends Extension
 {
+    const MONOLOG_CHANNEL = 'roadrunner';
+
     /**
      * @param array<string, mixed> $configs
      */
@@ -36,8 +34,8 @@ class BaldinofRoadRunnerExtension extends Extension
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
-        $loader = new YamlFileLoader($container, new FileLocator(__DIR__.'/../../config'));
-        $loader->load('services.yaml');
+        $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../../config'));
+        $loader->load('services.php');
 
         if ($container->getParameter('kernel.debug')) {
             $this->loadDebug($container);
