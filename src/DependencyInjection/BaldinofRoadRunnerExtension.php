@@ -14,13 +14,13 @@ use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Baldinof\RoadRunnerBundle\Worker\Configuration as WorkerConfiguration;
-use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
@@ -75,31 +75,12 @@ class BaldinofRoadRunnerExtension extends Extension
 
     private function loadPsrFactories(ContainerBuilder $container): void
     {
-        if ($this->hasAllDefinitions($container, ServerRequestFactoryInterface::class, StreamFactoryInterface::class, UploadedFileFactoryInterface::class, ResponseFactoryInterface::class)) {
-            return;
-        }
-
-        // if nyholm/psr7 is installed ensure factories are registered
-        if (class_exists(Psr17Factory::class)) {
-            $container->register('nyholm.psr7.psr17_factory', Psr17Factory::class);
-
-            $this->aliasIfNotExists($container, ServerRequestFactoryInterface::class, 'nyholm.psr7.psr17_factory');
-            $this->aliasIfNotExists($container, StreamFactoryInterface::class, 'nyholm.psr7.psr17_factory');
-            $this->aliasIfNotExists($container, UploadedFileFactoryInterface::class, 'nyholm.psr7.psr17_factory');
-            $this->aliasIfNotExists($container, ResponseFactoryInterface::class, 'nyholm.psr7.psr17_factory');
-
-            return;
-        }
-
-        // if zend-framework/diactoros is installed ensure factories are registered
-        if (class_exists(DiactorosServerRequestFactory::class)) {
-            $this->registerIfNotExists($container, ServerRequestFactoryInterface::class, DiactorosServerRequestFactory::class);
-            $this->registerIfNotExists($container, StreamFactoryInterface::class, DiactorosStreamFactory::class);
-            $this->registerIfNotExists($container, UploadedFileFactoryInterface::class, DiactorosUploadedFileFactory::class);
-            $this->registerIfNotExists($container, ResponseFactoryInterface::class, DiactorosResponseFactory::class);
-
-            return;
-        }
+        $container->addDefinitions([
+            'baldinof_road_runner.psr17.server_request_factory' => new Definition(),
+            'baldinof_road_runner.psr17.stream_factory' => new Definition(),
+            'baldinof_road_runner.psr17.uploaded_file_factory' => new Definition(),
+            'baldinof_road_runner.psr17.response_factory' => new Definition(),
+        ]);
     }
 
     private function loadIntegrations(ContainerBuilder $container, array $config): void
@@ -147,32 +128,13 @@ class BaldinofRoadRunnerExtension extends Extension
         $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
     }
 
-    private function hasAllDefinitions(ContainerBuilder $container, string ...$definitions): bool
+    private function registerAbstractIfNotExists(ContainerBuilder $container, string $id): void
     {
-        foreach ($definitions as $definition) {
-            if (!$container->hasDefinition($definition)) {
-                return false;
-            }
-        }
 
-        return true;
-    }
-
-    private function registerIfNotExists(ContainerBuilder $container, string $id, string $class): void
-    {
         if ($container->has($id)) {
             return;
         }
 
-        $container->register($id, $class);
-    }
-
-    private function aliasIfNotExists(ContainerBuilder $container, string $alias, string $id): void
-    {
-        if ($container->has($alias)) {
-            return;
-        }
-
-        $container->setAlias($alias, $id);
+        $container->register($id)->setAbstract(true);
     }
 }

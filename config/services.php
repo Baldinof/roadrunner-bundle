@@ -76,10 +76,10 @@ return static function (ContainerConfigurator $container) {
 
     $services->set(HttpMessageFactoryInterface::class, PsrHttpFactory::class)
         ->args([
-            ref(ServerRequestFactoryInterface::class),
-            ref(StreamFactoryInterface::class),
-            ref(UploadedFileFactoryInterface::class),
-            ref(ResponseFactoryInterface::class),
+            ref('baldinof_road_runner.psr17.server_request_factory'),
+            ref('baldinof_road_runner.psr17.stream_factory'),
+            ref('baldinof_road_runner.psr17.uploaded_file_factory'),
+            ref('baldinof_road_runner.psr17.response_factory'),
         ]);
     $services->set(HttpFoundationFactoryInterface::class, HttpFoundationFactory::class);
 
