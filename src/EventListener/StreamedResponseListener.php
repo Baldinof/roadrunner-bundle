@@ -23,7 +23,7 @@ final class StreamedResponseListener implements EventSubscriberInterface
     public function __construct(SymfonyStreamedResponseListener $symfonyListener, ?bool $rrEnabled)
     {
         $this->symfonyListener = $symfonyListener;
-        $this->rrEnabled = $rrEnabled;
+        $this->rrEnabled = (bool) $rrEnabled;
     }
 
     public function onKernelResponse(ResponseEvent $event): void

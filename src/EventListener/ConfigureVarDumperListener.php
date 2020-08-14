@@ -15,18 +15,22 @@ final class ConfigureVarDumperListener
 {
     private $dumper;
     private $cloner;
+    private $rrEnabled;
 
-    public function __construct(DataDumperInterface $dumper, ClonerInterface $cloner)
+    public function __construct(DataDumperInterface $dumper, ClonerInterface $cloner, ?bool $rrEnabled = null)
     {
         $this->dumper = $dumper;
         $this->cloner = $cloner;
+        $this->rrEnabled = (bool) $rrEnabled;
     }
 
     public function __invoke(WorkerStartEvent $event): void
     {
-        VarDumper::setHandler(function ($var) {
-            $data = $this->cloner->cloneVar($var);
-            $this->dumper->dump($data);
-        });
+        if ($this->rrEnabled) {
+            VarDumper::setHandler(function ($var) {
+                $data = $this->cloner->cloneVar($var);
+                $this->dumper->dump($data);
+            });
+        }
     }
 }

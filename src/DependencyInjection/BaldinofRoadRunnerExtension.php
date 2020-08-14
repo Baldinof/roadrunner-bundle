@@ -70,7 +70,8 @@ class BaldinofRoadRunnerExtension extends Extension
         $container->register(ConfigureVarDumperListener::class, ConfigureVarDumperListener::class)
             ->addTag('kernel.event_listener', ['event' => WorkerStartEvent::class])
             ->addArgument(new Reference('data_collector.dump'))
-            ->addArgument(new Reference('var_dumper.cloner'));
+            ->addArgument(new Reference('var_dumper.cloner'))
+            ->addArgument('%env(bool:default::RR)%');
     }
 
     private function loadPsrFactories(ContainerBuilder $container): void

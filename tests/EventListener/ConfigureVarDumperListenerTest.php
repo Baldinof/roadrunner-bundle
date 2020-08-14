@@ -23,7 +23,7 @@ class ConfigureVarDumperListenerTest extends TestCase
             }
         };
 
-        (new ConfigureVarDumperListener($dumperCloner, new VarCloner()))(new WorkerStartEvent());
+        (new ConfigureVarDumperListener($dumperCloner, new VarCloner(), true))(new WorkerStartEvent());
 
         VarDumper::dump('foo');
 
