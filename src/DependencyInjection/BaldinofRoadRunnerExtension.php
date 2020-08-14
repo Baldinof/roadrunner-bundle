@@ -10,6 +10,9 @@ use Baldinof\RoadRunnerBundle\Http\Middleware\BlackfireMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
+use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
+use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
+use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Baldinof\RoadRunnerBundle\Worker\Configuration as WorkerConfiguration;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -41,8 +44,18 @@ class BaldinofRoadRunnerExtension extends Extension
             $this->loadDebug($container);
         }
 
-        if ($config['should_reboot_kernel']) {
-            $container->getDefinition(WorkerConfiguration::class)->setArgument(0, true);
+        if ($config['should_reboot_kernel'] || $config['kernel_reboot']['strategy'] === Configuration::KERNEL_REBOOT_STRATEGY_ALWAYS) {
+            $container->getDefinition(WorkerConfiguration::class)
+                ->setArgument(0, true)
+                ->setDeprecated('baldinof/roadrunner-bundle', '1.3.0', '');
+            $container->register(KernelRebootStrategyInterface::class, AlwaysRebootStrategy::class);
+        } else {
+            $container
+                ->register(KernelRebootStrategyInterface::class, OnExceptionRebootStrategy::class)
+                ->setArgument('$allowedExceptions', $config['kernel_reboot']['allowed_exceptions'])
+                ->setAutoconfigured(true)
+                ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL])
+                ->setAutowired(true);
         }
 
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Metric;
+namespace Tests\Baldinof\RoadRunnerBundle\Metric;
 
 use Baldinof\RoadRunnerBundle\Exception\BadConfigurationException;
 use Baldinof\RoadRunnerBundle\Exception\UnknownRpcTransportException;

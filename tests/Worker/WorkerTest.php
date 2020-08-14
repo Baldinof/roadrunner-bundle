@@ -5,7 +5,9 @@ namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
+use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Worker\Configuration;
+use Baldinof\RoadRunnerBundle\Worker\Dependencies;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Iterator;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -19,13 +21,16 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\NullLogger;
 use Spiral\RoadRunner\PSR7Client;
 use Spiral\RoadRunner\Worker as RoadrunnerWorker;
+use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\KernelInterface;
+use Symfony\Component\HttpKernel\RebootableInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 
 class WorkerTest extends TestCase
 {
+    public static $rebootStrategyReturns = false;
     private $worker;
     private $requests;
     private $responder;
@@ -52,11 +57,12 @@ class WorkerTest extends TestCase
 
         $this->eventDispatcher = new EventDispatcher();
         $this->kernel = $this->prophesize(KernelInterface::class)
-            ->willImplement(KernelInterface::class)
-            ->willImplement(TerminableInterface::class);
+            ->willImplement(TerminableInterface::class)
+            ->willImplement(RebootableInterface::class);
 
         $this->kernel->isDebug()->willReturn(false);
         $this->kernel->boot()->willReturn(null);
+        $this->kernel->getContainer()->willReturn($c = new Container());
 
         $handler = function ($request) {
             if (!is_callable($this->responder)) {
@@ -80,6 +86,18 @@ class WorkerTest extends TestCase
             }
         };
 
+        $c->set(Dependencies::class, new Dependencies($this->handler, new class() implements KernelRebootStrategyInterface {
+            public function shouldReboot(): bool
+            {
+                return WorkerTest::$rebootStrategyReturns;
+            }
+
+            public function clear(): void
+            {
+                WorkerTest::$rebootStrategyReturns = false;
+            }
+        }));
+
         $this->worker = new Worker(
             $this->kernel->reveal(),
             $this->eventDispatcher,
@@ -87,21 +105,6 @@ class WorkerTest extends TestCase
             $this->handler,
             new NullLogger(),
             $this->psrClient->reveal()
-        );
-    }
-
-    public function test_it_throws_on_non_rebootable_kernel()
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The worker is configured to reboot the kernel, but the passed kernel does not implement Symfony\Component\HttpKernel\RebootableInterface');
-
-        new Worker(
-            $this->prophesize(KernelInterface::class)->reveal(),
-            new EventDispatcher(),
-            new Configuration(true),
-            $this->handler,
-            new NullLogger(),
-            $this->prophesize(PSR7Client::class)->reveal()
         );
     }
 
@@ -182,12 +185,11 @@ class WorkerTest extends TestCase
         });
 
         $this->roadrunnerWorker->error('Internal server error')->shouldBeCalled();
+        $this->roadrunnerWorker->stop()->shouldBeCalled();
 
         $this->worker->start();
 
         $this->assertTrue($called, WorkerStopEvent::class.' has not been dispatched');
-
-        $this->assertCount(1, $this->requests);
     }
 
     public function test_an_error_in_debug_mode_shows_the_trace_and_stops_the_worker()
@@ -206,6 +208,8 @@ class WorkerTest extends TestCase
             $called = true;
         });
 
+        $this->roadrunnerWorker->stop()->shouldBeCalled();
+
         $this->roadrunnerWorker->error(Argument::type('string'))
             ->shouldBeCalled()
             ->will(function (array $args) {
@@ -215,7 +219,29 @@ class WorkerTest extends TestCase
         $this->worker->start();
 
         $this->assertTrue($called, WorkerStopEvent::class.' has not been dispatched');
+    }
 
-        $this->assertCount(1, $this->requests);
+    public function test_it_reboot_the_kernel_according_to_the_strategy()
+    {
+        $this->responder = function () use (&$terminated) {
+            yield new Response(200, [], 'hello');
+
+            $terminated = true;
+        };
+
+        $this->psrClient->respond(Argument::any()); // Allow resond() calls
+
+        $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
+
+        self::$rebootStrategyReturns = false;
+        $this->worker->start();
+
+        $this->kernel->reboot()->shouldNotHaveBeenCalled();
+
+        $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
+        self::$rebootStrategyReturns = true;
+        $this->worker->start();
+
+        $this->kernel->reboot(null)->shouldHaveBeenCalled();
     }
 }

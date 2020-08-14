@@ -2,6 +2,9 @@
 
 namespace Baldinof\RoadRunnerBundle\Worker;
 
+/**
+ * @deprecated
+ */
 final class Configuration
 {
     private $shouldRebootKernel;

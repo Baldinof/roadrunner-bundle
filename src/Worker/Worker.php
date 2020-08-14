@@ -7,7 +7,6 @@ use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
-use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Psr\Log\LoggerInterface;
 use Spiral\RoadRunner\PSR7Client;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,10 +18,9 @@ final class Worker implements WorkerInterface
 {
     private $kernel;
     private $eventDispatcher;
-    private $configuration;
-    private $middlewareStack;
     private $psrClient;
     private $logger;
+    private $dependencies;
 
     public function __construct(
         KernelInterface $kernel,
@@ -30,26 +28,18 @@ final class Worker implements WorkerInterface
         Configuration $configuration,
         IteratorRequestHandlerInterface $middlewareStack,
         LoggerInterface $logger,
-        PSR7Client $psrClient
+        PSR7Client $psrClient,
+        ?Dependencies $dependencies = null
     ) {
         $this->kernel = $kernel;
         $this->eventDispatcher = $eventDispatcher;
-        $this->configuration = $configuration;
-        $this->middlewareStack = $middlewareStack;
         $this->psrClient = $psrClient;
         $this->logger = $logger;
-
-        $withReboot = $this->configuration->shouldRebootKernel();
-
-        if ($withReboot && !$this->kernel instanceof RebootableInterface) {
-            throw new \InvalidArgumentException("The worker is configured to reboot the kernel, but the passed kernel does not implement Symfony\Component\HttpKernel\RebootableInterface");
-        }
+        $this->dependencies = $dependencies ?: $kernel->getContainer()->get(Dependencies::class);
     }
 
     public function start(): void
     {
-        $withReboot = $this->configuration->shouldRebootKernel();
-
         if ($trustedProxies = $_SERVER['TRUSTED_PROXIES'] ?? $_ENV['TRUSTED_PROXIES'] ?? false) {
             Request::setTrustedProxies(explode(',', $trustedProxies), Request::HEADER_X_FORWARDED_ALL ^ Request::HEADER_X_FORWARDED_HOST);
         }
@@ -60,27 +50,36 @@ final class Worker implements WorkerInterface
 
         $this->eventDispatcher->dispatch(new WorkerStartEvent());
 
-        $middlewareStack = $this->middlewareStack;
         while ($psrRequest = $this->psrClient->acceptRequest()) {
+            $sent = false;
             try {
-                $gen = $middlewareStack->handle($psrRequest);
+                $gen = $this->dependencies->getRequestHandler()->handle($psrRequest);
 
                 $this->psrClient->respond($gen->current());
 
-                consumes($gen);
+                $sent = true;
 
-                if ($withReboot) {
-                    $this->kernel->reboot(null);
-                    /** @var MiddlewareStack $middlewareStack */
-                    $middlewareStack = $this->kernel->getContainer()->get(MiddlewareStack::class);
-                }
+                consumes($gen);
             } catch (\Throwable $e) {
-                $this->psrClient->getWorker()->error($this->kernel->isDebug() ? (string) $e : 'Internal server error');
+                if (!$sent) {
+                    $this->psrClient->getWorker()->error($this->kernel->isDebug() ? (string) $e : 'Internal server error');
+                }
+
                 $this->logger->error('An error occured: '.$e->getMessage(), ['throwable' => $e]);
 
                 $this->eventDispatcher->dispatch(new WorkerExceptionEvent($e));
 
-                break;
+                $this->psrClient->getWorker()->stop();
+            } finally {
+                if ($this->kernel instanceof RebootableInterface && $this->dependencies->getKernelRebootStrategy()->shouldReboot()) {
+                    $this->kernel->reboot(null);
+                    /** @var Dependencies */
+                    $deps = $this->kernel->getContainer()->get(Dependencies::class);
+
+                    $this->dependencies = $deps;
+                }
+
+                $this->dependencies->getKernelRebootStrategy()->clear();
             }
         }
 
