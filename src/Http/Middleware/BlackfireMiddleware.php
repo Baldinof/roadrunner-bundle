@@ -26,7 +26,7 @@ final class BlackfireMiddleware implements MiddlewareInterface
 
             $probeHeader = explode(':', $probe->getResponseLine(), 2);
 
-            $response = $response->withHeader('x-'.$probeHeader[0], $probeHeader[1]);
+            $response = $response->withHeader('x-'.$probeHeader[0], trim($probeHeader[1]));
         }
 
         return $response;
