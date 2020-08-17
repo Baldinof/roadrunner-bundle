@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2020-08-17
+### Added
+- Restart the kernel on exceptions
+- Configuration option to not reboot the kernel on selected exceptions
+- Fallback to [php-http/discovery](https://github.com/php-http/discovery) if no PSR17 factories are found in the dependency injection container
+
+### Fixed
+- Blackfire profiling when using diactoros psr7 implementation
+
+### Deprecated
+- Configuration option `should_reboot_kernel` is replaced by
+  ```yaml
+    kernel_reboot:
+      strategy: always # equivalent to `should_reboot_kernel: true`
+
+    kernel_reboot:
+      strategy: on_exception # equivalent to `should_reboot_kernel: false`
+      allowed_exceptions:
+        - Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+  ```
+
 ## [1.2.2] - 2020-05-14
 ### Fixed
 - Disable default StreamedResponseListener to prevent early sending of response. See https://github.com/Baldinof/roadrunner-bundle/issues/9

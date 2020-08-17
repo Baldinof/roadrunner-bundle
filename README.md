@@ -130,15 +130,30 @@ metrics:
 
 ### Long running kernel
 
-The kernel is preserved between requests. If you want to reboot it, and use a fresh container on each request you can configure the worker:
+The kernel is preserved between requests, unless an exception has been thrown during the request handling.
+
+All exceptions except `Symfony\Component\HttpKernel\Exception\HttpExceptionInterface` will reboot the kernel. To optimize your worker you can allow more domain exceptions:
 
 ```yaml
 # config/packages/baldinof_road_runner.yaml
 baldinof_road_runner:
-    should_reboot_kernel: true
+    kernel_reboot:
+      strategy: on_exception
+      allowed_exceptions:
+        - Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+        - App\Exception\YourDomainException
 ```
 
-If you want to reset just some services between requests (database connections), you can create service resetters by implementing `Symfony\Contracts\Service\ResetInterface`.
+If you are seeing issues and want to use a fresh container on each request you use the `always` reboot strategy:
+
+```yaml
+# config/packages/baldinof_road_runner.yaml
+baldinof_road_runner:
+    kernel_reboot:
+      strategy: always
+```
+
+> If some of your services are stateful, you can implement `Symfony\Contracts\Service\ResetInterface` and your service will be resetted on each request.
 
 ### Development mode
 
@@ -170,7 +185,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
 
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-plugins --prefer-dist --no-progress --no-interaction
+RUN composer install --no-dev --no-autoloader --no-scripts --no-plugins --prefer-dist --no-progress --no-interaction
 
 RUN ./vendor/bin/rr get-binary --location /usr/local/bin
 
@@ -178,7 +193,9 @@ COPY . .
 
 ENV APP_ENV=prod
 
-RUN php bin/console cache:warmup
+RUN composer dump-autoload --optimize && \
+    composer check-platform-reqs && \
+    php bin/console cache:warmup
 
 EXPOSE 8080
 
