@@ -2,11 +2,11 @@
 
 namespace Baldinof\RoadRunnerBundle\Reboot;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
-use Symfony\Component\HttpKernel\KernelEvents;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventSubscriberInterface
 {
@@ -37,20 +37,18 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
         $this->exceptionCaught = $event->getThrowable();
     }
 
-
     public function shouldReboot(): bool
     {
-        if ($this->exceptionCaught === null) {
+        if (null === $this->exceptionCaught) {
             return false;
         }
 
         foreach ($this->allowedExceptions as $exceptionClass) {
             if ($this->exceptionCaught instanceof $exceptionClass) {
                 $this->logger->debug(sprintf(
-                    "Allowed exception caught (%s), the kernel will not be rebooted."
-                    , get_class($this->exceptionCaught)
+                    'Allowed exception caught (%s), the kernel will not be rebooted.', get_class($this->exceptionCaught)
                 ), [
-                    'allowed_exceptions' => $this->allowedExceptions
+                    'allowed_exceptions' => $this->allowedExceptions,
                 ]);
 
                 return false;
@@ -58,8 +56,7 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
         }
 
         $this->logger->debug(sprintf(
-            "Unexpected exception caught (%s), the kernel will be rebooted."
-            , get_class($this->exceptionCaught)
+            'Unexpected exception caught (%s), the kernel will be rebooted.', get_class($this->exceptionCaught)
         ), [
             'allowed_exceptions' => $this->allowedExceptions,
             'exception' => $this->exceptionCaught,

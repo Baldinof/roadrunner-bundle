@@ -3,13 +3,12 @@
 namespace Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass;
 
 use Http\Discovery\Psr17FactoryDiscovery;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
-use Psr\Http\Message\ResponseFactoryInterface;
-use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 class Psr17FactoriesCompilerPass implements CompilerPassInterface
 {
@@ -33,7 +32,6 @@ class Psr17FactoriesCompilerPass implements CompilerPassInterface
                 function () { return Psr17FactoryDiscovery::findResponseFactory(); },
             ],
         ];
-
 
         // Try to find already registered factories to use. Check class existence
         // because some packages create

@@ -11,6 +11,5 @@ class AlwaysRebootStrategy implements KernelRebootStrategyInterface
 
     public function clear(): void
     {
-
     }
 }

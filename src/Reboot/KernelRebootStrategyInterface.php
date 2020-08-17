@@ -2,21 +2,15 @@
 
 namespace Baldinof\RoadRunnerBundle\Reboot;
 
-use Symfony\Component\HttpKernel\RebootableInterface;
-
 interface KernelRebootStrategyInterface
 {
     /**
-     * Indicate if the kernel should be rebooted
-     *
-     * @return boolean
+     * Indicate if the kernel should be rebooted.
      */
     public function shouldReboot(): bool;
 
     /**
-     * Clear any request related thing (caught exception, ...)
-     *
-     * @return void
+     * Clear any request related thing (caught exception, ...).
      */
     public function clear(): void;
 }

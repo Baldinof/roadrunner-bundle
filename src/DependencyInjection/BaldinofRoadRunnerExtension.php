@@ -14,10 +14,6 @@ use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Baldinof\RoadRunnerBundle\Worker\Configuration as WorkerConfiguration;
-use Psr\Http\Message\ResponseFactoryInterface;
-use Psr\Http\Message\ServerRequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
-use Psr\Http\Message\UploadedFileFactoryInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -131,7 +127,6 @@ class BaldinofRoadRunnerExtension extends Extension
 
     private function registerAbstractIfNotExists(ContainerBuilder $container, string $id): void
     {
-
         if ($container->has($id)) {
             return;
         }
