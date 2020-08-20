@@ -5,7 +5,7 @@ parameters:
     ignoreErrors:
         - message: '#Access to protected property Symfony\\Component\\HttpKernel\\Kernel::\$startTime.#'
           path: 'src/Http/KernelHandler.php'
-        - message: '#Call to an undefined method Symfony\\Component\\HttpKernel\\KernelInterface::(terminate|reboot)\(\).#'
+        - message: '#has an unused parameter#' # TODO: Remove unused parameters in v2
           path: 'src/Worker/Worker.php'
-        - message: '#Cannot call method end() on Symfony\\Component\\Config\\Definition\\Builder\\NodeParentInterface|null#'
+        - message: '#Cannot call method arrayNode#'
           path: 'src/DependencyInjection'

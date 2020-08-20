@@ -20,6 +20,9 @@ final class Worker implements WorkerInterface
     private $eventDispatcher;
     private $psrClient;
     private $logger;
+    /**
+     * @var Dependencies
+     */
     private $dependencies;
 
     public function __construct(
@@ -35,7 +38,10 @@ final class Worker implements WorkerInterface
         $this->eventDispatcher = $eventDispatcher;
         $this->psrClient = $psrClient;
         $this->logger = $logger;
-        $this->dependencies = $dependencies ?: $kernel->getContainer()->get(Dependencies::class);
+
+        /** @var Dependencies */
+        $dependencies = $dependencies ?? $kernel->getContainer()->get(Dependencies::class);
+        $this->dependencies = $dependencies;
     }
 
     public function start(): void
