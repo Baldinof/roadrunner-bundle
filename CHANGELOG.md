@@ -12,9 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Blackfire profiling when using diactoros psr7 implementation
+- Issue when installing `sensio/framework-extra-bundle` without `nyholm/psr7`
 
 ### Deprecated
-- Configuration option `should_reboot_kernel` is replaced by
+- Configuration option `should_reboot_kernel` is replaced by kernel reboot strategies:
   ```yaml
     kernel_reboot:
       strategy: always # equivalent to `should_reboot_kernel: true`
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
       allowed_exceptions:
         - Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
   ```
+- Class `Baldinof\RoadRunnerBundle\Worker\Configuration` is now deprecated in favor of kernel reboot strategies
 
 ## [1.2.2] - 2020-05-14
 ### Fixed

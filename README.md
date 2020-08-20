@@ -19,7 +19,7 @@ If you don't use Symfony Flex:
 ## Usage
 
 - get the RoadRunner binary: `vendor/bin/rr get --location bin/`
-- run RoadRunner with `bin/rr`
+- run RoadRunner with `bin/rr serve`
 - visit your app at http://localhost:8080
 
 ## Configuration
@@ -90,34 +90,27 @@ baldinof_road_runner:
         - App\Middleware\YourMiddleware
 ```
 
-Beware that
+Be aware that
 - middlewares are run outside of Symfony `Kernel::handle()`
 - the middleware stack is always resolved at worker start (can be a performance issue if your middleware initialization takes time)
 
 ## Metrics
-Roadrunner have ability to collect application metrics, you can find more info here - https://roadrunner.dev/docs/beep-beep-metrics
+Roadrunner have ability to [collect application metrics](https://roadrunner.dev/docs/beep-beep-metrics), enable metrics with this bundle configuration:
 
-This bundle support metrics collection, if you want use it, then you should enable metric collection in config:
-```
+```yaml
+# config/packages/baldinof_road_runner.yaml
 baldinof_road_runner:
     metrics_enabled: true
 ```
 
-and then simple request `Spiral\RoadRunner\MetricsInterface` in you services.
+And configure RoadRunner:
 
-If you use `Spiral\RoadRunner\MetricsInterface`, but metrics collection is disabled in config,
-metrics will not be collected, and a null collector will be provided (see `Baldinof\RoadRunnerBundle\Metric\NullMetrics`).
-
-Roadrunner should have enabled RPC, e.g.:
-
-```
+```yaml
+# .rr.yaml
 rpc:
   enable: true
   listen: unix://var/roadrunner_rpc.sock
-```
 
-Define list of metrics to collect (more examples in roadruner documentation):
-```
 metrics:
   address: localhost:2112
   collect:
@@ -126,13 +119,29 @@ metrics:
       help: "Application counter."
 ```
 
-## Limitations
+Simply inject `Spiral\RoadRunner\MetricsInterface` to record metrics:
 
-### Long running kernel
+```php
+class YouController
+{
+    public function index(MetricsInterface $metrics): Response
+    {
+        $metrics->add('app_metric_counter', 1);
 
-The kernel is preserved between requests, unless an exception has been thrown during the request handling.
+        return new Response("...");
+    }
+}
+```
 
-All exceptions except `Symfony\Component\HttpKernel\Exception\HttpExceptionInterface` will reboot the kernel. To optimize your worker you can allow more domain exceptions:
+> If you inject `Spiral\RoadRunner\MetricsInterface`, but metrics collection is disabled in config, a [`NullMetrics`](./src/Metric/NullMetrics.php) will be injected and nothing will be collected.
+
+## Kernel reboots
+
+The Symfony kernel and the dependency injection container are **preserved between requests**. If an exception is thrown during the request handling, the kernel is rebooted and a fresh container is used.
+
+The goal is to prevent services to be in a non recoverable state after an error.
+
+To optimize your worker you can allow exceptions that does not put your app in an errored state:
 
 ```yaml
 # config/packages/baldinof_road_runner.yaml
@@ -141,10 +150,11 @@ baldinof_road_runner:
       strategy: on_exception
       allowed_exceptions:
         - Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+        - Symfony\Component\Serializer\Exception\ExceptionInterface
         - App\Exception\YourDomainException
 ```
 
-If you are seeing issues and want to use a fresh container on each request you use the `always` reboot strategy:
+If you are seeing issues and want to use a fresh container on each request you can use the `always` reboot strategy:
 
 ```yaml
 # config/packages/baldinof_road_runner.yaml
@@ -155,7 +165,7 @@ baldinof_road_runner:
 
 > If some of your services are stateful, you can implement `Symfony\Contracts\Service\ResetInterface` and your service will be resetted on each request.
 
-### Development mode
+## Development mode
 
 Copy the dev config file if it's not present: `cp vendor/baldinof/roadrunner-bundle/.rr.dev.yaml .`
 

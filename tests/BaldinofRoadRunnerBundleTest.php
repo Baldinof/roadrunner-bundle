@@ -66,52 +66,49 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
     public function getKernel(array $config, array $extraBundles)
     {
-        return new TestKernel('test', true, $config, $extraBundles);
-    }
-}
+        return new class('test', true, $config, $extraBundles) extends Kernel {
+            use MicroKernelTrait;
 
-class TestKernel extends Kernel
-{
-    use MicroKernelTrait;
+            private $config;
+            private $extraBundles;
 
-    private $config;
-    private $extraBundles;
+            public function __construct(string $env, bool $debug, array $config, array $extraBundles)
+            {
+                (new Filesystem())->remove(__DIR__.'/__cache');
 
-    public function __construct(string $env, bool $debug, array $config, array $extraBundles)
-    {
-        (new Filesystem())->remove(__DIR__.'/__cache');
+                parent::__construct($env, $debug);
 
-        parent::__construct($env, $debug);
+                $this->config = $config;
+                $this->extraBundles = $extraBundles;
+            }
 
-        $this->config = $config;
-        $this->extraBundles = $extraBundles;
-    }
+            public function getCacheDir()
+            {
+                return __DIR__.'/__cache';
+            }
 
-    public function getCacheDir()
-    {
-        return __DIR__.'/__cache';
-    }
+            public function registerBundles()
+            {
+                yield new FrameworkBundle();
 
-    public function registerBundles()
-    {
-        yield new FrameworkBundle();
+                yield from $this->extraBundles;
 
-        yield from $this->extraBundles;
+                yield new BaldinofRoadRunnerBundle();
+            }
 
-        yield new BaldinofRoadRunnerBundle();
-    }
+            protected function configureRoutes(RouteCollectionBuilder $routes)
+            {
+            }
 
-    protected function configureRoutes(RouteCollectionBuilder $routes)
-    {
-    }
+            protected function configureContainer(ContainerBuilder $c, LoaderInterface $loader)
+            {
+                $c->loadFromExtension('framework', [
+                    'test' => true,
+                    'secret' => 'secret',
+                ]);
 
-    protected function configureContainer(ContainerBuilder $c, LoaderInterface $loader)
-    {
-        $c->loadFromExtension('framework', [
-            'test' => true,
-            'secret' => 'secret',
-        ]);
-
-        $c->loadFromExtension('baldinof_road_runner', $this->config);
+                $c->loadFromExtension('baldinof_road_runner', $this->config);
+            }
+        };
     }
 }
