@@ -4,6 +4,7 @@ namespace Tests\Baldinof\RoadRunnerBundle\Reboot;
 
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use PHPUnit\Framework\TestCase;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Psr\Log\Test\TestLogger;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
@@ -11,6 +12,8 @@ use Symfony\Component\HttpKernel\KernelInterface;
 
 class OnExceptionRebootStrategyTest extends TestCase
 {
+    use ProphecyTrait;
+
     private $strategy;
 
     public function setUp(): void

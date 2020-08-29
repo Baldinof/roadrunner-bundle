@@ -10,6 +10,7 @@ use Nyholm\Psr7\Response;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -17,6 +18,8 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class MiddlewareStackTest extends TestCase
 {
+    use ProphecyTrait;
+
     public static $out = '';
 
     public function setUp(): void

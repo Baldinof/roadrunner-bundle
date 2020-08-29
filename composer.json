@@ -39,7 +39,9 @@
     },
     "require-dev": {
         "symfony/var-dumper": "^4.0||^5.0",
-        "phpunit/phpunit": "^8.5",
+        "phpunit/phpunit": "^9.1",
+        "phpspec/prophecy": "^1.11",
+        "phpspec/prophecy-phpunit": "^2.0",
         "friendsofphp/php-cs-fixer": "^2.16",
         "phpstan/phpstan": "^0.12.2",
         "sentry/sentry-symfony": "^3.4",

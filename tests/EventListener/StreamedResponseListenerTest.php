@@ -4,6 +4,7 @@ namespace Tests\Baldinof\RoadRunnerBundle\EventListener;
 
 use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
 use PHPUnit\Framework\TestCase;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -13,6 +14,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 class StreamedResponseListenerTest extends TestCase
 {
+    use ProphecyTrait;
+
     /**
      * @testWith [ true, false ]
      *           [ false, true ]

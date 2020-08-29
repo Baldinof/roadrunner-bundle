@@ -16,6 +16,7 @@ use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\NullLogger;
@@ -30,7 +31,10 @@ use Symfony\Component\HttpKernel\TerminableInterface;
 
 class WorkerTest extends TestCase
 {
+    use ProphecyTrait;
+
     public static $rebootStrategyReturns = false;
+
     private $worker;
     private $requests;
     private $responder;
