@@ -3,7 +3,7 @@
 namespace Baldinof\RoadRunnerBundle\Worker;
 
 /**
- * @deprecated
+ * @deprecated Since 1.3.0
  */
 final class Configuration
 {

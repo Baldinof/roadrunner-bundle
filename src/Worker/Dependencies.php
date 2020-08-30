@@ -10,6 +10,8 @@ use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
  *
  * It's used to ease worker dependencies retrieval when the kernel
  * has been rebooted.
+ *
+ * @internal
  */
 final class Dependencies
 {

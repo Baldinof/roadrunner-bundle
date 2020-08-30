@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Blackfire profiling when using diactoros psr7 implementation
 - Issue when installing `sensio/framework-extra-bundle` without `nyholm/psr7`
 
+### Changed
+- Class `Baldinof\RoadRunnerBundle\Worker\Worker` is now internal
+
 ### Deprecated
 - Configuration option `should_reboot_kernel` is replaced by kernel reboot strategies:
   ```yaml

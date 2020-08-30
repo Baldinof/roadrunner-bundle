@@ -14,6 +14,9 @@ use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
+/**
+ * @internal
+ */
 final class Worker implements WorkerInterface
 {
     private $kernel;
