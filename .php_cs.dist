@@ -1,7 +1,7 @@
 <?php
 
 $finder = PhpCsFixer\Finder::create()
-    ->in(['src', 'tests'])
+    ->in(['src', 'tests', 'config'])
     ->notPath('__cache')
 ;
 
