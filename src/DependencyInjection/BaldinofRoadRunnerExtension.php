@@ -7,6 +7,7 @@ use Baldinof\RoadRunnerBundle\EventListener\ConfigureVarDumperListener;
 use Baldinof\RoadRunnerBundle\EventListener\DoctrineMongoDBListener;
 use Baldinof\RoadRunnerBundle\EventListener\SentryListener;
 use Baldinof\RoadRunnerBundle\Http\Middleware\BlackfireMiddleware;
+use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Worker\Configuration as WorkerConfiguration;
@@ -123,6 +124,11 @@ class BaldinofRoadRunnerExtension extends Extension
                 ->register(DoctrineMongoDBListener::class)
                 ->addArgument(new Reference('service_container'))
                 ->setAutoconfigured(true);
+        }
+
+        if (isset($bundles['DoctrineBundle'])) {
+            $container->autowire(DoctrineMiddleware::class);
+            $beforeMiddlewares[] = DoctrineMiddleware::class;
         }
 
         $beforeMiddlewares[] = NativeSessionMiddleware::class;

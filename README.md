@@ -60,6 +60,21 @@ baldinof_road_runner:
   default_integrations: false
 ```
 
+## Doctrine connection handler
+Due to the fact that roadrunner assumes that the process works in demonized mode, there may be problems with disconnecting the database, this problem is handled in this bundle if a doctrine is used to connect to the database.
+
+By default, in the event of a connection failure, the process will be stopped and the request will end with a 500 http code, to prevent this and to correctly process failed connections, without erroneous answers - you need to add [symfony/proxy-manager-bridge](https://github.com/symfony/proxy-manager-bridge) to your project:
+```
+composer require symfony/proxy-manager-bridge
+```
+
+## Sessions in database
+In accordance with the problem described above, to store sessions in the database, you should use the doctrine connection, for example, you can use the [shapecode/doctrine-session-handler-bundle](https://github.com/shapecode/doctrine-session-handler-bundle) bundle
+
+```
+composer require shapecode/doctrine-session-handler-bundle
+```
+
 ## Middlewares
 
 You can use middlewares to manipulate PSR request & responses. Middlewares can implements either PSR [`MiddlewareInterface`](https://www.php-fig.org/psr/psr-15/#22-psrhttpservermiddlewareinterface)
