@@ -116,7 +116,11 @@ class BaldinofRoadRunnerExtension extends Extension
         }
 
         if (isset($bundles['DoctrineBundle'])) {
-            $container->autowire(DoctrineMiddleware::class);
+            $container
+                ->autowire(DoctrineMiddleware::class)
+                ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL])
+            ;
+
             $beforeMiddlewares[] = DoctrineMiddleware::class;
         }
 

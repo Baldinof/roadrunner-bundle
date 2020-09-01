@@ -2,6 +2,7 @@
 
 namespace Baldinof\RoadRunnerBundle\Reboot;
 
+use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
@@ -14,6 +15,11 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
      * @var \Throwable|null
      */
     private $exceptionCaught = null;
+
+    /**
+     * @var ForceKernelRebootEvent|null
+     */
+    private $forceRebootEventCaught = null;
 
     /**
      * @var string[]
@@ -37,8 +43,19 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
         $this->exceptionCaught = $event->getThrowable();
     }
 
+    public function onForceKernelReboot(ForceKernelRebootEvent $event): void
+    {
+        $this->forceRebootEventCaught = $event;
+    }
+
     public function shouldReboot(): bool
     {
+        if ($this->forceRebootEventCaught !== null) {
+            $this->logger->debug("The kernel has been forced to reboot: {$this->forceRebootEventCaught->getReason()}");
+
+            return true;
+        }
+
         if (null === $this->exceptionCaught) {
             return false;
         }
@@ -68,12 +85,14 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
     public function clear(): void
     {
         $this->exceptionCaught = null;
+        $this->forceRebootEventCaught = null;
     }
 
     public static function getSubscribedEvents()
     {
         return [
             KernelEvents::EXCEPTION => 'onException',
+            ForceKernelRebootEvent::class => 'onForceKernelReboot',
         ];
     }
 }
