@@ -54,7 +54,7 @@ final class MetricFactory
         //https://github.com/spiral/roadrunner/blob/master/util/network.go
         $rpcDsn = explode('://', $this->rrRpc);
 
-        if (!is_array($rpcDsn) || 2 !== count($rpcDsn)) {
+        if (!\is_array($rpcDsn) || 2 !== \count($rpcDsn)) {
             throw new UnknownRpcTransportException('Unable to parse RPC dsn - '.$this->rrRpc);
         }
 
@@ -76,7 +76,7 @@ final class MetricFactory
     private function createTcpRelay(array $rpcDsn): SocketRelay
     {
         $tcpHost = explode(':', $rpcDsn[1]);
-        if (!is_array($tcpHost) || 2 !== count($tcpHost)) {
+        if (!\is_array($tcpHost) || 2 !== \count($tcpHost)) {
             throw new UnknownRpcTransportException('Invalid TCP RPC - '.$rpcDsn[1]);
         }
 

@@ -48,7 +48,7 @@ class Psr17FactoriesCompilerPass implements CompilerPassInterface
             // No valid existing service found, use php-http/discovery
             $def = $container->getDefinition($serviceId);
             if (!$def->getClass()) {
-                $def->setClass(get_class($instantiateFactory()));
+                $def->setClass(\get_class($instantiateFactory()));
             }
         }
     }

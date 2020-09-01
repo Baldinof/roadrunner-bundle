@@ -63,7 +63,7 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
         foreach ($this->allowedExceptions as $exceptionClass) {
             if ($this->exceptionCaught instanceof $exceptionClass) {
                 $this->logger->debug(sprintf(
-                    'Allowed exception caught (%s), the kernel will not be rebooted.', get_class($this->exceptionCaught)
+                    'Allowed exception caught (%s), the kernel will not be rebooted.', \get_class($this->exceptionCaught)
                 ), [
                     'allowed_exceptions' => $this->allowedExceptions,
                 ]);
@@ -73,7 +73,7 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
         }
 
         $this->logger->debug(sprintf(
-            'Unexpected exception caught (%s), the kernel will be rebooted.', get_class($this->exceptionCaught)
+            'Unexpected exception caught (%s), the kernel will be rebooted.', \get_class($this->exceptionCaught)
         ), [
             'allowed_exceptions' => $this->allowedExceptions,
             'exception' => $this->exceptionCaught,

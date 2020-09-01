@@ -45,7 +45,7 @@ final class DoctrineMiddleware implements IteratorMiddlewareInterface
 
             $connection = $this->container->get($connectionServiceName);
 
-            assert($connection instanceof Connection);
+            \assert($connection instanceof Connection);
 
             if ($connection->isConnected() && false === $connection->ping()) {
                 $connection->close();
@@ -67,7 +67,7 @@ final class DoctrineMiddleware implements IteratorMiddlewareInterface
 
             $manager = $this->container->get($managerName);
 
-            assert($manager instanceof EntityManagerInterface);
+            \assert($manager instanceof EntityManagerInterface);
 
             if ($manager instanceof LazyLoadingInterface) {
                 continue; // Doctrine bundle will handle manager reset on next request

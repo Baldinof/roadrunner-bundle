@@ -69,7 +69,7 @@ class WorkerTest extends TestCase
         $this->kernel->getContainer()->willReturn($c = new Container());
 
         $handler = function ($request) {
-            if (!is_callable($this->responder)) {
+            if (!\is_callable($this->responder)) {
                 $this->fail('Unexpected call on the request handler');
             }
 

@@ -42,7 +42,7 @@ final class DoctrineMongoDBListener implements EventSubscriberInterface
 
             $manager = $this->container->get($serviceId);
 
-            assert($manager instanceof DocumentManager);
+            \assert($manager instanceof DocumentManager);
 
             if (!$manager instanceof LazyLoadingInterface || $manager->isOpen()) {
                 $manager->clear();
@@ -59,7 +59,7 @@ final class DoctrineMongoDBListener implements EventSubscriberInterface
         if ($this->container->initialized('doctrine_mongodb')) {
             $registry = $this->container->get('doctrine_mongodb');
 
-            assert($registry instanceof ManagerRegistry);
+            \assert($registry instanceof ManagerRegistry);
 
             return $this->registry = $registry;
         }

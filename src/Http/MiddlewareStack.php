@@ -27,7 +27,7 @@ final class MiddlewareStack implements IteratorRequestHandlerInterface
     public function __construct(object $requestHandler)
     {
         if (!($requestHandler instanceof RequestHandlerInterface) && !($requestHandler instanceof IteratorRequestHandlerInterface)) {
-            throw new \InvalidArgumentException(sprintf('Request handler should implement "%s" or "%s", "%s" given.', RequestHandlerInterface::class, IteratorRequestHandlerInterface::class, get_class($requestHandler)));
+            throw new \InvalidArgumentException(sprintf('Request handler should implement "%s" or "%s", "%s" given.', RequestHandlerInterface::class, IteratorRequestHandlerInterface::class, \get_class($requestHandler)));
         }
 
         $this->requestHandler = $requestHandler;
@@ -51,7 +51,7 @@ final class MiddlewareStack implements IteratorRequestHandlerInterface
     public function pipe(object $middleware): void
     {
         if (!($middleware instanceof MiddlewareInterface) && !($middleware instanceof IteratorMiddlewareInterface)) {
-            throw new \InvalidArgumentException(sprintf('Middleware should implement "%s" or "%s", "%s" given.', MiddlewareInterface::class, IteratorMiddlewareInterface::class, get_class($middleware)));
+            throw new \InvalidArgumentException(sprintf('Middleware should implement "%s" or "%s", "%s" given.', MiddlewareInterface::class, IteratorMiddlewareInterface::class, \get_class($middleware)));
         }
 
         $this->middlewares->push($middleware);
@@ -88,7 +88,7 @@ final class Runner implements RequestHandlerInterface
 
             $gen = $this->handler->handle($request);
 
-            return $this->getResponse($gen, get_class($this->handler).'::handle()');
+            return $this->getResponse($gen, \get_class($this->handler).'::handle()');
         }
 
         $middleware = $this->middlewares->shift();
@@ -99,7 +99,7 @@ final class Runner implements RequestHandlerInterface
 
         $gen = $middleware->process($request, $this);
 
-        return $this->getResponse($gen, get_class($middleware).'::process()');
+        return $this->getResponse($gen, \get_class($middleware).'::process()');
     }
 
     public function close(): void

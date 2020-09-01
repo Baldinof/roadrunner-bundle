@@ -2,7 +2,7 @@
 
 namespace Baldinof\RoadRunnerBundle;
 
-if (!function_exists('Baldinof\RoadRunnerBundle\consumes')) {
+if (!\function_exists('Baldinof\RoadRunnerBundle\consumes')) {
     /**
      * @internal
      */
