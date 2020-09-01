@@ -57,7 +57,7 @@
     "scripts": {
         "test": "phpunit --testdox --colors=always",
         "phpstan": "phpstan analyse src --level max --no-progress --ansi",
-        "cs:lint": "php-cs-fixer fix --dry-run --diff --ansi --allow-risky",
+        "cs:lint": "php-cs-fixer fix --dry-run --diff --ansi --allow-risky=yes",
         "cs:fix": "php-cs-fixer fix --ansi --allow-risky=yes",
         "ci": [
             "@test", "@phpstan", "@cs:lint"
