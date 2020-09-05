@@ -1,4 +1,10 @@
 parameters:
+    level: max
+    paths:
+        - src
+        - config
+    scanFiles:
+        - vendor/symfony/dependency-injection/Loader/Configurator/ContainerConfigurator.php
     inferPrivatePropertyTypeFromConstructor: true
     treatPhpDocTypesAsCertain: false
     checkMissingIterableValueType: false
