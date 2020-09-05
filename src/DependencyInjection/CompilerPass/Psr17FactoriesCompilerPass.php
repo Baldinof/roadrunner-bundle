@@ -15,45 +15,27 @@ class Psr17FactoriesCompilerPass implements CompilerPassInterface
     public function process(ContainerBuilder $container): void
     {
         $factoryClasses = [
-            ServerRequestFactoryInterface::class => [
-                'baldinof_road_runner.psr17.server_request_factory',
-                function () { return Psr17FactoryDiscovery::findServerRequestFactory(); },
-            ],
-            StreamFactoryInterface::class => [
-                'baldinof_road_runner.psr17.stream_factory',
-                function () { return Psr17FactoryDiscovery::findStreamFactory(); },
-            ],
-            UploadedFileFactoryInterface::class => [
-                'baldinof_road_runner.psr17.uploaded_file_factory',
-                function () { return Psr17FactoryDiscovery::findUploadedFileFactory(); },
-            ],
-            ResponseFactoryInterface::class => [
-                'baldinof_road_runner.psr17.response_factory',
-                function () { return Psr17FactoryDiscovery::findResponseFactory(); },
-            ],
+            ServerRequestFactoryInterface::class => function () { return Psr17FactoryDiscovery::findServerRequestFactory(); },
+            StreamFactoryInterface::class => function () { return Psr17FactoryDiscovery::findStreamFactory(); },
+            UploadedFileFactoryInterface::class => function () { return Psr17FactoryDiscovery::findUploadedFileFactory(); },
+            ResponseFactoryInterface::class => function () { return Psr17FactoryDiscovery::findResponseFactory(); },
         ];
 
         // Try to find already registered factories to use. Check class existence
         // because some packages create
         // services definitions, but does not explicitly depends
         // on an implementation (sensio/framework-extra-bundle)
-        foreach ($factoryClasses as $factoryClass => [$serviceId, $instantiateFactory]) {
-            $existingServiceId = $this->existingServiceId($container, $factoryClass);
-
-            if ($existingServiceId) {
-                $container->setAlias($serviceId, $existingServiceId);
+        foreach ($factoryClasses as $factoryClass => $instantiateFactory) {
+            if ($this->hasValidDefinition($container, $factoryClass)) {
                 continue;
             }
 
             // No valid existing service found, use php-http/discovery
-            $def = $container->getDefinition($serviceId);
-            if (!$def->getClass()) {
-                $def->setClass(\get_class($instantiateFactory()));
-            }
+            $container->register($factoryClass, \get_class($instantiateFactory()));
         }
     }
 
-    private function existingServiceId(ContainerBuilder $container, string $serviceId): ?string
+    private function hasValidDefinition(ContainerBuilder $container, string $serviceId): bool
     {
         $foundServiceId = $serviceId;
         $def = null;
@@ -62,21 +44,17 @@ class Psr17FactoriesCompilerPass implements CompilerPassInterface
             $def = $container->getDefinition($serviceId);
         }
 
-        if ($container->hasAlias($serviceId)) {
+        if ($def === null && $container->hasAlias($serviceId)) {
             $foundServiceId = (string) $container->getAlias($serviceId);
             $def = $container->getDefinition($foundServiceId);
         }
 
         if (!$def) {
-            return null;
+            return false;
         }
 
         $class = $def->getClass();
 
-        if ($class && class_exists($class)) {
-            return $foundServiceId;
-        }
-
-        return null;
+        return $class && class_exists($class);
     }
 }

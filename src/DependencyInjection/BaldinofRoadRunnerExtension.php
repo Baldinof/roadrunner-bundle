@@ -14,6 +14,10 @@ use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Baldinof\RoadRunnerBundle\Worker\Configuration as WorkerConfiguration;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ServerRequestFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\UploadedFileFactoryInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -72,12 +76,18 @@ class BaldinofRoadRunnerExtension extends Extension
 
     private function loadPsrFactories(ContainerBuilder $container): void
     {
-        $container->addDefinitions([
-            'baldinof_road_runner.psr17.server_request_factory' => new Definition(),
-            'baldinof_road_runner.psr17.stream_factory' => new Definition(),
-            'baldinof_road_runner.psr17.uploaded_file_factory' => new Definition(),
-            'baldinof_road_runner.psr17.response_factory' => new Definition(),
-        ]);
+        $factories = [
+            ServerRequestFactoryInterface::class,
+            StreamFactoryInterface::class,
+            UploadedFileFactoryInterface::class,
+            ResponseFactoryInterface::class,
+        ];
+
+        foreach ($factories as $factory) {
+            if (!$container->has($factory)) {
+                $container->setDefinition($factory, new Definition());
+            }
+        }
     }
 
     private function loadIntegrations(ContainerBuilder $container, array $config): void

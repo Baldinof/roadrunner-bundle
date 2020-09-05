@@ -10,10 +10,16 @@ use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Metric\MetricFactory;
+use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Worker\Configuration;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
+use Psr\Http\Message\ServerRequestFactoryInterface;
+use Psr\Http\Message\StreamFactoryInterface;
+use Psr\Http\Message\UploadedFileFactoryInterface;
+use Psr\Log\LoggerInterface;
 use Spiral\Goridge\RelayInterface;
 use Spiral\Goridge\SocketRelay;
 use Spiral\RoadRunner\MetricsInterface;
@@ -24,13 +30,26 @@ use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
 
+// Polyfill of the `service()` function introduced in Symfony 5.1 when using older version
+if (!\function_exists('Symfony\Component\DependencyInjection\Loader\Configurator\service')) {
+    function service(string $id): ReferenceConfigurator
+    {
+        return ref($id);
+    }
+}
+
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
     $services->set(RoadRunnerWorker::class)
-        ->autowire();
+        ->args([service(RelayInterface::class)]);
 
     $services->set(PSR7Client::class)
-        ->autowire();
+        ->args([
+            service(RoadRunnerWorker::class),
+            service(ServerRequestFactoryInterface::class),
+            service(StreamFactoryInterface::class),
+            service(UploadedFileFactoryInterface::class),
+        ]);
 
     $services->set(RelayInterface::class, SocketRelay::class)
         ->args([
@@ -42,26 +61,37 @@ return static function (ContainerConfigurator $container) {
     $services->set(Configuration::class);
 
     $services->set(WorkerInterface::class, Worker::class)
-        ->autowire()
-        ->arg('$kernel', ref('kernel'))
-        ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL]);
+        ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+        ->args([
+            service('kernel'),
+            service('event_dispatcher'),
+            service(Configuration::class),
+            service(MiddlewareStack::class),
+            service(LoggerInterface::class),
+            service(PSR7Client::class),
+            service(Dependencies::class),
+        ]);
 
     $services->set(Dependencies::class)
-        ->autowire()
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
-        ->arg('$requestHandler', ref(MiddlewareStack::class));
+        ->args([
+            service(MiddlewareStack::class),
+            service(KernelRebootStrategyInterface::class),
+        ]);
 
     $services->set(WorkerCommand::class)
-        ->autowire()
+        ->args([service(WorkerInterface::class)])
         ->autoconfigure();
 
     $services->set(KernelHandler::class)
-        ->autowire()
-        ->arg('$kernel', ref('kernel'));
+        ->args([
+            service('kernel'),
+            service(HttpMessageFactoryInterface::class),
+            service(HttpFoundationFactoryInterface::class),
+        ]);
 
     $services->set(MiddlewareStack::class)
-        ->autowire()
-        ->args([ref(KernelHandler::class)]);
+        ->args([service(KernelHandler::class)]);
 
     $services->alias(IteratorRequestHandlerInterface::class, MiddlewareStack::class);
 
@@ -69,15 +99,15 @@ return static function (ContainerConfigurator $container) {
 
     $services->set(HttpMessageFactoryInterface::class, PsrHttpFactory::class)
         ->args([
-            ref('baldinof_road_runner.psr17.server_request_factory'),
-            ref('baldinof_road_runner.psr17.stream_factory'),
-            ref('baldinof_road_runner.psr17.uploaded_file_factory'),
-            ref('baldinof_road_runner.psr17.response_factory'),
+            service(ServerRequestFactoryInterface::class),
+            service(StreamFactoryInterface::class),
+            service(UploadedFileFactoryInterface::class),
+            service(ResponseFactoryInterface::class),
         ]);
+
     $services->set(HttpFoundationFactoryInterface::class, HttpFoundationFactory::class);
 
     $services->set(MetricFactory::class)
-        ->autowire()
         ->args([
             '$rrRpc' => '%env(default::RR_RPC)%',
             '$rrEnabled' => '%env(bool:default::RR)%',
@@ -86,12 +116,12 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->set(MetricsInterface::class)
-        ->factory([ref(MetricFactory::class), 'getMetricService']);
+        ->factory([service(MetricFactory::class), 'getMetricService']);
 
     $services->set(StreamedResponseListener::class)
         ->decorate('streamed_response_listener')
         ->args([
-            ref(StreamedResponseListener::class.'.inner'),
+            service(StreamedResponseListener::class.'.inner'),
             '%env(bool:default::RR)%',
         ]);
 };
