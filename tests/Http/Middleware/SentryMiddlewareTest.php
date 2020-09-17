@@ -13,6 +13,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Sentry\Breadcrumb;
 use Sentry\ClientBuilder;
 use Sentry\Event;
 use Sentry\Options;
@@ -431,6 +432,24 @@ final class SentryMiddlewareTest extends TestCase
                 'data' => '{',
             ],
         ];
+    }
+
+    public function testClearsScopeFromPreviousRequestContamination(): void
+    {
+        $request = (new ServerRequest('POST', new Uri('http://www.example.com/foo')))
+            ->withHeader('Content-Type', 'application/json')
+            ->withBody($this->getStreamMock(0, ''));
+        $options = [
+            'max_request_body_size' => 'always',
+        ];
+        $hub = $this->getHub($options);
+        $middleware = new SentryMiddleware($hub);
+        $hub->addBreadcrumb(new Breadcrumb('info', 'default', 'category', 'Contamination from previous requests'));
+
+        consumes($middleware->process($request, $this->handler));
+
+        $event = static::$collectedEvents->pop();
+        $this->assertEmpty($event->getBreadCrumbs());
     }
 
     private function getStreamMock(int $size, string $content = ''): StreamInterface

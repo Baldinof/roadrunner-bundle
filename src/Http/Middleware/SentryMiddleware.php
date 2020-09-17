@@ -63,6 +63,7 @@ final class SentryMiddleware implements IteratorMiddlewareInterface
         $options = $client->getOptions();
 
         $this->hub->configureScope(function (Scope $scope) use ($request, $options) {
+            $scope->clear();
             $scope->addEventProcessor(function (Event $event) use ($request, $options) {
                 $this->processEvent($event, $options, $request);
 
