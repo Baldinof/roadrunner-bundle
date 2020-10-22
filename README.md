@@ -195,7 +195,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
 
-RUN composer install --no-dev --no-autoloader --no-scripts --no-plugins --prefer-dist --no-progress --no-interaction
+RUN composer install --no-dev --no-scripts --no-plugins --prefer-dist --no-progress --no-interaction
 
 RUN ./vendor/bin/rr get-binary --location /usr/local/bin
 
