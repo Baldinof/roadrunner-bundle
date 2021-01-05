@@ -6,8 +6,8 @@ namespace Baldinof\RoadRunnerBundle\Worker;
 
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
 use Psr\Log\LoggerInterface;
-use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\GRPC\Server;
+use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 
 /**
  * @internal
@@ -39,7 +39,7 @@ final class GrpcWorker implements GrpcWorkerInterface
     {
         $server = new Server();
         foreach ($this->grpcServiceProvider->getRegisteredServices() as $interface => $service) {
-            $this->logger->debug('Register GRPC service for ' . $interface . ', from ' . get_class($service));
+            $this->logger->debug('Register GRPC service for '.$interface.', from '.\get_class($service));
             $server->registerService($interface, $service);
         }
 
