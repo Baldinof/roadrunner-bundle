@@ -179,6 +179,24 @@ Reference: https://roadrunner.dev/docs/beep-beep-reload
 
 If you use the Symfony VarDumper, dumps will not be shown in the HTTP Response body. You can view dumps with `bin/console server:dump` or in the profiler.
 
+## GRPC
+This bundle have GRPC support (https://spiral.dev/docs/grpc-configuration), for enable it in roadrunner, please follow by documentation link.
+
+```
+workers:
+    command: "php bin/console baldinof:roadrunner:grpc-worker"
+    relay: "unix://var/roadrunner_grpc.sock"
+```
+
+For register service as GRPC availible, implement `Baldinof\RoadRunnerBundle\Grpc\GrpcServiceInterface` interface and tag it as `baldinof.roadrunner.grpc_service`.
+
+By simple add this to `services.yaml`:
+```
+_instanceof:
+    Baldinof\RoadRunnerBundle\Grpc\GrpcServiceInterface:
+        tags: ['baldinof.roadrunner.grpc_service']
+```
+
 ## Usage with Docker
 
 ```Dockerfile

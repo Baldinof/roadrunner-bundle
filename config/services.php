@@ -2,9 +2,11 @@
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Baldinof\RoadRunnerBundle\Command\GrpcWorkerCommand;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
 use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
+use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
 use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
@@ -13,6 +15,8 @@ use Baldinof\RoadRunnerBundle\Metric\MetricFactory;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Worker\Configuration;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
+use Baldinof\RoadRunnerBundle\Worker\GrpcWorker;
+use Baldinof\RoadRunnerBundle\Worker\GrpcWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
 use Psr\Http\Message\ResponseFactoryInterface;
@@ -43,6 +47,9 @@ return static function (ContainerConfigurator $container) {
     $services->set(RoadRunnerWorker::class)
         ->args([service(RelayInterface::class)]);
 
+    $services->set('baldinof.roadrunner.grpc_worker', RoadRunnerWorker::class)
+        ->args([service('baldinof.roadrunner.grpc_relay')]);
+
     $services->set(PSR7Client::class)
         ->args([
             service(RoadRunnerWorker::class),
@@ -58,6 +65,15 @@ return static function (ContainerConfigurator $container) {
             SocketRelay::SOCK_UNIX,
         ]);
 
+    $services->set('baldinof.roadrunner.grpc_relay', SocketRelay::class)
+        ->args([
+            '%kernel.project_dir%/var/roadrunner_grpc.sock',
+            null,
+            SocketRelay::SOCK_UNIX,
+        ]);
+
+    $services->set(GrpcServiceProvider::class);
+
     $services->set(Configuration::class);
 
     $services->set(WorkerInterface::class, Worker::class)
@@ -72,6 +88,14 @@ return static function (ContainerConfigurator $container) {
             service(Dependencies::class),
         ]);
 
+    $services->set(GrpcWorkerInterface::class, GrpcWorker::class)
+        ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+        ->args([
+            service(LoggerInterface::class),
+            service('baldinof.roadrunner.grpc_worker'),
+            service(GrpcServiceProvider::class),
+        ]);
+
     $services->set(Dependencies::class)
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
         ->args([
@@ -81,6 +105,10 @@ return static function (ContainerConfigurator $container) {
 
     $services->set(WorkerCommand::class)
         ->args([service(WorkerInterface::class)])
+        ->autoconfigure();
+
+    $services->set(GrpcWorkerCommand::class)
+        ->args([service(GrpcWorkerInterface::class)])
         ->autoconfigure();
 
     $services->set(KernelHandler::class)

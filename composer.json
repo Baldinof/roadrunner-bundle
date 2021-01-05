@@ -17,13 +17,14 @@
         }
     },
     "require": {
-        "php": ">=7.3",
+        "php": ">=7.4",
         "symfony/config": "^4.4 || ^5.0",
         "symfony/dependency-injection": "^4.4 || ^5.0",
         "symfony/http-kernel": "^4.4 || ^5.0",
         "symfony/yaml": "^4.4 || ^5.0",
         "spiral/roadrunner": "^1.5",
         "spiral/goridge": "^2.0.2",
+        "spiral/php-grpc": "^1.4",
         "symfony/psr-http-message-bridge": "^1.1 || ^2.0",
         "psr/http-factory": "^1.0",
         "psr/http-server-handler": "^1.0",
