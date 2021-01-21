@@ -22,7 +22,12 @@ class NativeSessionMiddleware implements IteratorMiddlewareInterface
 
         unset($_SESSION);
 
-        $oldId = FigRequestCookies::get($request, session_name())->getValue() ?: '';
+        $sessionName = session_name();
+        if ($sessionName) {
+            $oldId = FigRequestCookies::get($request, $sessionName)->getValue() ?: '';
+        } else {
+            $oldId = '';
+        }
 
         session_id($oldId); // Set to current session or reset to nothing
 
@@ -31,7 +36,7 @@ class NativeSessionMiddleware implements IteratorMiddlewareInterface
 
             $newId = session_id();
 
-            if ($newId !== $oldId) {
+            if ($newId && $newId !== $oldId) {
                 // A session has been started or the id has changed: send the cookie again
                 $response = $this->addSessionCookie($response, $newId);
             }
@@ -47,8 +52,13 @@ class NativeSessionMiddleware implements IteratorMiddlewareInterface
     private function addSessionCookie(ResponseInterface $response, string $sessionId): ResponseInterface
     {
         $params = session_get_cookie_params();
+        $sessionName = session_name();
 
-        $setCookie = SetCookie::create(session_name())
+        if (!$sessionName) {
+            return $response;
+        }
+
+        $setCookie = SetCookie::create($sessionName)
             ->withValue($sessionId)
             ->withPath($params['path'])
             ->withDomain($params['domain'])
