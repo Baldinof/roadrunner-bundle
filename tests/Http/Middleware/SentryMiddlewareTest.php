@@ -4,6 +4,8 @@ namespace Tests\Baldinof\RoadRunnerBundle\Http\Middleware;
 
 use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
+use GuzzleHttp\Promise\Promise;
+use GuzzleHttp\Promise\PromiseInterface;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\ServerRequest;
 use Nyholm\Psr7\UploadedFile;
@@ -38,7 +40,7 @@ final class SentryMiddlewareTest extends TestCase
         $this->handler = new class() implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                SentrySdk::getCurrentHub()->captureEvent([]);
+                SentrySdk::getCurrentHub()->captureMessage('Oops, there was an error');
 
                 return new Response();
             }
@@ -54,11 +56,18 @@ final class SentryMiddlewareTest extends TestCase
                 public function create(Options $options): TransportInterface
                 {
                     return new class() implements TransportInterface {
-                        public function send(Event $event): ?string
+                        public function send(Event $event): PromiseInterface
                         {
                             SentryMiddlewareTest::$collectedEvents->push($event);
 
-                            return $event->getId();
+                            return new Promise(function () use ($event) {
+                                return $event->getId();
+                            }, null);
+                        }
+
+                        public function close(?int $timeout = null): PromiseInterface
+                        {
+                            return new Promise(null, null);
                         }
                     };
                 }

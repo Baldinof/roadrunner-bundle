@@ -44,7 +44,7 @@
         "phpspec/prophecy-phpunit": "^2.0",
         "friendsofphp/php-cs-fixer": "^2.16",
         "phpstan/phpstan": "^0.12.2",
-        "sentry/sentry-symfony": "^3.4",
+        "sentry/sentry-symfony": "^4.0",
         "symfony/framework-bundle": "^4.0||^5.0",
         "nyholm/psr7": "^1.2",
         "doctrine/mongodb-odm-bundle": "^4.1",

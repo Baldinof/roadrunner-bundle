@@ -8,10 +8,10 @@ use Psr\Http\Message\UploadedFileInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Sentry\ClientInterface;
 use Sentry\Event;
-use Sentry\FlushableClientInterface;
 use Sentry\Options;
 use Sentry\State\HubInterface;
 use Sentry\State\Scope;
+use Sentry\UserDataBag;
 
 /**
  * This middleware is mostly a copy of the the Sentry RequestIntegration.
@@ -49,8 +49,8 @@ final class SentryMiddleware implements IteratorMiddlewareInterface
 
         yield $next->handle($request);
 
-        if ($currentClient instanceof FlushableClientInterface) {
-            $currentClient->flush();
+        if ($currentClient instanceof ClientInterface) {
+            $currentClient->flush()->wait(false);
         }
     }
 
@@ -93,10 +93,14 @@ final class SentryMiddleware implements IteratorMiddlewareInterface
             $requestData['cookies'] = $request->getCookieParams();
             $requestData['headers'] = $request->getHeaders();
 
-            $userContext = $event->getUserContext();
+            $userDataBag = $event->getUser();
+            if (null === $userDataBag) {
+                $userDataBag = new UserDataBag();
+                $event->setUser($userDataBag);
+            }
 
-            if (null === $userContext->getIpAddress() && isset($serverParams['REMOTE_ADDR'])) {
-                $userContext->setIpAddress($serverParams['REMOTE_ADDR']);
+            if (null === $userDataBag->getIpAddress() && isset($serverParams['REMOTE_ADDR'])) {
+                $userDataBag->setIpAddress($serverParams['REMOTE_ADDR']);
             }
         } else {
             $requestData['headers'] = $this->removePiiFromHeaders($request->getHeaders());
