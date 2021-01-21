@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.3', '7.4']
+        php-versions: ['7.3', '7.4', '8.0']
         composer:
           - {name: "lowest", flags: " --prefer-dist --prefer-lowest"}
           - {name: "stable", flags: " --prefer-dist --prefer-stable"}
@@ -44,7 +44,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '7.4'
+          php-version: '8.0'
           extensions: mbstring,intl
           tools: composer:v2
       - name: Get composer cache directory
@@ -70,7 +70,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '7.4'
+          php-version: '8.0'
           extensions: mbstring,intl
           tools: composer:v2
       - name: Get composer cache directory
