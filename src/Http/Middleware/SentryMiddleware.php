@@ -2,6 +2,7 @@
 
 namespace Baldinof\RoadRunnerBundle\Http\Middleware;
 
+use Baldinof\RoadRunnerBundle\Helpers\SentryHelper;
 use Baldinof\RoadRunnerBundle\Http\IteratorMiddlewareInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
@@ -11,7 +12,6 @@ use Sentry\Event;
 use Sentry\Options;
 use Sentry\State\HubInterface;
 use Sentry\State\Scope;
-use Sentry\UserDataBag;
 
 /**
  * This middleware is mostly a copy of the the Sentry RequestIntegration.
@@ -49,9 +49,7 @@ final class SentryMiddleware implements IteratorMiddlewareInterface
 
         yield $next->handle($request);
 
-        if ($currentClient instanceof ClientInterface) {
-            $currentClient->flush()->wait(false);
-        }
+        SentryHelper::flushClient($currentClient);
     }
 
     private function setupRequestData(?ClientInterface $client, ServerRequestInterface $request): void
@@ -93,15 +91,7 @@ final class SentryMiddleware implements IteratorMiddlewareInterface
             $requestData['cookies'] = $request->getCookieParams();
             $requestData['headers'] = $request->getHeaders();
 
-            $userDataBag = $event->getUser();
-            if (null === $userDataBag) {
-                $userDataBag = new UserDataBag();
-                $event->setUser($userDataBag);
-            }
-
-            if (null === $userDataBag->getIpAddress() && isset($serverParams['REMOTE_ADDR'])) {
-                $userDataBag->setIpAddress($serverParams['REMOTE_ADDR']);
-            }
+            SentryHelper::configureUserData($event, $serverParams);
         } else {
             $requestData['headers'] = $this->removePiiFromHeaders($request->getHeaders());
         }

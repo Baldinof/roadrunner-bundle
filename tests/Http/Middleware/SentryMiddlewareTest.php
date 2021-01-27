@@ -3,6 +3,7 @@
 namespace Tests\Baldinof\RoadRunnerBundle\Http\Middleware;
 
 use function Baldinof\RoadRunnerBundle\consumes;
+use Baldinof\RoadRunnerBundle\Helpers\SentryHelper;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
 use GuzzleHttp\Promise\Promise;
 use GuzzleHttp\Promise\PromiseInterface;
@@ -52,26 +53,8 @@ final class SentryMiddlewareTest extends TestCase
         static::$collectedEvents = new \SplStack();
 
         $client = (new ClientBuilder(new Options(array_merge($options, ['default_integrations' => false]))))
-            ->setTransportFactory(new class() implements TransportFactoryInterface {
-                public function create(Options $options): TransportInterface
-                {
-                    return new class() implements TransportInterface {
-                        public function send(Event $event): PromiseInterface
-                        {
-                            SentryMiddlewareTest::$collectedEvents->push($event);
-
-                            return new Promise(function () use ($event) {
-                                return $event->getId();
-                            }, null);
-                        }
-
-                        public function close(?int $timeout = null): PromiseInterface
-                        {
-                            return new Promise(null, null);
-                        }
-                    };
-                }
-            })->getClient();
+            ->setTransportFactory($this->getTransportFactoryMock())
+            ->getClient();
 
         $hub = new Hub($client);
 
@@ -474,5 +457,51 @@ final class SentryMiddlewareTest extends TestCase
             ->willReturn($content);
 
         return $stream;
+    }
+
+    private function getTransportFactoryMock()
+    {
+        return SentryHelper::isVersion3() ? $this->getTransportFactoryMockForSdkVersion3() : $this->getTransportFactoryMockForSdkVersion2();
+    }
+
+    private function getTransportFactoryMockForSdkVersion2()
+    {
+        return new class() implements TransportFactoryInterface {
+            public function create(Options $options): TransportInterface
+            {
+                return new class() implements TransportInterface {
+                    public function send(Event $event): ?string
+                    {
+                        SentryMiddlewareTest::$collectedEvents->push($event);
+
+                        return $event->getId();
+                    }
+                };
+            }
+        };
+    }
+
+    private function getTransportFactoryMockForSdkVersion3()
+    {
+        return new class() implements TransportFactoryInterface {
+            public function create(Options $options): TransportInterface
+            {
+                return new class() implements TransportInterface {
+                    public function send(Event $event): PromiseInterface
+                    {
+                        SentryMiddlewareTest::$collectedEvents->push($event);
+
+                        return new Promise(function () use ($event) {
+                            return $event->getId();
+                        }, null);
+                    }
+
+                    public function close(?int $timeout = null): PromiseInterface
+                    {
+                        return new Promise(null, null);
+                    }
+                };
+            }
+        };
     }
 }
