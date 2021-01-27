@@ -12,11 +12,20 @@ use Sentry\UserDataBag;
 
 class SentryHelper
 {
+    /**
+     * @var bool
+     */
+    private static $isSentrySdkVersion3OrHigher = null;
+
     public static function isVersion3(): bool
     {
-        $version = PrettyVersions::getVersion('sentry/sentry')->getPrettyVersion();
+        if (self::$isSentrySdkVersion3OrHigher === null) {
+            $version = PrettyVersions::getVersion('sentry/sentry')->getPrettyVersion();
 
-        return version_compare($version, '3.0.0', '>=');
+            self::$isSentrySdkVersion3OrHigher = version_compare($version, '3.0.0', '>=');
+        }
+
+        return self::$isSentrySdkVersion3OrHigher;
     }
 
     public static function flushClient(ClientInterface $client = null): void
