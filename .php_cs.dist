@@ -15,5 +15,6 @@ return PhpCsFixer\Config::create()
         'native_function_invocation' => [
             'include' => ['@compiler_optimized']
         ],
+        'php_unit_method_casing' => false,
     ])
 ;

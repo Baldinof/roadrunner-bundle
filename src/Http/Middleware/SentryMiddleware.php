@@ -2,13 +2,13 @@
 
 namespace Baldinof\RoadRunnerBundle\Http\Middleware;
 
+use Baldinof\RoadRunnerBundle\Helpers\SentryHelper;
 use Baldinof\RoadRunnerBundle\Http\IteratorMiddlewareInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Sentry\ClientInterface;
 use Sentry\Event;
-use Sentry\FlushableClientInterface;
 use Sentry\Options;
 use Sentry\State\HubInterface;
 use Sentry\State\Scope;
@@ -49,9 +49,7 @@ final class SentryMiddleware implements IteratorMiddlewareInterface
 
         yield $next->handle($request);
 
-        if ($currentClient instanceof FlushableClientInterface) {
-            $currentClient->flush();
-        }
+        SentryHelper::flushClient($currentClient);
     }
 
     private function setupRequestData(?ClientInterface $client, ServerRequestInterface $request): void
@@ -93,11 +91,7 @@ final class SentryMiddleware implements IteratorMiddlewareInterface
             $requestData['cookies'] = $request->getCookieParams();
             $requestData['headers'] = $request->getHeaders();
 
-            $userContext = $event->getUserContext();
-
-            if (null === $userContext->getIpAddress() && isset($serverParams['REMOTE_ADDR'])) {
-                $userContext->setIpAddress($serverParams['REMOTE_ADDR']);
-            }
+            SentryHelper::configureUserData($event, $serverParams);
         } else {
             $requestData['headers'] = $this->removePiiFromHeaders($request->getHeaders());
         }

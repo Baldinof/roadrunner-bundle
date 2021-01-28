@@ -28,10 +28,11 @@
         "psr/http-factory": "^1.0",
         "psr/http-server-handler": "^1.0",
         "psr/http-server-middleware": "^1.0",
-        "dflydev/fig-cookies": "^2.0",
+        "dflydev/fig-cookies": "^3.0",
         "php-http/discovery": "^1.9",
         "psr/http-factory-implementation": "1.0.0",
-        "psr/log": "^1.1"
+        "psr/log": "^1.1",
+        "jean85/pretty-package-versions": "^1.5 || ^2.0"
     },
     "suggest": {
         "nyholm/psr7": "For a super lightweight PSR-7/17 implementation",
@@ -44,10 +45,10 @@
         "phpspec/prophecy-phpunit": "^2.0",
         "friendsofphp/php-cs-fixer": "^2.16",
         "phpstan/phpstan": "^0.12.2",
-        "sentry/sentry-symfony": "^3.4",
+        "sentry/sentry-symfony": "^3.4||^4.0",
         "symfony/framework-bundle": "^4.0||^5.0",
         "nyholm/psr7": "^1.2",
-        "doctrine/mongodb-odm-bundle": "^4.1",
+        "doctrine/mongodb-odm": "^2.2",
         "blackfire/php-sdk": "^1.21",
         "doctrine/doctrine-bundle": "^2.0",
         "doctrine/orm": "^2.7.3",
