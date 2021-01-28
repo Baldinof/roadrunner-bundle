@@ -22,7 +22,9 @@ class MiddlewareCompilerPass implements CompilerPassInterface
 
         $stack = $container->getDefinition(MiddlewareStack::class);
 
+        /** @var string[] */
         $middlewares = $container->getParameter('baldinof_road_runner.middlewares');
+        /** @var array{before: string[], after: string[]} */
         $defaultMiddlewares = $container->getParameter('baldinof_road_runner.middlewares.default');
 
         $middlewaresToRemove = [];

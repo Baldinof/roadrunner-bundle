@@ -101,6 +101,7 @@ class BaldinofRoadRunnerExtension extends Extension
             return;
         }
 
+        /** @var array */
         $bundles = $container->getParameter('kernel.bundles');
 
         if (class_exists(\BlackfireProbe::class)) {
