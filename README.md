@@ -165,6 +165,15 @@ baldinof_road_runner:
 
 > If some of your services are stateful, you can implement `Symfony\Contracts\Service\ResetInterface` and your service will be resetted on each request.
 
+## Events
+
+The following events are dispatched throughout the worker lifecycle:
+
+- `Baldinof\RoadRunnerBundle\Event\WorkerStartEvent`: Dispatched right before the worker starts listening to requests.
+- `Baldinof\RoadRunnerBundle\Event\WorkerStopEvent`: Dispatched right before the worker closes.
+- `Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent`: Dispatched after encountering an uncaught exception during request handling.
+- `Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent`: Dispatched after the symfony kernel was rebooted (see Kernel reboots).
+
 ## Development mode
 
 Copy the dev config file if it's not present: `cp vendor/baldinof/roadrunner-bundle/.rr.dev.yaml .`

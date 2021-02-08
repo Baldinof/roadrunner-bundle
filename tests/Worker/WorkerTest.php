@@ -3,6 +3,7 @@
 namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
+use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
@@ -90,7 +91,7 @@ class WorkerTest extends TestCase
             }
         };
 
-        $c->set(Dependencies::class, new Dependencies($this->handler, new class() implements KernelRebootStrategyInterface {
+        $kernelBootStrategyClass = new class() implements KernelRebootStrategyInterface {
             public function shouldReboot(): bool
             {
                 return WorkerTest::$rebootStrategyReturns;
@@ -100,7 +101,9 @@ class WorkerTest extends TestCase
             {
                 WorkerTest::$rebootStrategyReturns = false;
             }
-        }));
+        };
+
+        $c->set(Dependencies::class, new Dependencies($this->handler, $kernelBootStrategyClass, $this->eventDispatcher));
 
         $this->worker = new Worker(
             $this->kernel->reveal(),
@@ -244,8 +247,16 @@ class WorkerTest extends TestCase
 
         $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
         self::$rebootStrategyReturns = true;
+
+        $rebootedEventFired = false;
+
+        $this->eventDispatcher->addListener(WorkerKernelRebootedEvent::class, function () use (&$rebootedEventFired) {
+            $rebootedEventFired = true;
+        });
+
         $this->worker->start();
 
         $this->kernel->reboot(null)->shouldHaveBeenCalled();
+        $this->assertTrue($rebootedEventFired);
     }
 }

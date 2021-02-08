@@ -4,6 +4,7 @@ namespace Baldinof\RoadRunnerBundle\Worker;
 
 use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
+use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
@@ -20,7 +21,6 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 final class Worker implements WorkerInterface
 {
     private $kernel;
-    private $eventDispatcher;
     private $psrClient;
     private $logger;
     /**
@@ -38,7 +38,6 @@ final class Worker implements WorkerInterface
         ?Dependencies $dependencies = null
     ) {
         $this->kernel = $kernel;
-        $this->eventDispatcher = $eventDispatcher;
         $this->psrClient = $psrClient;
         $this->logger = $logger;
 
@@ -57,7 +56,7 @@ final class Worker implements WorkerInterface
             Request::setTrustedHosts(explode(',', $trustedHosts));
         }
 
-        $this->eventDispatcher->dispatch(new WorkerStartEvent());
+        $this->dependencies->getEventDispatcher()->dispatch(new WorkerStartEvent());
 
         while ($psrRequest = $this->psrClient->acceptRequest()) {
             $sent = false;
@@ -76,7 +75,7 @@ final class Worker implements WorkerInterface
 
                 $this->logger->error('An error occured: '.$e->getMessage(), ['throwable' => $e]);
 
-                $this->eventDispatcher->dispatch(new WorkerExceptionEvent($e));
+                $this->dependencies->getEventDispatcher()->dispatch(new WorkerExceptionEvent($e));
 
                 $this->psrClient->getWorker()->stop();
             } finally {
@@ -86,12 +85,13 @@ final class Worker implements WorkerInterface
                     $deps = $this->kernel->getContainer()->get(Dependencies::class);
 
                     $this->dependencies = $deps;
+                    $this->dependencies->getEventDispatcher()->dispatch(new WorkerKernelRebootedEvent());
                 }
 
                 $this->dependencies->getKernelRebootStrategy()->clear();
             }
         }
 
-        $this->eventDispatcher->dispatch(new WorkerStopEvent());
+        $this->dependencies->getEventDispatcher()->dispatch(new WorkerStopEvent());
     }
 }
