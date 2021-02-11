@@ -29,6 +29,7 @@ use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
 use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 // Polyfill of the `service()` function introduced in Symfony 5.1 when using older version
 if (!\function_exists('Symfony\Component\DependencyInjection\Loader\Configurator\service')) {
@@ -77,6 +78,7 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service(MiddlewareStack::class),
             service(KernelRebootStrategyInterface::class),
+            service(EventDispatcherInterface::class),
         ]);
 
     $services->set(WorkerCommand::class)
