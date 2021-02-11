@@ -3,6 +3,7 @@
 namespace Tests\Baldinof\RoadRunnerBundle;
 
 use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
+use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
 use PHPUnit\Framework\TestCase;
@@ -17,6 +18,17 @@ use Symfony\Component\Routing\RouteCollectionBuilder;
 
 class BaldinofRoadRunnerBundleTest extends TestCase
 {
+    public function test_it_expose_the_worker_command()
+    {
+        $k = $this->getKernel();
+        $k->boot();
+        $c = $k->getContainer()->get('test.service_container');
+
+        $cmd = $c->get(WorkerCommand::class);
+
+        $this->assertInstanceOf(WorkerCommand::class, $cmd);
+    }
+
     public function test_it_loads_sentry_middleware_if_needed()
     {
         $k = $this->getKernel([], [
@@ -64,7 +76,7 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $this->assertInstanceOf(StreamedResponseListener::class, $c->get('streamed_response_listener'));
     }
 
-    public function getKernel(array $config, array $extraBundles)
+    public function getKernel(array $config = [], array $extraBundles = [])
     {
         return new class('test', true, $config, $extraBundles) extends Kernel {
             use MicroKernelTrait;
