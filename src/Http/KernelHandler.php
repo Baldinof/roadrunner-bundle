@@ -2,6 +2,7 @@
 
 namespace Baldinof\RoadRunnerBundle\Http;
 
+use Closure;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
 use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
@@ -12,14 +13,10 @@ use Symfony\Component\HttpKernel\TerminableInterface;
 
 final class KernelHandler implements IteratorRequestHandlerInterface
 {
-    private $kernel;
-    private $httpMessageFactory;
-    private $httpFoundationFactory;
-
-    /**
-     * @var \Closure
-     */
-    private $startTimeReset;
+    private HttpKernelInterface $kernel;
+    private HttpMessageFactoryInterface $httpMessageFactory;
+    private HttpFoundationFactoryInterface $httpFoundationFactory;
+    private Closure $startTimeReset;
 
     public function __construct(
         HttpKernelInterface $kernel,
