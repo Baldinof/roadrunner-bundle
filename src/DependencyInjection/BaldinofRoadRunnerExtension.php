@@ -14,16 +14,20 @@ use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Baldinof\RoadRunnerBundle\Worker\Configuration as WorkerConfiguration;
+use Doctrine\Persistence\ManagerRegistry;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
+use Psr\Log\LoggerInterface;
+use Sentry\State\HubInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class BaldinofRoadRunnerExtension extends Extension
 {
@@ -52,10 +56,10 @@ class BaldinofRoadRunnerExtension extends Extension
         } else {
             $container
                 ->register(KernelRebootStrategyInterface::class, OnExceptionRebootStrategy::class)
-                ->setArgument('$allowedExceptions', $config['kernel_reboot']['allowed_exceptions'])
+                ->addArgument($config['kernel_reboot']['allowed_exceptions'])
+                ->addArgument(new Reference(LoggerInterface::class))
                 ->setAutoconfigured(true)
-                ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL])
-                ->setAutowired(true);
+                ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL]);
         }
 
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
@@ -110,10 +114,13 @@ class BaldinofRoadRunnerExtension extends Extension
         }
 
         if (isset($bundles['SentryBundle'])) {
-            $container->autowire(SentryMiddleware::class);
+            $container
+                ->register(SentryMiddleware::class)
+                ->addArgument(HubInterface::class);
 
             $container
-                ->autowire(SentryListener::class)
+                ->register(SentryListener::class)
+                ->addArgument(HubInterface::class)
                 ->setAutoconfigured(true);
 
             $beforeMiddlewares[] = SentryMiddleware::class;
@@ -128,7 +135,11 @@ class BaldinofRoadRunnerExtension extends Extension
 
         if (isset($bundles['DoctrineBundle'])) {
             $container
-                ->autowire(DoctrineMiddleware::class)
+                ->register(DoctrineMiddleware::class)
+                ->addArgument(new Reference(ManagerRegistry::class))
+                ->addArgument(new Reference('service_container'))
+                ->addArgument(new Reference(EventDispatcherInterface::class))
+                ->addArgument(new Reference(LoggerInterface::class))
                 ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL])
             ;
 

@@ -50,7 +50,7 @@
         "nyholm/psr7": "^1.2",
         "doctrine/mongodb-odm": "^2.2",
         "blackfire/php-sdk": "^1.21",
-        "doctrine/doctrine-bundle": "^2.0",
+        "doctrine/doctrine-bundle": "^2.1.1",
         "doctrine/orm": "^2.7.3",
         "symfony/proxy-manager-bridge": "^4.0 || ^5.0",
         "ocramius/package-versions": "^1.10 || ^2.0"

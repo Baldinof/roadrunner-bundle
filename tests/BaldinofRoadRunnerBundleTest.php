@@ -5,7 +5,9 @@ namespace Tests\Baldinof\RoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
+use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
+use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use PHPUnit\Framework\TestCase;
 use Sentry\SentryBundle\SentryBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -13,7 +15,9 @@ use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Kernel;
+use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Routing\RouteCollectionBuilder;
 
 class BaldinofRoadRunnerBundleTest extends TestCase
@@ -54,7 +58,11 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
     public function test_it_does_not_load_default_integrations_according_to_config()
     {
-        $k = $this->getKernel(['default_integrations' => false], [
+        $k = $this->getKernel([
+            'baldinof_road_runner' => [
+                'default_integrations' => false,
+            ],
+        ], [
             new SentryBundle(),
         ]);
 
@@ -76,7 +84,28 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $this->assertInstanceOf(StreamedResponseListener::class, $c->get('streamed_response_listener'));
     }
 
-    public function getKernel(array $config = [], array $extraBundles = [])
+    public function test_it_loads_doctrine_orm_middleware()
+    {
+        $k = $this->getKernel([
+            'doctrine' => [
+                'dbal' => [],
+                'orm' => [],
+            ],
+        ], [
+            new DoctrineBundle(),
+        ]);
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertTrue($c->has(DoctrineMiddleware::class));
+    }
+
+    /**
+     * @param BundleInterface[] $extraBundles
+     */
+    public function getKernel(array $config = [], array $extraBundles = []): KernelInterface
     {
         return new class('test', true, $config, $extraBundles) extends Kernel {
             use MicroKernelTrait;
@@ -118,8 +147,9 @@ class BaldinofRoadRunnerBundleTest extends TestCase
                     'test' => true,
                     'secret' => 'secret',
                 ]);
-
-                $c->loadFromExtension('baldinof_road_runner', $this->config);
+                foreach ($this->config as $key => $config) {
+                    $c->loadFromExtension($key, $config);
+                }
             }
         };
     }
