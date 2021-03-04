@@ -45,12 +45,7 @@ class Configuration implements ConfigurationInterface
                     ->defaultValue([])
                     ->scalarPrototype()->end()
                 ->end()
-                ->booleanNode('should_reboot_kernel')
-                    ->defaultFalse()
-                    ->setDeprecated('baldinof/roadrunner-bundle', '1.3.0', 'Configuration "%path%" is deprecated in favor of "baldinof_road_runner.kernel_reboot_strategy"')
-                ->end()
                 ->booleanNode('default_integrations')->defaultTrue()->end()
-                ->booleanNode('metrics_enabled')->defaultFalse()->end()
             ->end();
 
         return $treeBuilder;

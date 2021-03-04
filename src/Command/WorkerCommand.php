@@ -3,6 +3,7 @@
 namespace Baldinof\RoadRunnerBundle\Command;
 
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
+use Spiral\RoadRunner\Environment\Mode;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -33,7 +34,7 @@ final class WorkerCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if (!getenv('RR_HTTP')) {
+        if (getenv('RR_MODE') !== Mode::MODE_HTTP) {
             $io = new SymfonyStyle($input, $output);
 
             $io->title('RoadRunner Bundle');

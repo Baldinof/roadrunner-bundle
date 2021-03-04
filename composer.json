@@ -17,13 +17,14 @@
         }
     },
     "require": {
-        "php": ">=7.3",
+        "php": ">=7.4",
         "symfony/config": "^4.4 || ^5.0",
         "symfony/dependency-injection": "^4.4 || ^5.0",
         "symfony/http-kernel": "^4.4 || ^5.0",
         "symfony/yaml": "^4.4 || ^5.0",
-        "spiral/roadrunner": "^1.5",
-        "spiral/goridge": "^2.0.2",
+        "spiral/roadrunner": "^2.0",
+        "spiral/roadrunner-worker": ">=2.0.3",
+        "spiral/goridge": "^3.0",
         "symfony/psr-http-message-bridge": "^1.1 || ^2.0",
         "psr/http-factory": "^1.0",
         "psr/http-server-handler": "^1.0",
@@ -32,7 +33,8 @@
         "php-http/discovery": "^1.9",
         "psr/http-factory-implementation": "1.0.0",
         "psr/log": "^1.1",
-        "jean85/pretty-package-versions": "^1.5 || ^2.0"
+        "jean85/pretty-package-versions": "^1.5 || ^2.0",
+        "symfony/expression-language": "^4.4 || ^5.0"
     },
     "suggest": {
         "nyholm/psr7": "For a super lightweight PSR-7/17 implementation",
@@ -53,7 +55,8 @@
         "doctrine/doctrine-bundle": "^2.1.1",
         "doctrine/orm": "^2.7.3",
         "symfony/proxy-manager-bridge": "^4.0 || ^5.0",
-        "ocramius/package-versions": "^1.10 || ^2.0"
+        "ocramius/package-versions": "^1.10 || ^2.0",
+        "spiral/roadrunner-metrics": "^2.0"
     },
     "conflict": {
         "doctrine/doctrine-bundle": "<2.1.1"
