@@ -7,42 +7,33 @@ use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
-use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
 use Psr\Log\LoggerInterface;
-use Spiral\RoadRunner\PSR7Client;
+use Spiral\RoadRunner\Http\PSR7WorkerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * @internal
  */
 final class Worker implements WorkerInterface
 {
-    private $kernel;
-    private $psrClient;
-    private $logger;
-    /**
-     * @var Dependencies
-     */
-    private $dependencies;
+    private KernelInterface $kernel;
+    private PSR7WorkerInterface $psrWorker;
+    private LoggerInterface $logger;
+    private Dependencies $dependencies;
 
     public function __construct(
         KernelInterface $kernel,
-        EventDispatcherInterface $eventDispatcher,
-        Configuration $configuration,
-        IteratorRequestHandlerInterface $middlewareStack,
         LoggerInterface $logger,
-        PSR7Client $psrClient,
-        ?Dependencies $dependencies = null
+        PSR7WorkerInterface $psrWorker
     ) {
         $this->kernel = $kernel;
-        $this->psrClient = $psrClient;
+        $this->psrWorker = $psrWorker;
         $this->logger = $logger;
 
         /** @var Dependencies */
-        $dependencies = $dependencies ?? $kernel->getContainer()->get(Dependencies::class);
+        $dependencies = $kernel->getContainer()->get(Dependencies::class);
         $this->dependencies = $dependencies;
     }
 
@@ -58,26 +49,26 @@ final class Worker implements WorkerInterface
 
         $this->dependencies->getEventDispatcher()->dispatch(new WorkerStartEvent());
 
-        while ($psrRequest = $this->psrClient->acceptRequest()) {
+        while ($psrRequest = $this->psrWorker->waitRequest()) {
             $sent = false;
             try {
                 $gen = $this->dependencies->getRequestHandler()->handle($psrRequest);
 
-                $this->psrClient->respond($gen->current());
+                $this->psrWorker->respond($gen->current());
 
                 $sent = true;
 
                 consumes($gen);
             } catch (\Throwable $e) {
                 if (!$sent) {
-                    $this->psrClient->getWorker()->error($this->kernel->isDebug() ? (string) $e : 'Internal server error');
+                    $this->psrWorker->getWorker()->error($this->kernel->isDebug() ? (string) $e : 'Internal server error');
                 }
 
                 $this->logger->error('An error occured: '.$e->getMessage(), ['throwable' => $e]);
 
                 $this->dependencies->getEventDispatcher()->dispatch(new WorkerExceptionEvent($e));
 
-                $this->psrClient->getWorker()->stop();
+                $this->psrWorker->getWorker()->stop();
             } finally {
                 if ($this->kernel instanceof RebootableInterface && $this->dependencies->getKernelRebootStrategy()->shouldReboot()) {
                     $this->kernel->reboot(null);

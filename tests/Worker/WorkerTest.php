@@ -7,11 +7,9 @@ use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
-use Baldinof\RoadRunnerBundle\Worker\Configuration;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Iterator;
-use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
 use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Assert;
@@ -21,7 +19,7 @@ use Prophecy\PhpUnit\ProphecyTrait;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\NullLogger;
-use Spiral\RoadRunner\PSR7Client;
+use Spiral\RoadRunner\Http\PSR7WorkerInterface;
 use Spiral\RoadRunner\Worker as RoadrunnerWorker;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -36,14 +34,11 @@ class WorkerTest extends TestCase
 
     public static $rebootStrategyReturns = false;
 
-    private $worker;
-    private $requests;
-    private $responder;
+    private Worker $worker;
+    private \SplStack $requests;
+    private \Closure $responder;
 
-    /**
-     * @var EventDispatcher
-     */
-    private $eventDispatcher;
+    private EventDispatcher $eventDispatcher;
 
     public function setUp(): void
     {
@@ -51,14 +46,10 @@ class WorkerTest extends TestCase
 
         $this->roadrunnerWorker = $this->prophesize(RoadrunnerWorker::class);
 
-        $this->psrClient = $this->prophesize(PSR7Client::class);
-        $this->psrClient->acceptRequest()->will(function () use ($requests) {
-            return $requests->isEmpty() ? null : $requests->pop();
-        });
+        $this->psrClient = $this->prophesize(PSR7WorkerInterface::class);
+        $this->psrClient->waitRequest()->will(fn () => $requests->isEmpty() ? null : $requests->pop());
 
         $this->psrClient->getWorker()->willReturn($this->roadrunnerWorker->reveal());
-
-        $psrFactory = new Psr17Factory();
 
         $this->eventDispatcher = new EventDispatcher();
         $this->kernel = $this->prophesize(KernelInterface::class)
@@ -70,7 +61,7 @@ class WorkerTest extends TestCase
         $this->kernel->getContainer()->willReturn($c = new Container());
 
         $handler = function ($request) {
-            if (!\is_callable($this->responder)) {
+            if (!isset($this->responder)) {
                 $this->fail('Unexpected call on the request handler');
             }
 
@@ -103,13 +94,10 @@ class WorkerTest extends TestCase
             }
         };
 
-        $c->set(Dependencies::class, new Dependencies($this->handler, $kernelBootStrategyClass, $this->eventDispatcher));
+        $c->set(Dependencies::class, $deps = new Dependencies($this->handler, $kernelBootStrategyClass, $this->eventDispatcher));
 
         $this->worker = new Worker(
             $this->kernel->reveal(),
-            $this->eventDispatcher,
-            new Configuration(false),
-            $this->handler,
             new NullLogger(),
             $this->psrClient->reveal()
         );

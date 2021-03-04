@@ -9,9 +9,7 @@ use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
-use Baldinof\RoadRunnerBundle\Metric\MetricFactory;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
-use Baldinof\RoadRunnerBundle\Worker\Configuration;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
@@ -20,11 +18,15 @@ use Psr\Http\Message\ServerRequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Log\LoggerInterface;
-use Spiral\Goridge\RelayInterface;
-use Spiral\Goridge\SocketRelay;
-use Spiral\RoadRunner\MetricsInterface;
-use Spiral\RoadRunner\PSR7Client;
+use Spiral\Goridge\RPC\RPC;
+use Spiral\Goridge\RPC\RPCInterface;
+use Spiral\RoadRunner\Environment;
+use Spiral\RoadRunner\EnvironmentInterface;
+use Spiral\RoadRunner\Http\PSR7Worker;
+use Spiral\RoadRunner\Metrics\Metrics;
+use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
+use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
 use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
 use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
@@ -41,36 +43,39 @@ if (!\function_exists('Symfony\Component\DependencyInjection\Loader\Configurator
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
-    $services->set(RoadRunnerWorker::class)
-        ->args([service(RelayInterface::class)]);
 
-    $services->set(PSR7Client::class)
+    // RoadRuner services
+    $services->set(EnvironmentInterface::class)
+        ->factory([Environment::class, 'fromGlobals']);
+
+    $services->set(RoadRunnerWorkerInterface::class, RoadRunnerWorker::class)
+        ->factory([RoadRunnerWorker::class, 'createFromEnvironment'])
+        ->args([service(EnvironmentInterface::class), false]);
+
+    $services->set(PSR7Worker::class)
         ->args([
-            service(RoadRunnerWorker::class),
+            service(RoadRunnerWorkerInterface::class),
             service(ServerRequestFactoryInterface::class),
             service(StreamFactoryInterface::class),
             service(UploadedFileFactoryInterface::class),
         ]);
 
-    $services->set(RelayInterface::class, SocketRelay::class)
+    $services->set(RPCInterface::class)
+        ->factory([RPC::class, 'create'])
         ->args([
-            '%kernel.project_dir%/var/roadrunner.sock',
-            null,
-            SocketRelay::SOCK_UNIX,
+            expr(sprintf('service("%s").getRPCAddress()', EnvironmentInterface::class)),
         ]);
 
-    $services->set(Configuration::class);
+    $services->set(MetricsInterface::class, Metrics::class)
+        ->args([service(RPCInterface::class)]);
 
+    // Bundle services
     $services->set(WorkerInterface::class, Worker::class)
         ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
         ->args([
             service('kernel'),
-            service('event_dispatcher'),
-            service(Configuration::class),
-            service(MiddlewareStack::class),
             service(LoggerInterface::class),
-            service(PSR7Client::class),
-            service(Dependencies::class),
+            service(PSR7Worker::class),
         ]);
 
     $services->set(Dependencies::class)
@@ -108,17 +113,6 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->set(HttpFoundationFactoryInterface::class, HttpFoundationFactory::class);
-
-    $services->set(MetricFactory::class)
-        ->args([
-            '$rrRpc' => '%env(default::RR_RPC)%',
-            '$rrEnabled' => '%env(bool:default::RR)%',
-            '$metricsEnabled' => '%baldinof_road_runner.metrics_enabled%',
-            '$kernelProjectDir' => '%kernel.project_dir%',
-        ]);
-
-    $services->set(MetricsInterface::class)
-        ->factory([service(MetricFactory::class), 'getMetricService']);
 
     $services->set(StreamedResponseListener::class)
         ->decorate('streamed_response_listener')
