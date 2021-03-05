@@ -17,8 +17,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
  */
 final class StreamedResponseListener implements EventSubscriberInterface
 {
-    private $symfonyListener;
-    private $rrEnabled;
+    private SymfonyStreamedResponseListener $symfonyListener;
+    private bool $rrEnabled;
 
     public function __construct(SymfonyStreamedResponseListener $symfonyListener, ?bool $rrEnabled)
     {

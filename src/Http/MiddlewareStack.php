@@ -16,10 +16,7 @@ final class MiddlewareStack implements IteratorRequestHandlerInterface
      */
     private $requestHandler;
 
-    /**
-     * @var SplStack
-     */
-    private $middlewares;
+    private SplStack $middlewares;
 
     /**
      * @param RequestHandlerInterface|IteratorRequestHandlerInterface $requestHandler

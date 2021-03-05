@@ -6,7 +6,7 @@ use Symfony\Contracts\EventDispatcher\Event;
 
 final class ForceKernelRebootEvent extends Event
 {
-    private $reason;
+    private string $reason;
 
     public function __construct(string $reason)
     {

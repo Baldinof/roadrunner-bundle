@@ -18,10 +18,10 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 final class DoctrineMiddleware implements IteratorMiddlewareInterface
 {
-    private $managerRegistry;
-    private $container;
-    private $logger;
-    private $eventDispatcher;
+    private ManagerRegistry $managerRegistry;
+    private ContainerInterface $container;
+    private EventDispatcherInterface $eventDispatcher;
+    private LoggerInterface $logger;
 
     public function __construct(ManagerRegistry $managerRegistry, ContainerInterface $container, EventDispatcherInterface $eventDispatcher, LoggerInterface $logger)
     {
