@@ -12,15 +12,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 final class DoctrineMongoDBListener implements EventSubscriberInterface
 {
-    /**
-     * @var ManagerRegistry|null
-     */
-    private $registry;
-
-    /**
-     * @var ContainerInterface
-     */
-    private $container;
+    private ?ManagerRegistry $registry = null;
+    private ContainerInterface $container;
 
     public function __construct(ContainerInterface $container)
     {
