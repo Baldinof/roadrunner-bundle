@@ -16,9 +16,9 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  */
 final class Dependencies
 {
-    private $requestHandler;
-    private $kernelRebootStrategy;
-    private $eventDispatcher;
+    private IteratorRequestHandlerInterface $requestHandler;
+    private KernelRebootStrategyInterface $kernelRebootStrategy;
+    private EventDispatcherInterface $eventDispatcher;
 
     public function __construct(
         IteratorRequestHandlerInterface $requestHandler,

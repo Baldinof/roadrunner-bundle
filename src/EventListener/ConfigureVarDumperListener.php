@@ -13,9 +13,9 @@ use Symfony\Component\VarDumper\VarDumper;
  */
 final class ConfigureVarDumperListener
 {
-    private $dumper;
-    private $cloner;
-    private $rrEnabled;
+    private DataDumperInterface $dumper;
+    private ClonerInterface $cloner;
+    private bool $rrEnabled;
 
     public function __construct(DataDumperInterface $dumper, ClonerInterface $cloner, ?bool $rrEnabled = null)
     {
