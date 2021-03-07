@@ -6,6 +6,7 @@ use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\EventListener\ConfigureVarDumperListener;
 use Baldinof\RoadRunnerBundle\EventListener\DoctrineMongoDBListener;
 use Baldinof\RoadRunnerBundle\EventListener\SentryListener;
+use Baldinof\RoadRunnerBundle\Helpers\SentryRequestFetcher;
 use Baldinof\RoadRunnerBundle\Http\Middleware\BlackfireMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
@@ -105,6 +106,7 @@ class BaldinofRoadRunnerExtension extends Extension
         if (isset($bundles['SentryBundle'])) {
             $container
                 ->register(SentryMiddleware::class)
+                ->addArgument(new Reference(SentryRequestFetcher::class))
                 ->addArgument(new Reference(HubInterface::class));
 
             $container

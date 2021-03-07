@@ -4,7 +4,6 @@ namespace Baldinof\RoadRunnerBundle\EventListener;
 
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
-use Baldinof\RoadRunnerBundle\Helpers\SentryHelper;
 use Sentry\State\HubInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -19,7 +18,11 @@ final class SentryListener implements EventSubscriberInterface
 
     public function onWorkerStop(WorkerStopEvent $event): void
     {
-        SentryHelper::flushClient($this->hub->getClient());
+        $client = $this->hub->getClient();
+
+        if ($client !== null) {
+            $client->flush()->wait(false);
+        }
     }
 
     public function onWorkerException(WorkerExceptionEvent $event): void

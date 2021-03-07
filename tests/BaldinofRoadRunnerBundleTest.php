@@ -5,10 +5,12 @@ namespace Tests\Baldinof\RoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
+use Baldinof\RoadRunnerBundle\Helpers\SentryRequestFetcher;
 use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use PHPUnit\Framework\TestCase;
+use Sentry\Integration\RequestFetcherInterface;
 use Sentry\SentryBundle\SentryBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
@@ -44,6 +46,7 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $c = $k->getContainer()->get('test.service_container');
 
         $this->assertTrue($c->has(SentryMiddleware::class));
+        $this->assertInstanceOf(SentryRequestFetcher::class, $c->get(RequestFetcherInterface::class));
     }
 
     public function test_it_loads_sentry_middleware_if_not_needed()
