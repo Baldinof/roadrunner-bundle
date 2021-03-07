@@ -33,7 +33,6 @@
         "php-http/discovery": "^1.9",
         "psr/http-factory-implementation": "1.0.0",
         "psr/log": "^1.1",
-        "jean85/pretty-package-versions": "^1.5 || ^2.0",
         "symfony/expression-language": "^4.4 || ^5.0"
     },
     "suggest": {
@@ -41,13 +40,15 @@
         "symfony/proxy-manager-bridge": "For doctrine re-connection implementation"
     },
     "require-dev": {
+        "composer-runtime-api": "^2.0",
+        "composer/semver": "^3.2.4",
         "symfony/var-dumper": "^4.0||^5.0",
         "phpunit/phpunit": "^9.1",
         "phpspec/prophecy": "^1.11",
         "phpspec/prophecy-phpunit": "^2.0",
         "friendsofphp/php-cs-fixer": "^2.16",
         "phpstan/phpstan": "^0.12.2",
-        "sentry/sentry-symfony": "^3.4||^4.0",
+        "sentry/sentry-symfony": "^4.0",
         "symfony/framework-bundle": "^4.0||^5.0",
         "nyholm/psr7": "^1.2",
         "doctrine/mongodb-odm": "^2.2",
@@ -55,11 +56,11 @@
         "doctrine/doctrine-bundle": "^2.1.1",
         "doctrine/orm": "^2.7.3",
         "symfony/proxy-manager-bridge": "^4.0 || ^5.0",
-        "ocramius/package-versions": "^1.10 || ^2.0",
         "spiral/roadrunner-metrics": "^2.0"
     },
     "conflict": {
-        "doctrine/doctrine-bundle": "<2.1.1"
+        "doctrine/doctrine-bundle": "<2.1.1",
+        "sentry/sentry-symfony": "<4.0.0"
     },
     "scripts": {
         "test": "phpunit --testdox --colors=always",

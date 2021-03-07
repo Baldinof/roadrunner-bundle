@@ -21,7 +21,6 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
      */
     private array $allowedExceptions;
 
-
     /**
      * @param string[] $allowedExceptions
      */
