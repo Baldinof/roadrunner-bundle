@@ -4,6 +4,7 @@
   backupGlobals="false"
   colors="true"
   bootstrap="vendor/autoload.php"
+  convertDeprecationsToExceptions="false"
 >
   <php></php>
   <testsuites>
