@@ -1,13 +1,30 @@
+server:
+   command: "php bin/console baldinof:roadrunner:worker"
+
 http:
-  address: "0.0.0.0:8080"
-
+  address: 0.0.0.0:8080
+  middleware: [ "static", "gzip" ]
   uploads:
-    forbid: [".php", ".exe", ".bat"]
+    forbid: [ ".php", ".exe", ".bat" ]
+  static:
+    dir: "public"
+    forbid: [ ".php", ".htaccess" ]
 
-  workers:
-    command: "php bin/console baldinof:roadrunner:worker"
-    relay: "unix://var/roadrunner.sock"
+logs:
+  mode: production
+  channels:
+    http:
+      level: debug # Log all http requests, set to info to disable
+    server:
+      level: debug # Everything written to worker stderr is logged
+    metrics:
+      level: error
 
-static:
-  dir:   "public"
-  forbid: [".php", ".htaccess"]
+# Uncomment to use metrics integration
+# rpc:
+#   listen: tcp://127.0.0.1:6001
+
+# Uncomment to use metrics integration
+# metrics:
+#   # prometheus client address (path /metrics added automatically)
+#   address: "0.0.0.0:9180"
