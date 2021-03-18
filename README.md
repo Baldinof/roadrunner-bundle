@@ -60,21 +60,6 @@ baldinof_road_runner:
   default_integrations: false
 ```
 
-## Doctrine connection handler
-Due to the fact that roadrunner assumes that the process works in demonized mode, there may be problems with disconnecting the database, this problem is handled in this bundle if a doctrine is used to connect to the database.
-
-By default, in the event of a connection failure, the process will be stopped and the request will end with a 500 http code, to prevent this and to correctly process failed connections, without erroneous answers - you need to add [symfony/proxy-manager-bridge](https://github.com/symfony/proxy-manager-bridge) to your project:
-```
-composer require symfony/proxy-manager-bridge
-```
-
-## Sessions in database
-In accordance with the problem described above, to store sessions in the database, you should use the doctrine connection, for example, you can use the [shapecode/doctrine-session-handler-bundle](https://github.com/shapecode/doctrine-session-handler-bundle) bundle
-
-```
-composer require shapecode/doctrine-session-handler-bundle
-```
-
 ## Middlewares
 
 You can use middlewares to manipulate PSR request & responses. Middlewares can implements either PSR [`MiddlewareInterface`](https://www.php-fig.org/psr/psr-15/#22-psrhttpservermiddlewareinterface)
@@ -95,12 +80,20 @@ Be aware that
 - the middleware stack is always resolved at worker start (can be a performance issue if your middleware initialization takes time)
 
 ## Metrics
-Roadrunner have ability to [collect application metrics](https://roadrunner.dev/docs/beep-beep-metrics), enable metrics with this bundle configuration:
+Roadrunner can [collect application metrics](https://roadrunner.dev/docs/beep-beep-metrics), and expose a prometheus endpoint. 
+
+
+Example configuration:
 
 ```yaml
 # config/packages/baldinof_road_runner.yaml
 baldinof_road_runner:
-    metrics_enabled: true
+    metrics:
+      enabled: true
+      collect:
+        user_login:
+          type: counter 
+          help: "Number of logged in user"
 ```
 
 And configure RoadRunner:
@@ -108,32 +101,25 @@ And configure RoadRunner:
 ```yaml
 # .rr.yaml
 rpc:
-  enable: true
-  listen: unix://var/roadrunner_rpc.sock
+  listen: "tcp:127.0.0.1:6001"
 
 metrics:
-  address: localhost:2112
-  collect:
-    app_metric_counter:
-      type: counter
-      help: "Application counter."
+  address: "0.0.0.0:9180" # prometheus endpoint
 ```
 
-Simply inject `Spiral\RoadRunner\MetricsInterface` to record metrics:
+Then simply inject `Spiral\RoadRunner\MetricsInterface` to record metrics:
 
 ```php
 class YouController
 {
     public function index(MetricsInterface $metrics): Response
     {
-        $metrics->add('app_metric_counter', 1);
+        $metrics->add('user_login', 1);
 
         return new Response("...");
     }
 }
 ```
-
-> If you inject `Spiral\RoadRunner\MetricsInterface`, but metrics collection is disabled in config, a [`NullMetrics`](./src/Metric/NullMetrics.php) will be injected and nothing will be collected.
 
 ## Kernel reboots
 
