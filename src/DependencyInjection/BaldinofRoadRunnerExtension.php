@@ -4,6 +4,7 @@ namespace Baldinof\RoadRunnerBundle\DependencyInjection;
 
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\EventListener\ConfigureVarDumperListener;
+use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\EventListener\DoctrineMongoDBListener;
 use Baldinof\RoadRunnerBundle\EventListener\SentryListener;
 use Baldinof\RoadRunnerBundle\Helpers\SentryRequestFetcher;
@@ -20,9 +21,12 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Sentry\State\HubInterface;
+use Spiral\RoadRunner\Metrics\Collector;
+use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
@@ -139,15 +143,31 @@ class BaldinofRoadRunnerExtension extends Extension
 
         $beforeMiddlewares[] = NativeSessionMiddleware::class;
 
+        if ($config['metrics']['enabled']) {
+            $this->configureMetrics($config, $container);
+        }
+
         $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
     }
 
-    private function registerAbstractIfNotExists(ContainerBuilder $container, string $id): void
+    private function configureMetrics(array $config, ContainerBuilder $container): void
     {
-        if ($container->has($id)) {
-            return;
+        if (!interface_exists(MetricsInterface::class)) {
+            throw new LogicException('RoadRunner Metrics support cannot be enabled as the spiral/roadrunner-metrics is not installed. Try running "composer require spiral/roadrunner-metrics".');
         }
 
-        $container->register($id)->setAbstract(true);
+        $listenerDef = $container->register(DeclareMetricsListener::class)
+            ->setAutoconfigured(true)
+            ->addArgument(new Reference(MetricsInterface::class));
+
+        foreach ($config['metrics']['collect'] as $name => $metric) {
+            $def = new Definition(Collector::class);
+            $def->setFactory([Collector::class, $metric['type']]);
+
+            $id = "baldinof_road_runner.metrics.internal.collector.$name";
+            $container->setDefinition($id, $def);
+
+            $listenerDef->addMethodCall('addCollector', [$name, $metric]);
+        }
     }
 }

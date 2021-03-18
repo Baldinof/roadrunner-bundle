@@ -4,6 +4,7 @@ namespace Baldinof\RoadRunnerBundle\Worker;
 
 use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
+use Baldinof\RoadRunnerBundle\Event\WorkerFirstRequestEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
@@ -49,9 +50,15 @@ final class Worker implements WorkerInterface
 
         $this->dependencies->getEventDispatcher()->dispatch(new WorkerStartEvent());
 
+        $firstRequest = true;
+
         while ($psrRequest = $this->psrWorker->waitRequest()) {
             $sent = false;
             try {
+                if ($firstRequest) {
+                    $firstRequest = false;
+                    $this->dependencies->getEventDispatcher()->dispatch(new WorkerFirstRequestEvent());
+                }
                 $gen = $this->dependencies->getRequestHandler()->handle($psrRequest);
 
                 $this->psrWorker->respond($gen->current());

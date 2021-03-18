@@ -32,8 +32,7 @@
         "dflydev/fig-cookies": "^3.0",
         "php-http/discovery": "^1.9",
         "psr/http-factory-implementation": "1.0.0",
-        "psr/log": "^1.1",
-        "symfony/expression-language": "^4.4 || ^5.0"
+        "psr/log": "^1.1"
     },
     "suggest": {
         "nyholm/psr7": "For a super lightweight PSR-7/17 implementation",
@@ -56,11 +55,12 @@
         "doctrine/doctrine-bundle": "^2.1.1",
         "doctrine/orm": "^2.7.3",
         "symfony/proxy-manager-bridge": "^4.0 || ^5.0",
-        "spiral/roadrunner-metrics": "^2.0"
+        "spiral/roadrunner-metrics": "^2.0.1"
     },
     "conflict": {
         "doctrine/doctrine-bundle": "<2.1.1",
-        "sentry/sentry-symfony": "<4.0.0"
+        "sentry/sentry-symfony": "<4.0.0",
+        "spiral/roadrunner-metrics": "<2.0.1"
     },
     "scripts": {
         "test": "phpunit --testdox --colors=always",

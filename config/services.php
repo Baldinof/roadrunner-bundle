@@ -5,6 +5,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
 use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
+use Baldinof\RoadRunnerBundle\Helpers\RPCFactory;
 use Baldinof\RoadRunnerBundle\Helpers\SentryRequestFetcher;
 use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
@@ -20,7 +21,6 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Sentry\Integration\RequestFetcherInterface;
-use Spiral\Goridge\RPC\RPC;
 use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
@@ -64,10 +64,8 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->set(RPCInterface::class)
-        ->factory([RPC::class, 'create'])
-        ->args([
-            expr(sprintf('service("%s").getRPCAddress()', EnvironmentInterface::class)),
-        ]);
+        ->factory([RPCFactory::class, 'fromEnvironment'])
+        ->args([service(EnvironmentInterface::class)]);
 
     $services->set(MetricsInterface::class, Metrics::class)
         ->args([service(RPCInterface::class)]);
