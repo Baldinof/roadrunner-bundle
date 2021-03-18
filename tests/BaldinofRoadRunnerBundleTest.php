@@ -4,6 +4,7 @@ namespace Tests\Baldinof\RoadRunnerBundle;
 
 use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
+use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Helpers\SentryRequestFetcher;
 use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
@@ -12,6 +13,7 @@ use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use PHPUnit\Framework\TestCase;
 use Sentry\Integration\RequestFetcherInterface;
 use Sentry\SentryBundle\SentryBundle;
+use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\Config\Loader\LoaderInterface;
@@ -74,6 +76,44 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $c = $k->getContainer()->get('test.service_container');
 
         $this->assertFalse($c->has(SentryMiddleware::class));
+    }
+
+    public function test_metrics_can_be_configured()
+    {
+        $k = $this->getKernel([
+            'baldinof_road_runner' => [
+                'metrics' => [
+                    'enabled' => true,
+                    'collect' => [
+                        'hello' => [
+                            'type' => 'counter',
+                            'labels' => ['hello'],
+                        ],
+                        'foo' => [
+                            'type' => 'gauge',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $_SERVER['RR_RPC'] = 'tcp://localhost:6001'; // Allow RPCFactory to work
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertTrue($c->has(DeclareMetricsListener::class), "Service '".DeclareMetricsListener::class."' not defined");
+        $listener = $c->get(DeclareMetricsListener::class);
+
+        $expectedListener = new DeclareMetricsListener($c->get(MetricsInterface::class));
+        $expectedListener->addCollector('hello', [
+            'type' => 'counter',
+            'labels' => ['hello'],
+        ]);
+        $expectedListener->addCollector('foo', ['type' => 'gauge']);
+
+        $this->assertEquals($expectedListener, $listener);
     }
 
     public function test_it_decorates_StreamedResponseListener()
@@ -146,6 +186,7 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
             protected function configureContainer(ContainerBuilder $c, LoaderInterface $loader)
             {
+                $c->setParameter('container.dumper.inline_factories', true);
                 $c->loadFromExtension('framework', [
                     'test' => true,
                     'secret' => 'secret',

@@ -4,6 +4,6 @@ namespace Baldinof\RoadRunnerBundle\Event;
 
 use Symfony\Contracts\EventDispatcher\Event;
 
-class WorkerStopEvent extends Event
+final class WorkerStopEvent extends Event
 {
 }

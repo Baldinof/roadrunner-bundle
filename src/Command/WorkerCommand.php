@@ -39,7 +39,7 @@ final class WorkerCommand extends Command
 
             $io->title('RoadRunner Bundle');
             $io->error('Command baldinof:roadrunner:worker should not be run manually');
-            $io->writeln('You should reference this command in a <info>.rr.yaml</> configuration file, then run <info>rr serve</>. Example:');
+            $io->writeln('You should reference this command in a <info>.rr.yaml</> configuration file, then run <info>bin/rr serve</>. Example:');
             $io->writeln(<<<YAML
             <comment>
             http:
