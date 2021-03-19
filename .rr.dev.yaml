@@ -9,7 +9,6 @@ http:
   static:
     dir: "public"
     forbid: [ ".php", ".htaccess" ]
-  pool.debug: true
 
 logs:
   mode: development
