@@ -45,6 +45,9 @@ if (!\function_exists('Symfony\Component\DependencyInjection\Loader\Configurator
 }
 
 return static function (ContainerConfigurator $container) {
+    $container->parameters()
+        ->set('baldinof_road_runner.intercept_side_effect', true);
+
     $services = $container->services();
 
     // RoadRuner services
@@ -53,7 +56,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->set(RoadRunnerWorkerInterface::class, RoadRunnerWorker::class)
         ->factory([RoadRunnerWorker::class, 'createFromEnvironment'])
-        ->args([service(EnvironmentInterface::class), false]);
+        ->args([service(EnvironmentInterface::class), param('baldinof_road_runner.intercept_side_effect')]);
 
     $services->set(PSR7Worker::class)
         ->args([
