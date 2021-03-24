@@ -2,10 +2,9 @@
 
 namespace Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass;
 
-use Baldinof\RoadRunnerBundle\Http\IteratorMiddlewareInterface;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
-use Psr\Http\Server\MiddlewareInterface;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
@@ -47,8 +46,8 @@ class MiddlewareCompilerPass implements CompilerPassInterface
                 throw new InvalidArgumentException("Missing class definition for service '$m'.");
             }
 
-            if (!is_a($class, MiddlewareInterface::class, true) && !is_a($class, IteratorMiddlewareInterface::class, true)) {
-                throw new InvalidArgumentException(sprintf("Service '%s' should implements '%s' or '%s'.", $m, MiddlewareInterface::class, IteratorMiddlewareInterface::class));
+            if (!is_a($class, MiddlewareInterface::class, true) && !is_a($class, MiddlewareInterface::class, true)) {
+                throw new InvalidArgumentException(sprintf("Service '%s' should implements '%s' or '%s'.", $m, MiddlewareInterface::class, MiddlewareInterface::class));
             }
 
             $stack->addMethodCall('pipe', [new Reference($m)]);

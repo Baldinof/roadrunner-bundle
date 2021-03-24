@@ -1,16 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Baldinof\RoadRunnerBundle\Http;
 
 use Iterator;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
  * A middleware that allow to do some work after sending the response.
  */
-interface IteratorMiddlewareInterface
+interface MiddlewareInterface
 {
     /**
      * The traversable should be consumed in 2 times.
@@ -25,7 +27,7 @@ interface IteratorMiddlewareInterface
      *   // code here will be executed after sending the response
      * ```
      *
-     * @return Iterator<ResponseInterface> Only the first item will be sent to the client
+     * @return Iterator<Response> Only the first item will be sent to the client
      */
-    public function process(ServerRequestInterface $request, RequestHandlerInterface $next): Iterator;
+    public function process(Request $request, HttpKernelInterface $next): Iterator;
 }

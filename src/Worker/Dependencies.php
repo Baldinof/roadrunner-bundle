@@ -2,7 +2,7 @@
 
 namespace Baldinof\RoadRunnerBundle\Worker;
 
-use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
@@ -16,12 +16,12 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  */
 final class Dependencies
 {
-    private IteratorRequestHandlerInterface $requestHandler;
+    private MiddlewareStack $requestHandler;
     private KernelRebootStrategyInterface $kernelRebootStrategy;
     private EventDispatcherInterface $eventDispatcher;
 
     public function __construct(
-        IteratorRequestHandlerInterface $requestHandler,
+        MiddlewareStack $requestHandler,
         KernelRebootStrategyInterface $kernelRebootStrategy,
         EventDispatcherInterface $eventDispatcher
     ) {
@@ -30,7 +30,7 @@ final class Dependencies
         $this->eventDispatcher = $eventDispatcher;
     }
 
-    public function getRequestHandler(): IteratorRequestHandlerInterface
+    public function getRequestHandler(): MiddlewareStack
     {
         return $this->requestHandler;
     }

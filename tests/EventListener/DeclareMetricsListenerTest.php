@@ -2,7 +2,7 @@
 
 namespace Tests\Baldinof\RoadRunnerBundle\EventListener;
 
-use Baldinof\RoadRunnerBundle\Event\WorkerFirstRequestEvent;
+use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use PHPUnit\Framework\TestCase;
 use Prophecy\PhpUnit\ProphecyTrait;
@@ -40,6 +40,6 @@ class DeclareMetricsListenerTest extends TestCase
         $metrics->declare('counter', $counter)->shouldBeCalled();
         $metrics->declare('histo', $histogram)->shouldBeCalled();
 
-        $listener->declareMetrics(new WorkerFirstRequestEvent());
+        $listener->declareMetrics(new WorkerStartEvent());
     }
 }

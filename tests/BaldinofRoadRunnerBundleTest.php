@@ -6,12 +6,10 @@ use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
-use Baldinof\RoadRunnerBundle\Helpers\SentryRequestFetcher;
 use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use PHPUnit\Framework\TestCase;
-use Sentry\Integration\RequestFetcherInterface;
 use Sentry\SentryBundle\SentryBundle;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -48,7 +46,6 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $c = $k->getContainer()->get('test.service_container');
 
         $this->assertTrue($c->has(SentryMiddleware::class));
-        $this->assertInstanceOf(SentryRequestFetcher::class, $c->get(RequestFetcherInterface::class));
     }
 
     public function test_it_loads_sentry_middleware_if_not_needed()
@@ -187,10 +184,15 @@ class BaldinofRoadRunnerBundleTest extends TestCase
             protected function configureContainer(ContainerBuilder $c, LoaderInterface $loader)
             {
                 $c->setParameter('container.dumper.inline_factories', true);
+
+                // Prevent phpunit warning: 'Test code or tested code did not (only) close its own output buffers'
+                $c->setParameter('baldinof_road_runner.intercept_side_effect', false);
+
                 $c->loadFromExtension('framework', [
                     'test' => true,
                     'secret' => 'secret',
                 ]);
+
                 foreach ($this->config as $key => $config) {
                     $c->loadFromExtension($key, $config);
                 }

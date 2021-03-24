@@ -2,7 +2,7 @@
 
 namespace Baldinof\RoadRunnerBundle\EventListener;
 
-use Baldinof\RoadRunnerBundle\Event\WorkerFirstRequestEvent;
+use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Spiral\RoadRunner\Metrics\Collector;
 use Spiral\RoadRunner\Metrics\CollectorInterface;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
@@ -23,7 +23,14 @@ final class DeclareMetricsListener implements EventSubscriberInterface
     }
 
     /**
-     * @param array{type: string, buckets?: float[], help?: string, namespace?: string, subsystem?: string, labels?: string[]} $definition
+     * @param array{
+     *   type: string,
+     *   buckets?: float[],
+     *   help?: string,
+     *   namespace?: string,
+     *   subsystem?: string,
+     *   labels?: string[]
+     * } $definition
      */
     public function addCollector(string $name, array $definition): void
     {
@@ -64,7 +71,7 @@ final class DeclareMetricsListener implements EventSubscriberInterface
         $this->collectors[$name] = $collector;
     }
 
-    public function declareMetrics(WorkerFirstRequestEvent $event): void
+    public function declareMetrics(WorkerStartEvent $event): void
     {
         foreach ($this->collectors as $name => $collector) {
             $this->metrics->declare($name, $collector);
@@ -74,7 +81,7 @@ final class DeclareMetricsListener implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            WorkerFirstRequestEvent::class => 'declareMetrics',
+            WorkerStartEvent::class => 'declareMetrics',
         ];
     }
 }

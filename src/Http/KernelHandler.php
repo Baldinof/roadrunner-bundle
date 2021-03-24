@@ -1,31 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Baldinof\RoadRunnerBundle\Http;
 
 use Closure;
-use Psr\Http\Message\ServerRequestInterface;
-use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
-use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\HttpKernel\TerminableInterface;
 
-final class KernelHandler implements IteratorRequestHandlerInterface
+/**
+ * @internal
+ */
+final class KernelHandler implements RequestHandlerInterface
 {
     private HttpKernelInterface $kernel;
-    private HttpMessageFactoryInterface $httpMessageFactory;
-    private HttpFoundationFactoryInterface $httpFoundationFactory;
     private Closure $startTimeReset;
 
-    public function __construct(
-        HttpKernelInterface $kernel,
-        HttpMessageFactoryInterface $httpMessageFactory,
-        HttpFoundationFactoryInterface $httpFoundationFactory
-    ) {
+    public function __construct(HttpKernelInterface $kernel)
+    {
         $this->kernel = $kernel;
-        $this->httpMessageFactory = $httpMessageFactory;
-        $this->httpFoundationFactory = $httpFoundationFactory;
 
         if ($kernel instanceof Kernel && $kernel->isDebug()) {
             $this->startTimeReset = (function () use ($kernel) {
@@ -36,17 +31,20 @@ final class KernelHandler implements IteratorRequestHandlerInterface
         }
     }
 
-    public function handle(ServerRequestInterface $request): \Iterator
+    /**
+     * {@inheritDoc}
+     */
+    public function handle(Request $request): \Iterator
     {
         ($this->startTimeReset)();
 
-        $symfonyRequest = $this->httpFoundationFactory->createRequest($request);
+        $symfonyRequest = $request;
 
         $this->handleBasicAuth($symfonyRequest);
 
         $symfonyResponse = $this->kernel->handle($symfonyRequest);
 
-        yield $this->httpMessageFactory->createResponse($symfonyResponse);
+        yield $symfonyResponse;
 
         if ($this->kernel instanceof TerminableInterface) {
             $this->kernel->terminate($symfonyRequest, $symfonyResponse);
