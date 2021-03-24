@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Baldinof\RoadRunnerBundle\Http\Middleware;
 
 use function Baldinof\RoadRunnerBundle\consumes;

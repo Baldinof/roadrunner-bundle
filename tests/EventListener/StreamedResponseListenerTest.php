@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Baldinof\RoadRunnerBundle\EventListener;
 
 use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;

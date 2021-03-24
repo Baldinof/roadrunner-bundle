@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Baldinof\RoadRunnerBundle\Command;
 
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;

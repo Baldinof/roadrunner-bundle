@@ -16,5 +16,6 @@ return PhpCsFixer\Config::create()
             'include' => ['@compiler_optimized']
         ],
         'php_unit_method_casing' => false,
+        'declare_strict_types' => true
     ])
 ;

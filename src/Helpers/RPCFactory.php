@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Baldinof\RoadRunnerBundle\Helpers;
 
 use Baldinof\RoadRunnerBundle\Exception\BadConfigurationException;

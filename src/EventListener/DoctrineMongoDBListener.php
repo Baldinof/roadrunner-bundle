@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Baldinof\RoadRunnerBundle\EventListener;
 
 use Doctrine\ODM\MongoDB\DocumentManager;
