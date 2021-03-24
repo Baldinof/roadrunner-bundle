@@ -11,7 +11,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 final class SentryListener implements EventSubscriberInterface
 {
-    private $hub;
+    private HubInterface $hub;
 
     public function __construct(HubInterface $hub)
     {
