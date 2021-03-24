@@ -15,7 +15,7 @@ final class WorkerCommand extends Command
 {
     protected static $defaultName = 'baldinof:roadrunner:worker';
 
-    private $worker;
+    private WorkerInterface $worker;
 
     public function __construct(WorkerInterface $worker)
     {
