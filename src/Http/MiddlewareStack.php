@@ -1,56 +1,43 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Baldinof\RoadRunnerBundle\Http;
 
 use function Baldinof\RoadRunnerBundle\consumes;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\MiddlewareInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 use SplStack;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
-final class MiddlewareStack implements IteratorRequestHandlerInterface
+/**
+ * @internal
+ */
+final class MiddlewareStack
 {
-    /**
-     * @var RequestHandlerInterface|IteratorRequestHandlerInterface
-     */
-    private $requestHandler;
+    private RequestHandlerInterface $kernelHandler;
 
     private SplStack $middlewares;
 
-    /**
-     * @param RequestHandlerInterface|IteratorRequestHandlerInterface $requestHandler
-     */
-    public function __construct(object $requestHandler)
+    public function __construct(RequestHandlerInterface $kernelHandler)
     {
-        if (!($requestHandler instanceof RequestHandlerInterface) && !($requestHandler instanceof IteratorRequestHandlerInterface)) {
-            throw new \InvalidArgumentException(sprintf('Request handler should implement "%s" or "%s", "%s" given.', RequestHandlerInterface::class, IteratorRequestHandlerInterface::class, \get_class($requestHandler)));
-        }
-
-        $this->requestHandler = $requestHandler;
+        $this->kernelHandler = $kernelHandler;
         $this->middlewares = new SplStack();
     }
 
-    public function handle(ServerRequestInterface $request): \Iterator
+    public function handle(Request $request): \Iterator
     {
         $middlewares = clone $this->middlewares;
 
-        $runner = new Runner($middlewares, $this->requestHandler);
+        $runner = new Runner($middlewares, $this->kernelHandler);
 
         yield $runner->handle($request);
 
         $runner->close();
     }
 
-    /**
-     * @param MiddlewareInterface|IteratorMiddlewareInterface $middleware
-     */
-    public function pipe(object $middleware): void
+    public function pipe(MiddlewareInterface $middleware): void
     {
-        if (!($middleware instanceof MiddlewareInterface) && !($middleware instanceof IteratorMiddlewareInterface)) {
-            throw new \InvalidArgumentException(sprintf('Middleware should implement "%s" or "%s", "%s" given.', MiddlewareInterface::class, IteratorMiddlewareInterface::class, \get_class($middleware)));
-        }
-
         $this->middlewares->push($middleware);
     }
 }
@@ -58,41 +45,35 @@ final class MiddlewareStack implements IteratorRequestHandlerInterface
 /**
  * @internal
  */
-final class Runner implements RequestHandlerInterface
+final class Runner implements HttpKernelInterface
 {
-    private $middlewares;
-    private $handler;
+    private RequestHandlerInterface $handler;
 
-    private $iterators;
+    /** @var SplStack<MiddlewareInterface> */
+    private SplStack $middlewares;
+    /** @var SplStack<\Iterator<Response>> */
+    private SplStack $iterators;
 
     /**
-     * @param SplStack                                                $middlewares A stack of MiddlewareInterface or IteratorMiddlewareInterface
-     * @param RequestHandlerInterface|IteratorRequestHandlerInterface $handler
+     * @param SplStack<MiddlewareInterface> $middlewares A stack of MiddlewareInterface or IteratorMiddlewareInterface
      */
-    public function __construct(SplStack $middlewares, object $handler)
+    public function __construct(SplStack $middlewares, RequestHandlerInterface $handler)
     {
         $this->middlewares = $middlewares;
         $this->handler = $handler;
         $this->iterators = new SplStack();
     }
 
-    public function handle(ServerRequestInterface $request): ResponseInterface
+    public function handle(Request $request, int $type = self::MASTER_REQUEST, bool $catch = true): Response
     {
         if ($this->middlewares->isEmpty()) {
-            if ($this->handler instanceof RequestHandlerInterface) {
-                return $this->handler->handle($request);
-            }
-
             $gen = $this->handler->handle($request);
 
             return $this->getResponse($gen, \get_class($this->handler).'::handle()');
         }
 
+        /** @var MiddlewareInterface $middleware */
         $middleware = $this->middlewares->shift();
-
-        if ($middleware instanceof MiddlewareInterface) {
-            return $middleware->process($request, $this);
-        }
 
         $gen = $middleware->process($request, $this);
 
@@ -106,14 +87,14 @@ final class Runner implements RequestHandlerInterface
         }
     }
 
-    private function getResponse(\Iterator $iterator, string $caller): ResponseInterface
+    private function getResponse(\Iterator $iterator, string $caller): Response
     {
         $this->iterators->push($iterator);
 
         $resp = $iterator->current();
 
-        if (!($resp instanceof ResponseInterface)) {
-            throw new \UnexpectedValueException(sprintf("'%s' first yield should be a '%s' object, '%s' given", $caller, ResponseInterface::class, \is_object($resp) ? \get_class($resp) : \gettype($resp)));
+        if (!($resp instanceof Response)) {
+            throw new \UnexpectedValueException(sprintf("'%s' first yield should be a '%s' object, '%s' given", $caller, Response::class, \is_object($resp) ? \get_class($resp) : \gettype($resp)));
         }
 
         return $resp;

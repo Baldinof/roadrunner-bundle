@@ -1,39 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Baldinof\RoadRunnerBundle\Bridge\HttpFoundationWorker;
+use Baldinof\RoadRunnerBundle\Bridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
 use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Helpers\RPCFactory;
-use Baldinof\RoadRunnerBundle\Helpers\SentryRequestFetcher;
-use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
+use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
-use Psr\Http\Message\ResponseFactoryInterface;
-use Psr\Http\Message\ServerRequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
-use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Log\LoggerInterface;
-use Sentry\Integration\RequestFetcherInterface;
 use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
-use Spiral\RoadRunner\Http\PSR7Worker;
+use Spiral\RoadRunner\Http\HttpWorker;
+use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Metrics\Metrics;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
-use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
-use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
-use Symfony\Bridge\PsrHttpMessage\HttpFoundationFactoryInterface;
-use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 // Polyfill of the `service()` function introduced in Symfony 5.1 when using older version
@@ -56,15 +50,10 @@ return static function (ContainerConfigurator $container) {
 
     $services->set(RoadRunnerWorkerInterface::class, RoadRunnerWorker::class)
         ->factory([RoadRunnerWorker::class, 'createFromEnvironment'])
-        ->args([service(EnvironmentInterface::class), param('baldinof_road_runner.intercept_side_effect')]);
+        ->args([service(EnvironmentInterface::class), '%baldinof_road_runner.intercept_side_effect%']);
 
-    $services->set(PSR7Worker::class)
-        ->args([
-            service(RoadRunnerWorkerInterface::class),
-            service(ServerRequestFactoryInterface::class),
-            service(StreamFactoryInterface::class),
-            service(UploadedFileFactoryInterface::class),
-        ]);
+    $services->set(HttpWorkerInterface::class, HttpWorker::class)
+        ->args([service(RoadRunnerWorkerInterface::class)]);
 
     $services->set(RPCInterface::class)
         ->factory([RPCFactory::class, 'fromEnvironment'])
@@ -74,12 +63,15 @@ return static function (ContainerConfigurator $container) {
         ->args([service(RPCInterface::class)]);
 
     // Bundle services
+    $services->set(HttpFoundationWorkerInterface::class, HttpFoundationWorker::class)
+        ->args([service(HttpWorkerInterface::class)]);
+
     $services->set(WorkerInterface::class, Worker::class)
         ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
         ->args([
             service('kernel'),
             service(LoggerInterface::class),
-            service(PSR7Worker::class),
+            service(HttpFoundationWorkerInterface::class),
         ]);
 
     $services->set(Dependencies::class)
@@ -97,26 +89,14 @@ return static function (ContainerConfigurator $container) {
     $services->set(KernelHandler::class)
         ->args([
             service('kernel'),
-            service(HttpMessageFactoryInterface::class),
-            service(HttpFoundationFactoryInterface::class),
         ]);
 
     $services->set(MiddlewareStack::class)
         ->args([service(KernelHandler::class)]);
 
-    $services->alias(IteratorRequestHandlerInterface::class, MiddlewareStack::class);
+    $services->alias(RequestHandlerInterface::class, MiddlewareStack::class);
 
     $services->set(NativeSessionMiddleware::class);
-
-    $services->set(HttpMessageFactoryInterface::class, PsrHttpFactory::class)
-        ->args([
-            service(ServerRequestFactoryInterface::class),
-            service(StreamFactoryInterface::class),
-            service(UploadedFileFactoryInterface::class),
-            service(ResponseFactoryInterface::class),
-        ]);
-
-    $services->set(HttpFoundationFactoryInterface::class, HttpFoundationFactory::class);
 
     $services->set(StreamedResponseListener::class)
         ->decorate('streamed_response_listener')
@@ -124,7 +104,4 @@ return static function (ContainerConfigurator $container) {
             service(StreamedResponseListener::class.'.inner'),
             '%env(bool:default::RR)%',
         ]);
-
-    $services->set(SentryRequestFetcher::class)
-        ->decorate(RequestFetcherInterface::class, null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE);
 };

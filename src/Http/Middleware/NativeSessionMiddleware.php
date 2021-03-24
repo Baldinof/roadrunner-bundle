@@ -3,18 +3,15 @@
 namespace Baldinof\RoadRunnerBundle\Http\Middleware;
 
 use Baldinof\RoadRunnerBundle\Exception\HeadersAlreadySentException;
-use Baldinof\RoadRunnerBundle\Http\IteratorMiddlewareInterface;
-use Dflydev\FigCookies\FigRequestCookies;
-use Dflydev\FigCookies\FigResponseCookies;
-use Dflydev\FigCookies\Modifier\SameSite;
-use Dflydev\FigCookies\SetCookie;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
+use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
-class NativeSessionMiddleware implements IteratorMiddlewareInterface
+class NativeSessionMiddleware implements MiddlewareInterface
 {
-    public function process(ServerRequestInterface $request, RequestHandlerInterface $next): \Iterator
+    public function process(Request $request, HttpKernelInterface $next): \Iterator
     {
         if (headers_sent()) {
             throw new HeadersAlreadySentException('Headers has already been sent. Something have been echoed on stdout.');
@@ -24,7 +21,7 @@ class NativeSessionMiddleware implements IteratorMiddlewareInterface
 
         $sessionName = session_name();
         if ($sessionName) {
-            $oldId = FigRequestCookies::get($request, $sessionName)->getValue() ?: '';
+            $oldId = (string) $request->cookies->get($sessionName);
         } else {
             $oldId = '';
         }
@@ -38,7 +35,7 @@ class NativeSessionMiddleware implements IteratorMiddlewareInterface
 
             if ($newId && $newId !== $oldId) {
                 // A session has been started or the id has changed: send the cookie again
-                $response = $this->addSessionCookie($response, $newId);
+                $this->addSessionCookie($response, $newId);
             }
 
             yield $response;
@@ -49,16 +46,16 @@ class NativeSessionMiddleware implements IteratorMiddlewareInterface
         }
     }
 
-    private function addSessionCookie(ResponseInterface $response, string $sessionId): ResponseInterface
+    private function addSessionCookie(Response $response, string $sessionId): void
     {
         $params = session_get_cookie_params();
         $sessionName = session_name();
 
         if (!$sessionName) {
-            return $response;
+            return;
         }
 
-        $setCookie = SetCookie::create($sessionName)
+        $cookie = Cookie::create($sessionName)
             ->withValue($sessionId)
             ->withPath($params['path'])
             ->withDomain($params['domain'])
@@ -67,13 +64,13 @@ class NativeSessionMiddleware implements IteratorMiddlewareInterface
         ;
 
         if ($params['lifetime'] > 0) {
-            $setCookie = $setCookie->withExpires(time() + $params['lifetime']);
+            $cookie = $cookie->withExpires(time() + $params['lifetime']);
         }
 
         if ($params['samesite']) {
-            $setCookie = $setCookie->withSameSite(SameSite::fromString($params['samesite']));
+            $cookie = $cookie->withSameSite($params['samesite']);
         }
 
-        return FigResponseCookies::set($response, $setCookie);
+        $response->headers->setCookie($cookie);
     }
 }

@@ -3,24 +3,21 @@
 namespace Tests\Baldinof\RoadRunnerBundle\Http;
 
 use function Baldinof\RoadRunnerBundle\consumes;
-use Baldinof\RoadRunnerBundle\Http\IteratorMiddlewareInterface;
-use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
-use Nyholm\Psr7\Response;
-use Nyholm\Psr7\ServerRequest;
+use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
+use Iterator;
 use PHPUnit\Framework\TestCase;
-use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\MiddlewareInterface;
-use Psr\Http\Server\RequestHandlerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 class MiddlewareStackTest extends TestCase
 {
     use ProphecyTrait;
 
-    public static $out = '';
+    public static string $out = '';
 
     public function setUp(): void
     {
@@ -29,8 +26,8 @@ class MiddlewareStackTest extends TestCase
 
     public function test_it_calls_middlewares_in_expected_order()
     {
-        $stack = new MiddlewareStack(new class() implements IteratorRequestHandlerInterface {
-            public function handle(ServerRequestInterface $request): \Iterator
+        $stack = new MiddlewareStack(new class() implements RequestHandlerInterface {
+            public function handle(Request $request): Iterator
             {
                 MiddlewareStackTest::$out .= "Main handler\n";
 
@@ -44,7 +41,7 @@ class MiddlewareStackTest extends TestCase
         $stack->pipe($this->middleware('2'));
         $stack->pipe($this->middleware('3'));
 
-        $gen = $stack->handle(new ServerRequest('POST', 'http://example.org'));
+        $gen = $stack->handle(Request::create('http://example.org', 'POST'));
 
         $gen->current();
 
@@ -70,42 +67,43 @@ class MiddlewareStackTest extends TestCase
 
     public function test_it_works_with_psr_handler()
     {
-        $handler = $this->prophesize(RequestHandlerInterface::class);
-        $handler->handle(Argument::any())->willReturn($response = new Response());
+        $handler = $this->handler($response = new Response());
 
-        $stack = new MiddlewareStack($handler->reveal());
-        $gen = $stack->handle(new ServerRequest('GET', 'https://example.org'));
+        $stack = new MiddlewareStack($handler);
+        $gen = $stack->handle(Request::create('https://example.org'));
 
         $this->assertSame($response, $gen->current());
     }
 
     public function test_a_middleware_can_modify_the_response()
     {
-        $handler = $this->prophesize(RequestHandlerInterface::class);
-        $handler->handle(Argument::any())->willReturn($response = new Response());
+        $handler = $this->handler($response = new Response());
 
-        $stack = new MiddlewareStack($handler->reveal());
+        $stack = new MiddlewareStack($handler);
         $stack->pipe(new class() implements MiddlewareInterface {
-            public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+            public function process(Request $request, HttpKernelInterface $handler): Iterator
             {
-                return $handler->handle($request)->withHeader('X-Test', 'foo');
+                $response = $handler->handle($request);
+                $response->headers->set('X-Test', 'foo');
+
+                yield $response;
             }
         });
 
-        $response = $stack->handle(new ServerRequest('GET', 'https://example.org'))->current();
-        $this->assertInstanceOf(ResponseInterface::class, $response);
-        $this->assertEquals('foo', $response->getHeaderLine('X-Test'));
+        $response = $stack->handle(Request::create('https://example.org'))->current();
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertEquals('foo', $response->headers->get('X-Test'));
     }
 
-    private function middleware(string $name): IteratorMiddlewareInterface
+    private function middleware(string $name): MiddlewareInterface
     {
-        $m = new class() implements IteratorMiddlewareInterface {
+        $m = new class() implements MiddlewareInterface {
             public $name;
 
-            public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): \Iterator
+            public function process(Request $request, HttpKernelInterface $next): Iterator
             {
                 MiddlewareStackTest::$out .= "Before {$this->name}\n";
-                $res = $handler->handle($request);
+                $res = $next->handle($request);
                 MiddlewareStackTest::$out .= "After {$this->name}\n";
 
                 yield $res;
@@ -117,6 +115,23 @@ class MiddlewareStackTest extends TestCase
         $m->name = $name;
 
         return $m;
+    }
+
+    private function handler(Response $response): RequestHandlerInterface
+    {
+        return new class($response) implements RequestHandlerInterface {
+            private Response $response;
+
+            public function __construct(Response $response)
+            {
+                $this->response = $response;
+            }
+
+            public function handle(Request $request): Iterator
+            {
+                yield $this->response;
+            }
+        };
     }
 
     private function getOut(): string

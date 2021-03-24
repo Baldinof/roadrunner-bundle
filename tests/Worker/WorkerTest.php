@@ -2,28 +2,26 @@
 
 namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 
+use Baldinof\RoadRunnerBundle\Bridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
-use Baldinof\RoadRunnerBundle\Http\IteratorRequestHandlerInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
+use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Iterator;
-use Nyholm\Psr7\Response;
-use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\NullLogger;
-use Spiral\RoadRunner\Http\PSR7WorkerInterface;
 use Spiral\RoadRunner\Worker as RoadrunnerWorker;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
@@ -46,7 +44,7 @@ class WorkerTest extends TestCase
 
         $this->roadrunnerWorker = $this->prophesize(RoadrunnerWorker::class);
 
-        $this->psrClient = $this->prophesize(PSR7WorkerInterface::class);
+        $this->psrClient = $this->prophesize(HttpFoundationWorkerInterface::class);
         $this->psrClient->waitRequest()->will(fn () => $requests->isEmpty() ? null : $requests->pop());
 
         $this->psrClient->getWorker()->willReturn($this->roadrunnerWorker->reveal());
@@ -68,7 +66,7 @@ class WorkerTest extends TestCase
             yield from ($this->responder)($request);
         };
 
-        $this->handler = new class($handler) implements IteratorRequestHandlerInterface {
+        $this->handler = new class($handler) implements RequestHandlerInterface {
             private $handler;
 
             public function __construct(callable $handler)
@@ -76,7 +74,7 @@ class WorkerTest extends TestCase
                 $this->handler = $handler;
             }
 
-            public function handle(ServerRequestInterface $request): Iterator
+            public function handle(Request $request): Iterator
             {
                 yield from ($this->handler)($request);
             }
@@ -94,7 +92,7 @@ class WorkerTest extends TestCase
             }
         };
 
-        $c->set(Dependencies::class, $deps = new Dependencies($this->handler, $kernelBootStrategyClass, $this->eventDispatcher));
+        $c->set(Dependencies::class, $deps = new Dependencies(new MiddlewareStack($this->handler), $kernelBootStrategyClass, $this->eventDispatcher));
 
         $this->worker = new Worker(
             $this->kernel->reveal(),
@@ -138,11 +136,11 @@ class WorkerTest extends TestCase
             throw $e->getException();
         });
 
-        $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
+        $this->requests->push(Request::create('http://example.org/'));
 
         $terminated = false;
         $this->responder = function () use (&$terminated) {
-            yield new Response(200, [], 'hello');
+            yield new Response('hello');
 
             $terminated = true;
         };
@@ -153,8 +151,8 @@ class WorkerTest extends TestCase
             ->will(function (array $args) use (&$terminated, &$psrClientCalled) {
                 $psrResponse = $args[0];
 
-                Assert::assertInstanceOf(ResponseInterface::class, $psrResponse);
-                Assert::assertSame('hello', (string) $psrResponse->getBody());
+                Assert::assertInstanceOf(Response::class, $psrResponse);
+                Assert::assertSame('hello', $psrResponse->getContent());
                 Assert::assertFalse($terminated);
                 $psrClientCalled = true;
             });
@@ -167,8 +165,8 @@ class WorkerTest extends TestCase
 
     public function test_an_error_stops_the_worker()
     {
-        $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
-        $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
+        $this->requests->push(Request::create('http://example.org/'));
+        $this->requests->push(Request::create('http://example.org/'));
 
         $this->responder = function () {
             throw new \RuntimeException('error');
@@ -189,8 +187,8 @@ class WorkerTest extends TestCase
 
     public function test_an_error_in_debug_mode_shows_the_trace_and_stops_the_worker()
     {
-        $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
-        $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
+        $this->requests->push(Request::create('http://example.org/'));
+        $this->requests->push(Request::create('http://example.org/'));
 
         $this->kernel->isDebug()->willReturn(true);
 
@@ -226,14 +224,14 @@ class WorkerTest extends TestCase
 
         $this->psrClient->respond(Argument::any()); // Allow resond() calls
 
-        $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
+        $this->requests->push(Request::create('http://example.org/'));
 
         self::$rebootStrategyReturns = false;
         $this->worker->start();
 
         $this->kernel->reboot()->shouldNotHaveBeenCalled();
 
-        $this->requests->push(new ServerRequest('GET', 'http://example.org/'));
+        $this->requests->push(Request::create('http://example.org/'));
         self::$rebootStrategyReturns = true;
 
         $rebootedEventFired = false;

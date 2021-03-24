@@ -10,16 +10,14 @@ use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
-use Nyholm\Psr7\Response;
-use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\TestCase;
 use ProxyManager\Proxy\LazyLoadingInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 class DoctrineMiddlewareTest extends TestCase
 {
@@ -47,9 +45,9 @@ class DoctrineMiddlewareTest extends TestCase
         $this->managerRegistryMock->method('getConnectionNames')->willReturn([self::CONNECTION_NAME]);
         $this->managerRegistryMock->method('getManagerNames')->willReturn([self::MANAGER_NAME]);
 
-        $this->request = new ServerRequest('GET', 'https://example.org');
-        $this->handler = new class() implements RequestHandlerInterface {
-            public function handle(ServerRequestInterface $request): ResponseInterface
+        $this->request = Request::create('https://example.org');
+        $this->handler = new class() implements HttpKernelInterface {
+            public function handle(Request $request, int $type = self::MASTER_REQUEST, bool $catch = true)
             {
                 return new Response();
             }

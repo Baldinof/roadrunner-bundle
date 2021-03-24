@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\Http\Middleware;
 
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
-use Baldinof\RoadRunnerBundle\Http\IteratorMiddlewareInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use ProxyManager\Proxy\LazyLoadingInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
-final class DoctrineMiddleware implements IteratorMiddlewareInterface
+final class DoctrineMiddleware implements MiddlewareInterface
 {
     private ManagerRegistry $managerRegistry;
     private ContainerInterface $container;
@@ -34,7 +34,7 @@ final class DoctrineMiddleware implements IteratorMiddlewareInterface
     /**
      * {@inheritdoc}
      */
-    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): \Iterator
+    public function process(Request $request, HttpKernelInterface $next): \Iterator
     {
         $connectionServices = $this->managerRegistry->getConnectionNames();
 
@@ -56,7 +56,7 @@ final class DoctrineMiddleware implements IteratorMiddlewareInterface
             }
         }
 
-        yield $handler->handle($request);
+        yield $next->handle($request);
 
         $managerNames = $this->managerRegistry->getManagerNames();
 

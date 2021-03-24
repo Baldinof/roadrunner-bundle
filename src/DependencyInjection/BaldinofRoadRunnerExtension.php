@@ -7,7 +7,6 @@ use Baldinof\RoadRunnerBundle\EventListener\ConfigureVarDumperListener;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\EventListener\DoctrineMongoDBListener;
 use Baldinof\RoadRunnerBundle\EventListener\SentryListener;
-use Baldinof\RoadRunnerBundle\Helpers\SentryRequestFetcher;
 use Baldinof\RoadRunnerBundle\Http\Middleware\BlackfireMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
@@ -15,10 +14,6 @@ use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Persistence\ManagerRegistry;
-use Psr\Http\Message\ResponseFactoryInterface;
-use Psr\Http\Message\ServerRequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
-use Psr\Http\Message\UploadedFileFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Sentry\State\HubInterface;
 use Spiral\RoadRunner\Metrics\Collector;
@@ -59,7 +54,6 @@ class BaldinofRoadRunnerExtension extends Extension
 
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
 
-        $this->loadPsrFactories($container);
         $this->loadIntegrations($container, $config);
     }
 
@@ -70,22 +64,6 @@ class BaldinofRoadRunnerExtension extends Extension
             ->addArgument(new Reference('data_collector.dump'))
             ->addArgument(new Reference('var_dumper.cloner'))
             ->addArgument('%env(bool:default::RR)%');
-    }
-
-    private function loadPsrFactories(ContainerBuilder $container): void
-    {
-        $factories = [
-            ServerRequestFactoryInterface::class,
-            StreamFactoryInterface::class,
-            UploadedFileFactoryInterface::class,
-            ResponseFactoryInterface::class,
-        ];
-
-        foreach ($factories as $factory) {
-            if (!$container->has($factory)) {
-                $container->setDefinition($factory, new Definition());
-            }
-        }
     }
 
     private function loadIntegrations(ContainerBuilder $container, array $config): void
@@ -110,7 +88,6 @@ class BaldinofRoadRunnerExtension extends Extension
         if (isset($bundles['SentryBundle'])) {
             $container
                 ->register(SentryMiddleware::class)
-                ->addArgument(new Reference(SentryRequestFetcher::class))
                 ->addArgument(new Reference(HubInterface::class));
 
             $container

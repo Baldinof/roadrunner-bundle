@@ -4,12 +4,7 @@ namespace Tests\Baldinof\RoadRunnerBundle\Http;
 
 use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
-use Nyholm\Psr7\Factory\Psr17Factory;
-use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
-use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
-use Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -28,11 +23,11 @@ class KernelHandlerTest extends TestCase
 
         $handler = $this->createHandler($kernel);
 
-        $gen = $handler->handle(new ServerRequest('GET', 'http://example.org/'));
+        $gen = $handler->handle(Request::create('http://example.org/'));
         $response = $gen->current();
 
-        $this->assertInstanceOf(ResponseInterface::class, $response);
-        $this->assertSame('hello', (string) $response->getBody());
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertSame('hello', (string) $response->getContent());
         $this->assertFalse($kernel->terminateCalled);
 
         consumes($gen);
@@ -55,7 +50,8 @@ class KernelHandlerTest extends TestCase
 
         $handler = $this->createHandler($kernel);
 
-        $request = new ServerRequest('GET', 'http://example.org/', $headers);
+        $request = Request::create('http://example.org/');
+        $request->headers->add($headers);
 
         consumes($handler->handle($request));
 
@@ -99,9 +95,7 @@ class KernelHandlerTest extends TestCase
 
     private function createHandler(HttpKernelInterface $kernel): KernelHandler
     {
-        $psrFactory = new Psr17Factory();
-
-        return new KernelHandler($kernel, new PsrHttpFactory($psrFactory, $psrFactory, $psrFactory, $psrFactory), new HttpFoundationFactory());
+        return new KernelHandler($kernel);
     }
 
     private function kernel(callable $callback)

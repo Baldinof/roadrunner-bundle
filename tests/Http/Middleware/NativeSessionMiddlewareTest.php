@@ -5,14 +5,11 @@ namespace Tests\Baldinof\RoadRunnerBundle\Http\Middleware;
 use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Exception\HeadersAlreadySentException;
 use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
-use Dflydev\FigCookies\FigResponseCookies;
-use Dflydev\FigCookies\Modifier\SameSite;
-use Nyholm\Psr7\Response;
-use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\RequestHandlerInterface;
+use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 class NativeSessionMiddlewareTest extends TestCase
 {
@@ -31,19 +28,18 @@ class NativeSessionMiddlewareTest extends TestCase
     {
         $response = $this->process($this->emptyRequest());
 
-        $this->assertEquals('1', (string) $response->getBody());
-
+        $this->assertEquals('1', (string) $response->getContent());
         $sessionedRequest = $this->requestWithCookiesFrom($response);
 
         $sessionedResponse = $this->process($sessionedRequest);
 
         // The session has been re-used
-        $this->assertEquals('2', (string) $sessionedResponse->getBody());
+        $this->assertEquals('2', (string) $sessionedResponse->getContent());
 
         // A new session has been created
         $noSessionResponse = $this->process($this->emptyRequest());
 
-        $this->assertEquals('1', (string) $noSessionResponse->getBody());
+        $this->assertEquals('1', (string) $noSessionResponse->getContent());
     }
 
     /**
@@ -64,15 +60,14 @@ class NativeSessionMiddlewareTest extends TestCase
         ]);
 
         $response = $this->process($this->emptyRequest());
+        $cookie = $this->getCookie($response, session_name());
 
-        $cookie = FigResponseCookies::get($response, session_name());
-
-        $this->assertEquals($cookie->getPath(), '/hello');
-        $this->assertEquals($cookie->getDomain(), 'example.org');
-        $this->assertTrue($cookie->getSecure());
-        $this->assertTrue($cookie->getHttpOnly());
-        $this->assertEquals(SameSite::strict(), $cookie->getSameSite());
-        $this->assertEquals($now + $lifetime, $cookie->getExpires());
+        $this->assertEquals('/hello', $cookie->getPath());
+        $this->assertEquals('example.org', $cookie->getDomain());
+        $this->assertTrue($cookie->isSecure());
+        $this->assertTrue($cookie->isHttpOnly());
+        $this->assertEquals(Cookie::SAMESITE_STRICT, $cookie->getSameSite());
+        $this->assertEquals($now + $lifetime, $cookie->getExpiresTime());
     }
 
     /**
@@ -108,38 +103,44 @@ class NativeSessionMiddlewareTest extends TestCase
         $this->process($this->emptyRequest());
     }
 
-    private function requestWithCookiesFrom(ResponseInterface $response): ServerRequestInterface
+    private function requestWithCookiesFrom(Response $response): Request
     {
         $request = $this->emptyRequest();
 
-        if ($response->hasHeader('Set-Cookie')) {
-            $request = $request->withHeader('Cookie', $response->getHeaderLine('Set-Cookie'));
+        if ($response->headers->has('Set-Cookie')) {
+            $request->headers->set('Cookie', $response->headers->get('Set-Cookie'));
+
+            foreach ($response->headers->getCookies() as $cookie) {
+                $request->cookies->set($cookie->getName(), $cookie->getValue());
+            }
         }
 
         return $request;
     }
 
-    private function process(ServerRequestInterface $request, ?callable $handler = null): ResponseInterface
+    private function process(Request $request, ?\Closure $handler = null): Response
     {
         if (null === $handler) {
-            $handler = function (ServerRequestInterface $request): ResponseInterface {
+            $handler = function (Request $request): Response {
                 session_start();
 
                 $counter = ($_SESSION['counter'] ?? 0) + 1;
 
                 $_SESSION['counter'] = $counter;
 
-                return new Response(200, [], (string) $counter);
+                return new Response((string) $counter, 200, []);
             };
         }
 
-        $it = $this->middleware->process($request, new class($handler) implements RequestHandlerInterface {
-            public function __construct(callable $handler)
+        $it = $this->middleware->process($request, new class($handler) implements HttpKernelInterface {
+            private \Closure $handler;
+
+            public function __construct(\Closure $handler)
             {
                 $this->handler = $handler;
             }
 
-            public function handle(ServerRequestInterface $request): ResponseInterface
+            public function handle(Request $request, int $type = self::MASTER_REQUEST, bool $catch = true)
             {
                 return ($this->handler)($request);
             }
@@ -152,8 +153,19 @@ class NativeSessionMiddlewareTest extends TestCase
         return $resp;
     }
 
-    private function emptyRequest(): ServerRequestInterface
+    private function emptyRequest(): Request
     {
-        return new ServerRequest('GET', 'https://example.org');
+        return Request::create('https://example.org');
+    }
+
+    private function getCookie(Response $response, string $cookieName): Cookie
+    {
+        foreach ($response->headers->getCookies() as $cookie) {
+            if ($cookie->getName() === $cookieName) {
+                return $cookie;
+            }
+        }
+
+        throw new \OutOfBoundsException("Cannot find cookie '$cookieName'");
     }
 }
