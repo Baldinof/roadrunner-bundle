@@ -116,11 +116,11 @@ class BaldinofRoadRunnerExtension extends Extension
         if (isset($bundles['SentryBundle'])) {
             $container
                 ->register(SentryMiddleware::class)
-                ->addArgument(HubInterface::class);
+                ->addArgument(new Reference(HubInterface::class));
 
             $container
                 ->register(SentryListener::class)
-                ->addArgument(HubInterface::class)
+                ->addArgument(new Reference(HubInterface::class))
                 ->setAutoconfigured(true);
 
             $beforeMiddlewares[] = SentryMiddleware::class;
