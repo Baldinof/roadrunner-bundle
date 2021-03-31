@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baldinof\RoadRunnerBundle\Bridge;
+namespace Baldinof\RoadRunnerBundle\RoadRunnerBridge;
 
 use Spiral\RoadRunner\WorkerAwareInterface;
 use Symfony\Component\HttpFoundation\Request;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baldinof\RoadRunnerBundle\Http\Middleware;
+namespace Baldinof\RoadRunnerBundle\Integration\Sentry;
 
 use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Sentry\State\HubInterface;
@@ -10,9 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
- * This middleware is mostly a copy of the the Sentry RequestIntegration.
- * The Sentry class does not allow to pass arbitrary request and always do
- * integrations against PHP globals.
+ * Clear scope and flush transport after each request.
  */
 final class SentryMiddleware implements MiddlewareInterface
 {

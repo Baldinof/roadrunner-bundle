@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Tests\Baldinof\RoadRunnerBundle\Http\Middleware;
+namespace Tests\Baldinof\RoadRunnerBundle\Integration\Sentry;
 
 use function Baldinof\RoadRunnerBundle\consumes;
-use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
+use Closure;
 use GuzzleHttp\Promise\Promise;
 use GuzzleHttp\Promise\PromiseInterface;
 use PHPUnit\Framework\TestCase;
@@ -22,14 +23,12 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
-/**
- * Test cases are mostly a copy from the Sentry RequestIntegration test suite.
- */
 final class SentryMiddlewareTest extends TestCase
 {
     public static SplStack $collectedEvents;
 
-    public \Closure $onRequest;
+    /** @var Closure(): Response */
+    public Closure $onRequest;
 
     private HttpKernelInterface $handler;
 

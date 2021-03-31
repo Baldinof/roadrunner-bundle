@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\EventListener;
 
-use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
+use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use PHPUnit\Framework\TestCase;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Symfony\Component\HttpFoundation\Request;

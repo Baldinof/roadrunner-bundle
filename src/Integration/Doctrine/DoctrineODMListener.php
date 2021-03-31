@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baldinof\RoadRunnerBundle\EventListener;
+namespace Baldinof\RoadRunnerBundle\Integration\Doctrine;
 
 use Doctrine\ODM\MongoDB\DocumentManager;
 use ProxyManager\Proxy\LazyLoadingInterface;
@@ -12,7 +12,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
-final class DoctrineMongoDBListener implements EventSubscriberInterface
+final class DoctrineODMListener implements EventSubscriberInterface
 {
     private ?ManagerRegistry $registry = null;
     private ContainerInterface $container;

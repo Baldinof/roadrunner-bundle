@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baldinof\RoadRunnerBundle\EventListener;
+namespace Baldinof\RoadRunnerBundle\Integration\Symfony;
 
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Symfony\Component\VarDumper\Cloner\ClonerInterface;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Baldinof\RoadRunnerBundle\EventListener;
 
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
-use Baldinof\RoadRunnerBundle\EventListener\ConfigureVarDumperListener;
+use Baldinof\RoadRunnerBundle\Integration\Symfony\ConfigureVarDumperListener;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\VarDumper\Cloner\Data;
 use Symfony\Component\VarDumper\Cloner\VarCloner;

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Tests\Baldinof\RoadRunnerBundle\Http\Middleware;
+namespace Tests\Baldinof\RoadRunnerBundle\Integration\PHP;
 
 use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Exception\HeadersAlreadySentException;
-use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,7 +15,7 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 class NativeSessionMiddlewareTest extends TestCase
 {
-    private $middleware;
+    private NativeSessionMiddleware $middleware;
 
     public function setUp(): void
     {

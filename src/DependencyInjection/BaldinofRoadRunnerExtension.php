@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\DependencyInjection;
 
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
-use Baldinof\RoadRunnerBundle\EventListener\ConfigureVarDumperListener;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
-use Baldinof\RoadRunnerBundle\EventListener\DoctrineMongoDBListener;
-use Baldinof\RoadRunnerBundle\EventListener\SentryListener;
-use Baldinof\RoadRunnerBundle\Http\Middleware\BlackfireMiddleware;
-use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
-use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
-use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Blackfire\BlackfireMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineODMListener;
+use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryListener;
+use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Symfony\ConfigureVarDumperListener;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Persistence\ManagerRegistry;
@@ -57,6 +57,10 @@ class BaldinofRoadRunnerExtension extends Extension
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
 
         $this->loadIntegrations($container, $config);
+
+        if ($config['metrics']['enabled']) {
+            $this->configureMetrics($config, $container);
+        }
     }
 
     private function loadDebug(ContainerBuilder $container): void
@@ -102,14 +106,14 @@ class BaldinofRoadRunnerExtension extends Extension
 
         if (isset($bundles['DoctrineMongoDBBundle'])) {
             $container
-                ->register(DoctrineMongoDBListener::class)
+                ->register(DoctrineODMListener::class)
                 ->addArgument(new Reference('service_container'))
                 ->setAutoconfigured(true);
         }
 
         if (isset($bundles['DoctrineBundle'])) {
             $container
-                ->register(DoctrineMiddleware::class)
+                ->register(DoctrineORMMiddleware::class)
                 ->addArgument(new Reference(ManagerRegistry::class))
                 ->addArgument(new Reference('service_container'))
                 ->addArgument(new Reference(EventDispatcherInterface::class))
@@ -117,14 +121,10 @@ class BaldinofRoadRunnerExtension extends Extension
                 ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL])
             ;
 
-            $beforeMiddlewares[] = DoctrineMiddleware::class;
+            $beforeMiddlewares[] = DoctrineORMMiddleware::class;
         }
 
         $beforeMiddlewares[] = NativeSessionMiddleware::class;
-
-        if ($config['metrics']['enabled']) {
-            $this->configureMetrics($config, $container);
-        }
 
         $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
     }
