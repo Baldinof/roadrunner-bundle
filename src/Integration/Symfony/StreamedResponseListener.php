@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Integration\Symfony;
 
+use Spiral\RoadRunner\Environment\Mode;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\EventListener\StreamedResponseListener as SymfonyStreamedResponseListener;
@@ -20,10 +21,10 @@ final class StreamedResponseListener implements EventSubscriberInterface
     private SymfonyStreamedResponseListener $symfonyListener;
     private bool $rrEnabled;
 
-    public function __construct(SymfonyStreamedResponseListener $symfonyListener, ?bool $rrEnabled)
+    public function __construct(SymfonyStreamedResponseListener $symfonyListener, ?string $rrMode)
     {
         $this->symfonyListener = $symfonyListener;
-        $this->rrEnabled = (bool) $rrEnabled;
+        $this->rrEnabled = $rrMode === Mode::MODE_HTTP;
     }
 
     public function onKernelResponse(ResponseEvent $event): void

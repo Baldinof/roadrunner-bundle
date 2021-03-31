@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\Integration\Symfony;
 
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
+use Spiral\RoadRunner\Environment\Mode;
 use Symfony\Component\VarDumper\Cloner\ClonerInterface;
 use Symfony\Component\VarDumper\Dumper\DataDumperInterface;
 use Symfony\Component\VarDumper\VarDumper;
@@ -19,11 +20,11 @@ final class ConfigureVarDumperListener
     private ClonerInterface $cloner;
     private bool $rrEnabled;
 
-    public function __construct(DataDumperInterface $dumper, ClonerInterface $cloner, ?bool $rrEnabled = null)
+    public function __construct(DataDumperInterface $dumper, ClonerInterface $cloner, ?string $rrMode = null)
     {
         $this->dumper = $dumper;
         $this->cloner = $cloner;
-        $this->rrEnabled = (bool) $rrEnabled;
+        $this->rrEnabled = $rrMode === Mode::MODE_HTTP;
     }
 
     public function __invoke(WorkerStartEvent $event): void

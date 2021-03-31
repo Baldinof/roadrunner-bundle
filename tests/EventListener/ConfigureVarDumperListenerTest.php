@@ -7,6 +7,7 @@ namespace Tests\Baldinof\RoadRunnerBundle\EventListener;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\ConfigureVarDumperListener;
 use PHPUnit\Framework\TestCase;
+use Spiral\RoadRunner\Environment\Mode;
 use Symfony\Component\VarDumper\Cloner\Data;
 use Symfony\Component\VarDumper\Cloner\VarCloner;
 use Symfony\Component\VarDumper\Dumper\DataDumperInterface;
@@ -25,7 +26,7 @@ class ConfigureVarDumperListenerTest extends TestCase
             }
         };
 
-        (new ConfigureVarDumperListener($dumperCloner, new VarCloner(), true))(new WorkerStartEvent());
+        (new ConfigureVarDumperListener($dumperCloner, new VarCloner(), Mode::MODE_HTTP))(new WorkerStartEvent());
 
         VarDumper::dump('foo');
 
