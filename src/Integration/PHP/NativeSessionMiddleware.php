@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baldinof\RoadRunnerBundle\Http\Middleware;
+namespace Baldinof\RoadRunnerBundle\Integration\PHP;
 
 use Baldinof\RoadRunnerBundle\Exception\HeadersAlreadySentException;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;

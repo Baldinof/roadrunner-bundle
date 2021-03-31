@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 
-use Baldinof\RoadRunnerBundle\Bridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
+use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Iterator;

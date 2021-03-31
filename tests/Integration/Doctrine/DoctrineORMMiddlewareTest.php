@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Tests\Baldinof\RoadRunnerBundle\Http\Middleware;
+namespace Tests\Baldinof\RoadRunnerBundle\Integration\Doctrine;
 
 use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
-use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
-class DoctrineMiddlewareTest extends TestCase
+class DoctrineORMMiddlewareTest extends TestCase
 {
     const CONNECTION_NAME = 'doctrine.connection';
     const MANAGER_NAME = 'doctrine.manager';
@@ -55,7 +55,7 @@ class DoctrineMiddlewareTest extends TestCase
 
         $this->dispatcher = new EventDispatcher();
 
-        $this->middleware = new DoctrineMiddleware(
+        $this->middleware = new DoctrineORMMiddleware(
             $this->managerRegistryMock,
             $this->container,
             $this->dispatcher,

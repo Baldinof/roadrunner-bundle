@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baldinof\RoadRunnerBundle\Bridge;
+namespace Baldinof\RoadRunnerBundle\RoadRunnerBridge;
 
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Http\Request as RoadRunnerRequest;
@@ -61,15 +61,6 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
         $headers = $symfonyResponse->headers->all();
 
-        $cookies = $symfonyResponse->headers->getCookies();
-        if (!empty($cookies)) {
-            $headers['Set-Cookie'] = [];
-
-            foreach ($cookies as $cookie) {
-                $headers['Set-Cookie'][] = $cookie->__toString();
-            }
-        }
-
         $this->httpWorker->respond($symfonyResponse->getStatusCode(), $content, $headers);
     }
 
@@ -84,7 +75,7 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
         $files = $this->wrapUploads($rrRequest->uploads);
 
-        return new SymfonyRequest(
+        $request = new SymfonyRequest(
             $rrRequest->query,
             $rrRequest->getParsedBody() ?? [],
             $rrRequest->attributes,
@@ -93,17 +84,46 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
             $server,
             $rrRequest->body
         );
+
+        $request->headers->add($rrRequest->headers);
+
+        return $request;
     }
 
     private function configureServer(RoadRunnerRequest $request): array
     {
         $server = $this->originalServer;
 
-        $server['REQUEST_URI'] = $request->uri;
+        $components = parse_url($request->uri);
+
+        if ($components === false) {
+            throw new \Exception('TODO');
+        }
+        if (isset($components['host'])) {
+            $server['SERVER_NAME'] = $components['host'];
+        }
+
+        if (isset($components['port'])) {
+            $server['SERVER_PORT'] = $components['port'];
+        } elseif (isset($components['scheme'])) {
+            $server['SERVER_PORT'] = $components['scheme'] === 'https' ? 443 : 80;
+        }
+
+        $server['REQUEST_URI'] = $components['path'] ?? '';
+        if (isset($components['query']) && $components['query'] !== '') {
+            $server['QUERY_STRING'] = $components['query'];
+            $server['REQUEST_URI'] .= '?'.$components['query'];
+        }
+
+        if (isset($components['scheme']) && $components['scheme'] === 'https') {
+            $server['HTTPS'] = 'on';
+        }
+
         $server['REQUEST_TIME'] = $this->timeInt();
         $server['REQUEST_TIME_FLOAT'] = $this->timeFloat();
         $server['REMOTE_ADDR'] = $request->getRemoteAddr();
         $server['REQUEST_METHOD'] = $request->method;
+        $server['SERVER_PROTOCOL'] = $request->protocol;
 
         $server['HTTP_USER_AGENT'] = '';
         foreach ($request->headers as $key => $value) {
@@ -112,6 +132,19 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
                 $server[$key] = \implode(', ', $value);
             } else {
                 $server['HTTP_'.$key] = \implode(', ', $value);
+            }
+        }
+
+        $authorizationHeader = $request->headers['Authorization'][0] ?? null;
+
+        if ($authorizationHeader !== null && preg_match("/Basic\s+(.*)$/i", $authorizationHeader, $matches)) {
+            $decoded = base64_decode($matches[1], true);
+
+            if ($decoded) {
+                $userPass = explode(':', $decoded, 2);
+
+                $server['PHP_AUTH_USER'] = $userPass[0];
+                $server['PHP_AUTH_PW'] = $userPass[1] ?? '';
             }
         }
 

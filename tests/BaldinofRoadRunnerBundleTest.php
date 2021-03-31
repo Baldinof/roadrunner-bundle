@@ -7,9 +7,9 @@ namespace Tests\Baldinof\RoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
-use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
-use Baldinof\RoadRunnerBundle\Http\Middleware\DoctrineMiddleware;
-use Baldinof\RoadRunnerBundle\Http\Middleware\SentryMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use PHPUnit\Framework\TestCase;
 use Sentry\SentryBundle\SentryBundle;
@@ -141,7 +141,7 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
         $c = $k->getContainer()->get('test.service_container');
 
-        $this->assertTrue($c->has(DoctrineMiddleware::class));
+        $this->assertTrue($c->has(DoctrineORMMiddleware::class));
     }
 
     /**

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baldinof\RoadRunnerBundle\Http\Middleware;
+namespace Baldinof\RoadRunnerBundle\Integration\Blackfire;
 
 use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Symfony\Component\HttpFoundation\Request;

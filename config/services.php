@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Baldinof\RoadRunnerBundle\Bridge\HttpFoundationWorker;
-use Baldinof\RoadRunnerBundle\Bridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
-use Baldinof\RoadRunnerBundle\EventListener\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Helpers\RPCFactory;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
-use Baldinof\RoadRunnerBundle\Http\Middleware\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
+use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
+use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
+use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;

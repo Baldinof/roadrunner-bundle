@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baldinof\RoadRunnerBundle\Http\Middleware;
+namespace Baldinof\RoadRunnerBundle\Integration\Doctrine;
 
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
-final class DoctrineMiddleware implements MiddlewareInterface
+final class DoctrineORMMiddleware implements MiddlewareInterface
 {
     private ManagerRegistry $managerRegistry;
     private ContainerInterface $container;

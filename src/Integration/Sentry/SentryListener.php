@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Baldinof\RoadRunnerBundle\EventListener;
+namespace Baldinof\RoadRunnerBundle\Integration\Sentry;
 
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;

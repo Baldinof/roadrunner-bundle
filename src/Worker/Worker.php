@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Worker;
 
-use Baldinof\RoadRunnerBundle\Bridge\HttpFoundationWorkerInterface;
 use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
+use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
