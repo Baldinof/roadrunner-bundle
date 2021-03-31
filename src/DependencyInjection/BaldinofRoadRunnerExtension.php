@@ -69,7 +69,7 @@ class BaldinofRoadRunnerExtension extends Extension
             ->addTag('kernel.event_listener', ['event' => WorkerStartEvent::class])
             ->addArgument(new Reference('data_collector.dump'))
             ->addArgument(new Reference('var_dumper.cloner'))
-            ->addArgument('%env(bool:default::RR)%');
+            ->addArgument('%env(default::RR_MODE)%');
     }
 
     private function loadIntegrations(ContainerBuilder $container, array $config): void

@@ -102,6 +102,6 @@ return static function (ContainerConfigurator $container) {
         ->decorate('streamed_response_listener')
         ->args([
             service(StreamedResponseListener::class.'.inner'),
-            '%env(bool:default::RR)%',
+            '%env(default::RR_MODE)%',
         ]);
 };

@@ -7,6 +7,7 @@ namespace Tests\Baldinof\RoadRunnerBundle\EventListener;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use PHPUnit\Framework\TestCase;
 use Prophecy\PhpUnit\ProphecyTrait;
+use Spiral\RoadRunner\Environment\Mode;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -24,7 +25,7 @@ class StreamedResponseListenerTest extends TestCase
      */
     public function test_it_calls_the_decorated_listener_if_needed(bool $rrEnabled, bool $responseShouldBeSent): void
     {
-        $listener = new StreamedResponseListener(new SymfonyStreamedResponseListener(), $rrEnabled);
+        $listener = new StreamedResponseListener(new SymfonyStreamedResponseListener(), $rrEnabled ? Mode::MODE_HTTP : null);
 
         $responseSent = false;
 
