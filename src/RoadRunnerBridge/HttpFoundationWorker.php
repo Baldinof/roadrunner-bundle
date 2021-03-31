@@ -45,7 +45,6 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
         } else {
             if ($symfonyResponse instanceof StreamedResponse || $symfonyResponse instanceof BinaryFileResponse) {
                 $content = '';
-
                 ob_start(function ($buffer) use (&$content) {
                     $content .= $buffer;
 
@@ -59,7 +58,7 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
             }
         }
 
-        $headers = $symfonyResponse->headers->all();
+        $headers = $this->stringifyHeaders($symfonyResponse->headers->all());
 
         $this->httpWorker->respond($symfonyResponse->getStatusCode(), $content, $headers);
     }
@@ -178,5 +177,15 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
     private function timeFloat(): float
     {
         return \microtime(true);
+    }
+
+    /**
+     * @param array<string, mixed[]> $headers
+     *
+     * @return array<string, string[]>
+     */
+    private function stringifyHeaders(array $headers): array
+    {
+        return array_map(static fn ($headerValues) => array_map(static fn ($val) => (string) $val, $headerValues), $headers);
     }
 }
