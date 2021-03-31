@@ -224,6 +224,22 @@ class HttpFoundationWorkerTest extends TestCase
                     'set-cookie' => ['hello=world; path=/; httponly; samesite=lax'],
                 ]),
         ];
+
+        yield 'non string headers' => [
+            new Response('', 200, [
+                'Foo' => 1234,
+                'Bar' => new class() {
+                    public function __toString(): string
+                    {
+                        return 'bar';
+                    }
+                },
+            ]),
+            fn (RoadRunnerResponse $r) => expect($r->headers)
+                ->toHaveKeys(['foo', 'bar'])
+                ->and($r->headers['foo'])->toBe(['1234'])
+                ->and($r->headers['bar'])->toBe(['bar']),
+        ];
     }
 
     private function createUploadedFile(string $content, int $error, string $clientFileName, string $clientMediaType)
