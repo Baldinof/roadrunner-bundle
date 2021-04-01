@@ -28,8 +28,8 @@ Depending on installed bundle & your configuration, this bundles add some integr
 
 - **Sentry**: configure the request context (if the [`SentryBundle`](https://github.com/getsentry/sentry-symfony) is installed)
 - **Sessions**: add the session cookie to the Symfony response (if `framework.sessions.enabled` config is `true`)
-- **Doctrine Mongo Bundle**: clear opened managers after each requests (if [`DoctrineMongoDBBundle`]() is installed)
-- **Doctrine ORM Bundle**: clear opened managers and check connection is still usable after each requests (if [`DoctrineBundle`]() is installed)
+- **Doctrine Mongo Bundle**: clear opened managers after each requests (if [`DoctrineMongoDBBundle`](https://github.com/doctrine/DoctrineMongoDBBundle) is installed)
+- **Doctrine ORM Bundle**: clear opened managers and check connection is still usable after each requests (if [`DoctrineBundle`](https://github.com/doctrine/DoctrineBundle) is installed)
 - **Blackfire**: enable the probe when a profile is requested (if the [`blackfire`](https://blackfire.io/) extension is installed)
 
 Even if it is not recommended, you can disable default integrations:
