@@ -33,8 +33,6 @@
         "symfony/proxy-manager-bridge": "For doctrine re-connection implementation"
     },
     "require-dev": {
-        "composer-runtime-api": "^2.0",
-        "composer/semver": "^3.2.4",
         "symfony/var-dumper": "^4.0||^5.0",
         "phpunit/phpunit": "^9.1",
         "phpspec/prophecy": "^1.11",
