@@ -22,38 +22,17 @@ If you don't use Symfony Flex:
 - run RoadRunner with `bin/rr serve`
 - visit your app at http://localhost:8080
 
-## Configuration
-
-If you want to override some parts of the bundle you can replace some definitions.
-
-Example if you want to use a TCP socket as relay:
-
-```yaml
-# config/services.yaml
-services:
-  Spiral\Goridge\RelayInterface:
-    class: 'Spiral\Goridge\SocketRelay'
-    arguments:
-      - localhost
-      - 7000
-```
-
-```yaml
-# .rr.yaml
-http:
-  workers:
-    relay: "tcp://localhost:7000"
-```
-
 ## Integrations
 
 Depending on installed bundle & your configuration, this bundles add some integrations:
 
-- Sentry: configure the request context (if the [`SentryBundle`](https://github.com/getsentry/sentry-symfony) is installed)
-- Sessions: add the session cookie to the PSR response (if `framework.sessions.enabled` config is `true`)
-- Doctrine Mongo Bundle: call `clear()` on all opened manager after each requests (not needed for regular doctrine bundle)
+- **Sentry**: configure the request context (if the [`SentryBundle`](https://github.com/getsentry/sentry-symfony) is installed)
+- **Sessions**: add the session cookie to the Symfony response (if `framework.sessions.enabled` config is `true`)
+- **Doctrine Mongo Bundle**: clear opened managers after each requests (if [`DoctrineMongoDBBundle`]() is installed)
+- **Doctrine ORM Bundle**: clear opened managers and check connection is still usable after each requests (if [`DoctrineBundle`]() is installed)
+- **Blackfire**: enable the probe when a profile is requested (if the [`blackfire`](https://blackfire.io/) extension is installed)
 
-Default integrations can be disabled:
+Even if it is not recommended, you can disable default integrations:
 
 ```yaml
 baldinof_road_runner:
@@ -62,10 +41,7 @@ baldinof_road_runner:
 
 ## Middlewares
 
-You can use middlewares to manipulate PSR request & responses. Middlewares can implements either PSR [`MiddlewareInterface`](https://www.php-fig.org/psr/psr-15/#22-psrhttpservermiddlewareinterface)
-or [`Baldinof\RoadRunnerBundle\Http\IteratorMiddlewareInterface`](./src/Http/IteratorMiddlewareInterface.php).
-
-`IteratorMiddlewareInterface` allows to do work after the response has been sent to the client, you just have to `yield` the response instead of returning it.
+You can use middlewares to manipulate request & responses. Middlewares must implements [`Baldinof\RoadRunnerBundle\Http\MiddlewareInterface`](./src/Http/MiddlewareInterface.php).
 
 Example configuration:
 
@@ -79,21 +55,72 @@ Be aware that
 - middlewares are run outside of Symfony `Kernel::handle()`
 - the middleware stack is always resolved at worker start (can be a performance issue if your middleware initialization takes time)
 
-## Metrics
-Roadrunner can [collect application metrics](https://roadrunner.dev/docs/beep-beep-metrics), and expose a prometheus endpoint. 
+## Kernel reboots
 
+The Symfony kernel and the dependency injection container are **preserved between requests**. If an exception is thrown during the request handling, the kernel is rebooted and a fresh container is used.
+
+The goal is to prevent services to be in a non-recoverable state after an error.
+
+To optimize your worker you can allow exceptions that does not put your app in an errored state:
+
+```yaml
+# config/packages/baldinof_road_runner.yaml
+baldinof_road_runner:
+    kernel_reboot:
+      strategy: on_exception
+      allowed_exceptions:
+        - Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+        - Symfony\Component\Serializer\Exception\ExceptionInterface
+        - App\Exception\YourDomainException
+```
+> If some of your services are stateful, you can implement `Symfony\Contracts\Service\ResetInterface` and your service will be resetted on each request.
+
+If you are seeing issues and want to use a fresh container on each request you can use the `always` reboot strategy:
+
+```yaml
+# config/packages/baldinof_road_runner.yaml
+baldinof_road_runner:
+    kernel_reboot:
+      strategy: always
+```
+
+## Events
+
+The following events are dispatched throughout the worker lifecycle:
+
+- `Baldinof\RoadRunnerBundle\Event\WorkerStartEvent`: Dispatched right before the worker starts listening to requests.
+- `Baldinof\RoadRunnerBundle\Event\WorkerStopEvent`: Dispatched right before the worker closes.
+- `Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent`: Dispatched after encountering an uncaught exception during request handling.
+- `Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent`: Dispatched after the symfony kernel was rebooted (see Kernel reboots).
+
+## Development mode
+
+Copy the dev config file if it's not present: `cp vendor/baldinof/roadrunner-bundle/.rr.dev.yaml .`
+
+Start RoadRunner with the dev config file:
+
+```
+bin/rr serve -c .rr.dev.yaml
+```
+
+Reference: https://roadrunner.dev/docs/beep-beep-reload
+
+If you use the Symfony VarDumper, dumps will not be shown in the HTTP Response body. You can view dumps with `bin/console server:dump` or in the profiler.
+
+## Metrics
+Roadrunner can [collect application metrics](https://roadrunner.dev/docs/beep-beep-metrics), and expose a prometheus endpoint.
 
 Example configuration:
 
 ```yaml
 # config/packages/baldinof_road_runner.yaml
 baldinof_road_runner:
-    metrics:
-      enabled: true
-      collect:
-        user_login:
-          type: counter 
-          help: "Number of logged in user"
+  metrics:
+    enabled: true
+    collect:
+      user_login:
+        type: counter
+        help: "Number of logged in user"
 ```
 
 And configure RoadRunner:
@@ -120,59 +147,6 @@ class YouController
     }
 }
 ```
-
-## Kernel reboots
-
-The Symfony kernel and the dependency injection container are **preserved between requests**. If an exception is thrown during the request handling, the kernel is rebooted and a fresh container is used.
-
-The goal is to prevent services to be in a non recoverable state after an error.
-
-To optimize your worker you can allow exceptions that does not put your app in an errored state:
-
-```yaml
-# config/packages/baldinof_road_runner.yaml
-baldinof_road_runner:
-    kernel_reboot:
-      strategy: on_exception
-      allowed_exceptions:
-        - Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
-        - Symfony\Component\Serializer\Exception\ExceptionInterface
-        - App\Exception\YourDomainException
-```
-
-If you are seeing issues and want to use a fresh container on each request you can use the `always` reboot strategy:
-
-```yaml
-# config/packages/baldinof_road_runner.yaml
-baldinof_road_runner:
-    kernel_reboot:
-      strategy: always
-```
-
-> If some of your services are stateful, you can implement `Symfony\Contracts\Service\ResetInterface` and your service will be resetted on each request.
-
-## Events
-
-The following events are dispatched throughout the worker lifecycle:
-
-- `Baldinof\RoadRunnerBundle\Event\WorkerStartEvent`: Dispatched right before the worker starts listening to requests.
-- `Baldinof\RoadRunnerBundle\Event\WorkerStopEvent`: Dispatched right before the worker closes.
-- `Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent`: Dispatched after encountering an uncaught exception during request handling.
-- `Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent`: Dispatched after the symfony kernel was rebooted (see Kernel reboots).
-
-## Development mode
-
-Copy the dev config file if it's not present: `cp vendor/baldinof/roadrunner-bundle/.rr.dev.yaml .`
-
-Start RoadRunner with the dev config file:
-
-```
-bin/rr serve -c .rr.dev.yaml
-```
-
-Reference: https://roadrunner.dev/docs/beep-beep-reload
-
-If you use the Symfony VarDumper, dumps will not be shown in the HTTP Response body. You can view dumps with `bin/console server:dump` or in the profiler.
 
 ## Usage with Docker
 
