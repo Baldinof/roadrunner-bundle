@@ -94,7 +94,7 @@ class WorkerTest extends TestCase
             }
         };
 
-        $c->set(Dependencies::class, $deps = new Dependencies(new MiddlewareStack($this->handler), $kernelBootStrategyClass, $this->eventDispatcher));
+        $c->set(Dependencies::class, new Dependencies(new MiddlewareStack($this->handler), $kernelBootStrategyClass, $this->eventDispatcher));
 
         $this->worker = new Worker(
             $this->kernel->reveal(),
