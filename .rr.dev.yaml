@@ -16,7 +16,8 @@ logs:
     http:
       level: debug # Log all http requests, set to info to disable
     server:
-      level: debug # Everything written to worker stderr is logged
+      level: info # Everything written to worker stderr is logged
+      mode: raw
     metrics:
       level: debug
 
