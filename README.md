@@ -9,10 +9,8 @@ This bundle provides a RoadRunner Worker integrated in Symfony, it's easily conf
 Run the following command:
 
 ```
-SYMFONY_ENDPOINT=https://flex.symfony.com/r/github.com/symfony/recipes-contrib/1116 composer require baldinof/roadrunner-bundle
+composer require baldinof/roadrunner-bundle
 ```
-
-> The `SYMFONY_ENDPOINT` variable is required since the [flex recipe for 2.x](https://github.com/symfony/recipes-contrib/pull/1116) is not merged.
 
 If you don't use Symfony Flex:
 - register `Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle` in your kernel
