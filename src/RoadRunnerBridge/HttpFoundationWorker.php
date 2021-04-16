@@ -163,7 +163,7 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
                 continue;
             }
 
-            $result[$index] = new UploadedFile($file['tmpName'] ?? '', $file['name'], $file['mime'], $file['error']);
+            $result[$index] = new UploadedFile($file['tmpName'] ?? '', $file['name'], $file['mime'], $file['error'], true);
         }
 
         return $result;

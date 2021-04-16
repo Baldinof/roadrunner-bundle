@@ -134,6 +134,14 @@ class HttpFoundationWorkerTest extends TestCase
             fn (SymfonyRequest $request) => expect($request->files->get('error')->getError())
                 ->toBe(\UPLOAD_ERR_CANT_WRITE),
         ];
+
+        yield 'valid upload' => [
+            fn (RoadRunnerRequest $request) => $request->uploads = [
+                'doc1' => $this->createUploadedFile('Doc 1', \UPLOAD_ERR_OK, 'doc1.txt', 'text/plain'),
+            ],
+            fn (SymfonyRequest $request) => expect($request->files->get('doc1')->isValid())
+                ->toBeTrue(),
+        ];
     }
 
     /**
