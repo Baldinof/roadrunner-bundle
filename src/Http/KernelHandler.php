@@ -32,7 +32,7 @@ final class KernelHandler implements RequestHandlerInterface
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
     public function handle(Request $request): \Iterator
     {

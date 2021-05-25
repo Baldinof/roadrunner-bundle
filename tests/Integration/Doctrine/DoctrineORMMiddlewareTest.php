@@ -47,7 +47,7 @@ class DoctrineORMMiddlewareTest extends TestCase
 
         $this->request = Request::create('https://example.org');
         $this->handler = new class() implements HttpKernelInterface {
-            public function handle(Request $request, int $type = self::MASTER_REQUEST, bool $catch = true)
+            public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true)
             {
                 return new Response();
             }
