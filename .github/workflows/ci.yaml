@@ -27,8 +27,16 @@ jobs:
         run: composer test
 
   static-analysis:
-    name: Static analysis
+    name: Static analysis (PHP ${{ matrix.php-versions }}) (${{ matrix.composer.name }} dependencies)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system: [ubuntu-latest]
+        php-versions: ['7.4', '8.0']
+        composer:
+          - {name: "lowest", flags: " --prefer-dist --prefer-lowest"}
+          - {name: "stable", flags: " --prefer-dist --prefer-stable"}
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -39,7 +47,7 @@ jobs:
           extensions: mbstring,intl,mongodb
           tools: composer:v2
       - name: Install dependencies
-        run: composer install --prefer-dist
+        run: composer update ${{ matrix.composer.flags }}
       - name: PHPStan
         run: composer phpstan
 
