@@ -57,21 +57,19 @@ class NativeSessionMiddleware implements MiddlewareInterface
             return;
         }
 
-        $cookie = Cookie::create($sessionName)
-            ->withValue($sessionId)
-            ->withPath($params['path'])
-            ->withDomain($params['domain'])
-            ->withSecure($params['secure'])
-            ->withHttpOnly($params['httponly'])
-        ;
+        $expire = 0;
 
         if ($params['lifetime'] > 0) {
-            $cookie = $cookie->withExpires(time() + $params['lifetime']);
+            $expire = time() + $params['lifetime'];
         }
 
+        $sameSite = null;
+
         if ($params['samesite']) {
-            $cookie = $cookie->withSameSite($params['samesite']);
+            $sameSite = $params['samesite'];
         }
+
+        $cookie = Cookie::create($sessionName, $sessionId, $expire, $params['path'], $params['domain'], $params['secure'], $params['httponly'], false, $sameSite);
 
         $response->headers->setCookie($cookie);
     }

@@ -48,7 +48,7 @@ final class SentryMiddlewareTest extends TestCase
                 $this->test = $test;
             }
 
-            public function handle(Request $request, int $type = self::MASTER_REQUEST, bool $catch = true)
+            public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true)
             {
                 return ($this->test->onRequest)($request);
             }

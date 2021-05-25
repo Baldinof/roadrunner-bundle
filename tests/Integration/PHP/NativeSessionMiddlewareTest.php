@@ -142,7 +142,7 @@ class NativeSessionMiddlewareTest extends TestCase
                 $this->handler = $handler;
             }
 
-            public function handle(Request $request, int $type = self::MASTER_REQUEST, bool $catch = true)
+            public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true)
             {
                 return ($this->handler)($request);
             }
