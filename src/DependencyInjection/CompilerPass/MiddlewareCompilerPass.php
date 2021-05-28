@@ -29,7 +29,9 @@ class MiddlewareCompilerPass implements CompilerPassInterface
         $defaultMiddlewares = $container->getParameter('baldinof_road_runner.middlewares.default');
 
         $middlewaresToRemove = [];
-        if (!$container->hasDefinition('session')) {
+        if (!$container->hasDefinition('session')
+            && empty(array_reduce($container->getExtensionConfig('framework'), 'array_merge', [])['session']['enabled'])
+        ) {
             $middlewaresToRemove[] = NativeSessionMiddleware::class;
         }
 
