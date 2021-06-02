@@ -8,6 +8,7 @@ use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
@@ -50,7 +51,7 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $this->assertTrue($c->has(SentryMiddleware::class));
     }
 
-    public function test_it_loads_sentry_middleware_if_not_needed()
+    public function test_it_does_not_load_sentry_middleware_if_not_needed()
     {
         $k = $this->getKernel([], []);
         $k->boot();
@@ -142,6 +143,36 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $c = $k->getContainer()->get('test.service_container');
 
         $this->assertTrue($c->has(DoctrineORMMiddleware::class));
+    }
+
+    public function test_it_loads_session_middleware()
+    {
+        $k = $this->getKernel([
+            'framework' => [
+                'session' => ['enabled' => true],
+            ],
+        ], []);
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertTrue($c->has(NativeSessionMiddleware::class));
+    }
+
+    public function test_it_removes_session_middleware()
+    {
+        $k = $this->getKernel([
+            'framework' => [
+                'session' => ['enabled' => false],
+            ],
+        ], []);
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertFalse($c->has(NativeSessionMiddleware::class));
     }
 
     /**
