@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2021-06-02
+
+### Added
+- Support for Symfony Runtime component
+- Forward compatibility with Symfony 6 sessions. Thank you [@Punk-UnDeaD](https://github.com/Punk-UnDeaD), see [#45](https://github.com/Baldinof/roadrunner-bundle/pull/45/files)
+
 ## [2.0.2] - 2021-05-25
 
 ### Fixed
