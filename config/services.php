@@ -17,6 +17,7 @@ use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
 use Baldinof\RoadRunnerBundle\Worker\HttpWorker;
+use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
 use Psr\Log\LoggerInterface;
 use Spiral\Goridge\RPC\RPCInterface;
@@ -29,6 +30,8 @@ use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Temporal\Worker\WorkerFactoryInterface;
+use Temporal\WorkerFactory;
 
 // Polyfill of the `service()` function introduced in Symfony 5.1 when using older version
 if (!\function_exists('Symfony\Component\DependencyInjection\Loader\Configurator\service')) {
@@ -73,6 +76,17 @@ return static function (ContainerConfigurator $container) {
             service('kernel'),
             service(LoggerInterface::class),
             service(HttpFoundationWorkerInterface::class),
+        ]);
+
+    $services->set(WorkerFactoryInterface::class)
+        ->factory([WorkerFactory::class, 'create']);
+
+    $services->set(TemporalWorker::class)
+        ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
+        ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+        ->args([
+            service('kernel'),
+            service(WorkerFactoryInterface::class),
         ]);
 
     $services->set(Dependencies::class)
