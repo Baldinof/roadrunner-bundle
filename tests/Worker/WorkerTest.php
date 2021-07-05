@@ -12,7 +12,7 @@ use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
-use Baldinof\RoadRunnerBundle\Worker\Worker;
+use Baldinof\RoadRunnerBundle\Worker\HttpWorker;
 use Iterator;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
@@ -34,7 +34,7 @@ class WorkerTest extends TestCase
 
     public static $rebootStrategyReturns = false;
 
-    private Worker $worker;
+    private HttpWorker $worker;
     private \SplStack $requests;
     private \Closure $responder;
 
@@ -96,7 +96,7 @@ class WorkerTest extends TestCase
 
         $c->set(Dependencies::class, new Dependencies(new MiddlewareStack($this->handler), $kernelBootStrategyClass, $this->eventDispatcher));
 
-        $this->worker = new Worker(
+        $this->worker = new HttpWorker(
             $this->kernel->reveal(),
             new NullLogger(),
             $this->psrClient->reveal()

@@ -16,7 +16,7 @@ use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
-use Baldinof\RoadRunnerBundle\Worker\Worker;
+use Baldinof\RoadRunnerBundle\Worker\HttpWorker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
 use Psr\Log\LoggerInterface;
 use Spiral\Goridge\RPC\RPCInterface;
@@ -66,7 +66,7 @@ return static function (ContainerConfigurator $container) {
     $services->set(HttpFoundationWorkerInterface::class, HttpFoundationWorker::class)
         ->args([service(HttpWorkerInterface::class)]);
 
-    $services->set(WorkerInterface::class, Worker::class)
+    $services->set(HttpWorker::class)
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
         ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
         ->args([
