@@ -22,8 +22,8 @@ use Psr\Log\LoggerInterface;
 use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
-use Spiral\RoadRunner\Http\HttpWorker;
-use Spiral\RoadRunner\Http\HttpWorkerInterface;
+use Spiral\RoadRunner\Http\HttpWorker as RoadRunnerHttpWorker;
+use Spiral\RoadRunner\Http\HttpWorkerInterface as RoadRunnerHttpWorkerInterface;
 use Spiral\RoadRunner\Metrics\Metrics;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
@@ -52,7 +52,7 @@ return static function (ContainerConfigurator $container) {
         ->factory([RoadRunnerWorker::class, 'createFromEnvironment'])
         ->args([service(EnvironmentInterface::class), '%baldinof_road_runner.intercept_side_effect%']);
 
-    $services->set(HttpWorkerInterface::class, HttpWorker::class)
+    $services->set(RoadRunnerHttpWorkerInterface::class, RoadRunnerHttpWorker::class)
         ->args([service(RoadRunnerWorkerInterface::class)]);
 
     $services->set(RPCInterface::class)
@@ -64,7 +64,7 @@ return static function (ContainerConfigurator $container) {
 
     // Bundle services
     $services->set(HttpFoundationWorkerInterface::class, HttpFoundationWorker::class)
-        ->args([service(HttpWorkerInterface::class)]);
+        ->args([service(RoadRunnerHttpWorkerInterface::class)]);
 
     $services->set(HttpWorker::class)
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
