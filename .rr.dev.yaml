@@ -15,6 +15,11 @@ http:
     dir: "public"
     forbid: [ ".php", ".htaccess" ]
 
+temporal:
+  address: localhost:7233
+  activities:
+    num_workers: 5
+
 logs:
   mode: development
   channels:
