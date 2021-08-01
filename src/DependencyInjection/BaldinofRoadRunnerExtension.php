@@ -31,6 +31,7 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Temporal\Activity\ActivityInterface;
+use Temporal\Client\WorkflowClientInterface;
 use Temporal\Workflow\WorkflowInterface;
 
 class BaldinofRoadRunnerExtension extends Extension
@@ -47,6 +48,10 @@ class BaldinofRoadRunnerExtension extends Extension
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../../config'));
         $loader->load('services.php');
+
+        if ($this->isTemporalSdkInstalled()) {
+            $loader->load('services_temporal.php');
+        }
 
         if ($container->getParameter('kernel.debug')) {
             $this->loadDebug($container);
@@ -159,5 +164,10 @@ class BaldinofRoadRunnerExtension extends Extension
 
             $listenerDef->addMethodCall('addCollector', [$name, $metric]);
         }
+    }
+
+    private function isTemporalSdkInstalled(): bool
+    {
+        return interface_exists(WorkflowClientInterface::class);
     }
 }
