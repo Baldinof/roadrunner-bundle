@@ -66,6 +66,7 @@ return static function (ContainerConfigurator $container) {
         ->args([service(RoadRunnerHttpWorkerInterface::class)]);
 
     $services->set(HttpWorker::class)
+        ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
         ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
         ->lazy()
         ->args([

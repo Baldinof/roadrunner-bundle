@@ -38,6 +38,7 @@ return static function (ContainerConfigurator $container) {
 
     $services
         ->set(TemporalWorker::class)
+        ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
         ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
         ->lazy()
         ->args([
