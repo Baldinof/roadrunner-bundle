@@ -19,7 +19,7 @@ use function Baldinof\RoadRunnerBundle\consumes;
 /**
  * @internal
  */
-final class HttpWorker implements WorkerInterface
+class HttpWorker implements WorkerInterface
 {
     private KernelInterface $kernel;
     private LoggerInterface $logger;

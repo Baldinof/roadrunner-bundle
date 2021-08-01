@@ -11,7 +11,7 @@ use Temporal\Worker\WorkerFactoryInterface;
 /**
  * @internal
  */
-final class TemporalWorker implements WorkerInterface
+class TemporalWorker implements WorkerInterface
 {
     private Dependencies $dependencies;
     private WorkerFactoryInterface $workerFactory;

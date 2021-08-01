@@ -32,12 +32,14 @@ return static function (ContainerConfigurator $container) {
 
     $services = $container->services();
 
-    $services->set(WorkerFactoryInterface::class)
+    $services
+        ->set(WorkerFactoryInterface::class)
         ->factory([WorkerFactory::class, 'create']);
 
-    $services->set(TemporalWorker::class)
-        ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
+    $services
+        ->set(TemporalWorker::class)
         ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+        ->lazy()
         ->args([
             service('kernel'),
             service(WorkerFactoryInterface::class),
@@ -45,14 +47,16 @@ return static function (ContainerConfigurator $container) {
             tagged_iterator('baldinof_road_runner.temporal_activities'),
         ]);
 
-    $services->set(WorkerResolverInterface::class, WorkerResolver::class)
+    $services
+        ->set(WorkerResolverInterface::class, WorkerResolver::class)
         ->args([
             service(EnvironmentInterface::class),
             service(HttpWorker::class),
             service(TemporalWorker::class),
         ]);
 
-    $services->set(WorkerCommand::class)
+    $services
+        ->set(WorkerCommand::class)
         ->args([
             service(WorkerResolverInterface::class),
             service(EnvironmentInterface::class),

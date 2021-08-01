@@ -16,8 +16,7 @@ final class WorkerResolver implements WorkerResolverInterface
         EnvironmentInterface $environment,
         HttpWorker $httpWorker,
         TemporalWorker $temporalWorker
-    )
-    {
+    ) {
         $this->environment = $environment;
         $this->httpWorker = $httpWorker;
         $this->temporalWorker = $temporalWorker;
