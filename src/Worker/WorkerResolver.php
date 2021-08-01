@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Worker;
 
+use Baldinof\RoadRunnerBundle\Exception\UnsupportedRoadRunnerModeException;
 use Spiral\RoadRunner\Environment\Mode;
 use Spiral\RoadRunner\EnvironmentInterface;
 
@@ -31,6 +32,6 @@ final class WorkerResolver implements WorkerResolverInterface
             return $this->temporalWorker;
         }
 
-        throw new \RuntimeException('Could not resolve worker.');
+        throw new UnsupportedRoadRunnerModeException($mode);
     }
 }
