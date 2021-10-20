@@ -7,6 +7,8 @@ namespace Baldinof\RoadRunnerBundle\Integration\Doctrine;
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DBALException; // for dbal 2.x
+use Doctrine\DBAL\Exception;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use ProxyManager\Proxy\LazyLoadingInterface;
@@ -47,7 +49,7 @@ final class DoctrineORMMiddleware implements MiddlewareInterface
 
             \assert($connection instanceof Connection);
 
-            if ($connection->isConnected() && false === $connection->ping()) {
+            if ($connection->isConnected() && false === $this->ping($connection)) {
                 $connection->close();
 
                 $this->logger->debug('Doctrine connection was not re-usable, it has been closed', [
@@ -80,6 +82,17 @@ final class DoctrineORMMiddleware implements MiddlewareInterface
 
                 return;
             }
+        }
+    }
+
+    private function ping(Connection $con): bool
+    {
+        try {
+            $con->executeQuery($con->getDatabasePlatform()->getDummySelectSQL());
+
+            return true;
+        } catch (Exception | DBALException $e) { // @phpstan-ignore-line
+            return false;
         }
     }
 }
