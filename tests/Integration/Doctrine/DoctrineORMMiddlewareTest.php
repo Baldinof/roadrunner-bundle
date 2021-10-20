@@ -8,6 +8,9 @@ use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\TestCase;
@@ -36,8 +39,12 @@ class DoctrineORMMiddlewareTest extends TestCase
 
     public function setUp(): void
     {
+        $platform = $this->createMock(AbstractPlatform::class);
+        $platform->method('getDummySelectSQL')->willReturn('SELECT 1');
+
         $this->managerRegistryMock = $this->createMock(ManagerRegistry::class);
         $this->connectionMock = $this->createMock(Connection::class);
+        $this->connectionMock->method('getDatabasePlatform')->willReturn($platform);
 
         $this->container = new Container();
         $this->container->set(self::CONNECTION_NAME, $this->connectionMock);
@@ -68,7 +75,7 @@ class DoctrineORMMiddlewareTest extends TestCase
         $this->container->set(self::CONNECTION_NAME, null);
 
         $this->connectionMock->expects($this->never())->method('isConnected');
-        $this->connectionMock->expects($this->never())->method('ping');
+        $this->connectionMock->expects($this->never())->method('executeQuery');
         $this->connectionMock->expects($this->never())->method('close');
         $this->connectionMock->expects($this->never())->method('connect');
 
@@ -78,7 +85,7 @@ class DoctrineORMMiddlewareTest extends TestCase
     public function test_skip_when_not_connected(): void
     {
         $this->connectionMock->method('isConnected')->willReturn(false);
-        $this->connectionMock->expects($this->never())->method('ping');
+        $this->connectionMock->expects($this->never())->method('executeQuery');
         $this->connectionMock->expects($this->never())->method('close');
         $this->connectionMock->expects($this->never())->method('connect');
 
@@ -87,9 +94,24 @@ class DoctrineORMMiddlewareTest extends TestCase
 
     public function test_it_closes_not_pingable_connection(): void
     {
-        $this->connectionMock->expects($this->once())->method('ping')->willReturn(false);
+        if (class_exists(Exception::class)) {
+            $this->connectionMock->expects($this->once())->method('executeQuery')->will($this->throwException(new Exception()));
+        } else {
+            // For DBAL 2.x
+            $this->connectionMock->expects($this->once())->method('executeQuery')->will($this->throwException(new DBALException()));
+        }
         $this->connectionMock->method('isConnected')->willReturn(true);
         $this->connectionMock->expects($this->once())->method('close');
+        $this->connectionMock->expects($this->never())->method('connect');
+
+        consumes($this->middleware->process($this->request, $this->handler));
+    }
+
+    public function test_it_does_not_close_pingable_connection(): void
+    {
+        $this->connectionMock->expects($this->once())->method('executeQuery');
+        $this->connectionMock->method('isConnected')->willReturn(true);
+        $this->connectionMock->expects($this->never())->method('close');
         $this->connectionMock->expects($this->never())->method('connect');
 
         consumes($this->middleware->process($this->request, $this->handler));

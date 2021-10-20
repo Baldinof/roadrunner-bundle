@@ -16,6 +16,7 @@
             "Tests\\Baldinof\\RoadRunnerBundle\\": "tests"
         }
     },
+    "config": {"platform": {"php": "7.4.9999"}},
     "require": {
         "php": ">=7.4",
         "symfony/config": "^4.4 || ^5.0",
