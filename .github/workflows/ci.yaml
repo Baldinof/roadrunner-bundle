@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.4', '8.0']
+        php-versions: ['7.4', '8.0', '8.1']
         composer:
           - {name: "lowest", flags: " --prefer-dist --prefer-lowest"}
           - {name: "stable", flags: " --prefer-dist --prefer-stable"}
@@ -23,7 +23,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php-versions }}'
-          extensions: mbstring,intl,mongodb
+          extensions: mbstring,intl,mongodb-mongodb/mongo-php-driver@master
           tools: composer:v2
       - name: Install dependencies
         run: composer update ${{ matrix.composer.flags }}
@@ -47,7 +47,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.0'
+          php-version: '${{ matrix.php-versions }}'
           extensions: mbstring,intl,mongodb
           tools: composer:v2
       - name: Install dependencies
@@ -64,7 +64,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '7.4'
+          php-version: '8.0'
           extensions: mbstring,intl,mongodb
           tools: composer:v2
       - name: Get composer cache directory
