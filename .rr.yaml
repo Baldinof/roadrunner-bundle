@@ -26,6 +26,12 @@ logs:
     metrics:
       level: error
 
+# Uncomment to use temporal integration
+# temporal:
+#   address: localhost:7233
+#   activities:
+#     num_workers: 5
+
 # Uncomment to use metrics integration
 # rpc:
 #   listen: tcp://127.0.0.1:6001

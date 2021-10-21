@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
 use Baldinof\RoadRunnerBundle\Helpers\RPCFactory;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
@@ -16,22 +15,22 @@ use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
-use Baldinof\RoadRunnerBundle\Worker\Worker;
-use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
+use Baldinof\RoadRunnerBundle\Worker\HttpWorker;
 use Psr\Log\LoggerInterface;
 use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
-use Spiral\RoadRunner\Http\HttpWorker;
-use Spiral\RoadRunner\Http\HttpWorkerInterface;
+use Spiral\RoadRunner\Http\HttpWorker as RoadRunnerHttpWorker;
+use Spiral\RoadRunner\Http\HttpWorkerInterface as RoadRunnerHttpWorkerInterface;
 use Spiral\RoadRunner\Metrics\Metrics;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use function function_exists;
 
 // Polyfill of the `service()` function introduced in Symfony 5.1 when using older version
-if (!\function_exists('Symfony\Component\DependencyInjection\Loader\Configurator\service')) {
+if (!function_exists('Symfony\Component\DependencyInjection\Loader\Configurator\service')) {
     function service(string $id): ReferenceConfigurator
     {
         return ref($id);
@@ -52,7 +51,7 @@ return static function (ContainerConfigurator $container) {
         ->factory([RoadRunnerWorker::class, 'createFromEnvironment'])
         ->args([service(EnvironmentInterface::class), '%baldinof_road_runner.intercept_side_effect%']);
 
-    $services->set(HttpWorkerInterface::class, HttpWorker::class)
+    $services->set(RoadRunnerHttpWorkerInterface::class, RoadRunnerHttpWorker::class)
         ->args([service(RoadRunnerWorkerInterface::class)]);
 
     $services->set(RPCInterface::class)
@@ -64,11 +63,12 @@ return static function (ContainerConfigurator $container) {
 
     // Bundle services
     $services->set(HttpFoundationWorkerInterface::class, HttpFoundationWorker::class)
-        ->args([service(HttpWorkerInterface::class)]);
+        ->args([service(RoadRunnerHttpWorkerInterface::class)]);
 
-    $services->set(WorkerInterface::class, Worker::class)
+    $services->set(HttpWorker::class)
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
         ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+        ->lazy()
         ->args([
             service('kernel'),
             service(LoggerInterface::class),
@@ -82,10 +82,6 @@ return static function (ContainerConfigurator $container) {
             service(KernelRebootStrategyInterface::class),
             service(EventDispatcherInterface::class),
         ]);
-
-    $services->set(WorkerCommand::class)
-        ->args([service(WorkerInterface::class)])
-        ->autoconfigure();
 
     $services->set(KernelHandler::class)
         ->args([

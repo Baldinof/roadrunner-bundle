@@ -15,12 +15,14 @@ use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\ConfigureVarDumperListener;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
+use BlackfireProbe;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Sentry\State\HubInterface;
 use Spiral\RoadRunner\Metrics\Collector;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
@@ -28,6 +30,9 @@ use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Temporal\Activity\ActivityInterface;
+use Temporal\Client\WorkflowClientInterface;
+use Temporal\Workflow\WorkflowInterface;
 
 class BaldinofRoadRunnerExtension extends Extension
 {
@@ -44,6 +49,10 @@ class BaldinofRoadRunnerExtension extends Extension
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../../config'));
         $loader->load('services.php');
 
+        if ($this->isTemporalSdkInstalled()) {
+            $loader->load('services_temporal.php');
+        }
+
         if ($container->getParameter('kernel.debug')) {
             $this->loadDebug($container);
         }
@@ -55,6 +64,13 @@ class BaldinofRoadRunnerExtension extends Extension
             ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL]);
 
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
+
+        $container->registerAttributeForAutoconfiguration(WorkflowInterface::class, function (ChildDefinition $definition){
+            $definition->addTag('baldinof_road_runner.temporal_workflows');
+        });
+        $container->registerAttributeForAutoconfiguration(ActivityInterface::class, function (ChildDefinition $definition){
+            $definition->addTag('baldinof_road_runner.temporal_activities');
+        });
 
         $this->loadIntegrations($container, $config);
 
@@ -86,7 +102,7 @@ class BaldinofRoadRunnerExtension extends Extension
         /** @var array */
         $bundles = $container->getParameter('kernel.bundles');
 
-        if (class_exists(\BlackfireProbe::class)) {
+        if (class_exists(BlackfireProbe::class)) {
             $container->register(BlackfireMiddleware::class);
             $beforeMiddlewares[] = BlackfireMiddleware::class;
         }
@@ -148,5 +164,10 @@ class BaldinofRoadRunnerExtension extends Extension
 
             $listenerDef->addMethodCall('addCollector', [$name, $metric]);
         }
+    }
+
+    private function isTemporalSdkInstalled(): bool
+    {
+        return interface_exists(WorkflowClientInterface::class);
     }
 }

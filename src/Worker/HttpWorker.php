@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Worker;
 
-use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
@@ -15,11 +14,12 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
+use function Baldinof\RoadRunnerBundle\consumes;
 
 /**
  * @internal
  */
-final class Worker implements WorkerInterface
+class HttpWorker implements WorkerInterface
 {
     private KernelInterface $kernel;
     private LoggerInterface $logger;
@@ -35,7 +35,7 @@ final class Worker implements WorkerInterface
         $this->logger = $logger;
         $this->httpFoundationWorker = $httpFoundationWorker;
 
-        /** @var Dependencies */
+        /** @var Dependencies $dependencies */
         $dependencies = $kernel->getContainer()->get(Dependencies::class);
         $this->dependencies = $dependencies;
     }
@@ -78,10 +78,10 @@ final class Worker implements WorkerInterface
             } finally {
                 if ($this->kernel instanceof RebootableInterface && $this->dependencies->getKernelRebootStrategy()->shouldReboot()) {
                     $this->kernel->reboot(null);
-                    /** @var Dependencies */
-                    $deps = $this->kernel->getContainer()->get(Dependencies::class);
+                    /** @var Dependencies $dependencies */
+                    $dependencies = $this->kernel->getContainer()->get(Dependencies::class);
 
-                    $this->dependencies = $deps;
+                    $this->dependencies = $dependencies;
                     $this->dependencies->getEventDispatcher()->dispatch(new WorkerKernelRebootedEvent());
                 }
 

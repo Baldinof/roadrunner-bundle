@@ -6,8 +6,10 @@ namespace Tests\Baldinof\RoadRunnerBundle;
 
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
+use Baldinof\RoadRunnerBundle\Worker\WorkerResolverInterface;
 use PHPUnit\Framework\TestCase;
 use Spiral\RoadRunner\Environment\Mode;
+use Spiral\RoadRunner\EnvironmentInterface;
 use Symfony\Component\Console\Tester\CommandTester;
 
 class WorkerCommandTest extends TestCase
@@ -20,21 +22,20 @@ class WorkerCommandTest extends TestCase
     {
         self::$workerExecuted = false;
 
-        $worker = new class() implements WorkerInterface {
-            public function start(): void
+        $environment = $this->createMock(EnvironmentInterface::class);
+        $workerResolver = new class implements WorkerResolverInterface{
+            public function resolve(string $mode): WorkerInterface
             {
-                WorkerCommandTest::$workerExecuted = true;
+                return new class() implements WorkerInterface {
+                    public function start(): void
+                    {
+                        WorkerCommandTest::$workerExecuted = true;
+                    }
+                };
             }
         };
 
-        $this->command = new CommandTester(new WorkerCommand($worker));
-    }
-
-    public function test_it_displays_help_on_manual_run()
-    {
-        $this->command->execute([]);
-
-        $this->assertStringContainsString('should not be run manually', $this->command->getDisplay());
+        $this->command = new CommandTester(new WorkerCommand($workerResolver, $environment));
     }
 
     public function test_it_start_the_worker_when_ran_by_roadrunner()
