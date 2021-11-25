@@ -26,7 +26,7 @@
         "spiral/roadrunner-worker": ">=2.0.3",
         "spiral/goridge": "^3.0",
         "symfony/psr-http-message-bridge": "^1.1 || ^2.0",
-        "psr/log": "^1.1"
+        "psr/log": "^1.1 || ^2.0 || ^3.0"
     },
     "suggest": {
         "nyholm/psr7": "For a super lightweight PSR-7/17 implementation",

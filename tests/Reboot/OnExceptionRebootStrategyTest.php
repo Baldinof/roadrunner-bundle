@@ -7,8 +7,9 @@ namespace Tests\Baldinof\RoadRunnerBundle\Reboot;
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
-use Psr\Log\Test\TestLogger;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
@@ -25,9 +26,9 @@ class OnExceptionRebootStrategyTest extends TestCase
 
     public function setUp(): void
     {
-        $this->logger = new TestLogger();
+        $this->logger = $this->prophesize(LoggerInterface::class);
 
-        $this->strategy = new OnExceptionRebootStrategy([AllowedException::class], $this->logger);
+        $this->strategy = new OnExceptionRebootStrategy([AllowedException::class], $this->logger->reveal());
 
         $this->dispatcher = new EventDispatcher();
         $this->dispatcher->addSubscriber($this->strategy);
@@ -77,7 +78,8 @@ class OnExceptionRebootStrategyTest extends TestCase
         $this->dispatcher->dispatch(new ForceKernelRebootEvent('something bad happened'));
 
         $this->assertTrue($this->strategy->shouldReboot());
-        $this->assertTrue($this->logger->hasDebugThatContains('something bad happened'));
+
+        $this->logger->debug(Argument::containingString('something bad happened'))->shouldBeCalled();
     }
 
     private function dispatchException(\Exception $e)
