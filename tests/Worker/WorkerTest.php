@@ -112,7 +112,7 @@ class WorkerTest extends TestCase
 
         $this->assertSame(['10.0.0.1', '10.0.0.2'], Request::getTrustedProxies());
         $this->assertSame(['{example.org}i', '{example.com}i'], Request::getTrustedHosts());
-        $this->assertSame(Request::HEADER_X_FORWARDED_ALL ^ Request::HEADER_X_FORWARDED_HOST, Request::getTrustedHeaderSet());
+        $this->assertSame(Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO, Request::getTrustedHeaderSet());
     }
 
     /**

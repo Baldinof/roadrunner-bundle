@@ -8,6 +8,7 @@ parameters:
     inferPrivatePropertyTypeFromConstructor: true
     treatPhpDocTypesAsCertain: false
     checkMissingIterableValueType: false
+    reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         - message: '#Access to protected property Symfony\\Component\\HttpKernel\\Kernel::\$startTime.#'
           path: 'src/Http/KernelHandler.php'
