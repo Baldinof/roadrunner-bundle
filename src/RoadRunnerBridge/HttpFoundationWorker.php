@@ -180,9 +180,9 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
     }
 
     /**
-     * @param array<string, mixed[]> $headers
+     * @param array<int|string, array<int, string|null>|string|null> $headers
      *
-     * @return array<string, string[]>
+     * @return array<int|string, string[]>
      */
     private function stringifyHeaders(array $headers): array
     {
