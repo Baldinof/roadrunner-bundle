@@ -19,10 +19,10 @@
     "config": {"platform": {"php": "7.4.9999"}},
     "require": {
         "php": ">=7.4",
-        "symfony/config": "^4.4 || ^5.0",
-        "symfony/dependency-injection": "^4.4 || ^5.0",
-        "symfony/http-kernel": "^4.4 || ^5.0",
-        "symfony/yaml": "^4.4 || ^5.0",
+        "symfony/config": "^4.4 || ^5.0 || ^6.0",
+        "symfony/dependency-injection": "^4.4 || ^5.0 || ^6.0",
+        "symfony/http-kernel": "^4.4 || ^5.0 || ^6.0",
+        "symfony/yaml": "^4.4 || ^5.0 || ^6.0",
         "spiral/roadrunner": "^2.0.2",
         "spiral/roadrunner-worker": ">=2.0.3",
         "spiral/goridge": "^3.0",
@@ -34,24 +34,24 @@
         "symfony/proxy-manager-bridge": "For doctrine re-connection implementation"
     },
     "require-dev": {
-        "symfony/var-dumper": "^4.0||^5.0",
+        "symfony/var-dumper": "^4.0 || ^5.0 || ^6.0",
         "phpunit/phpunit": "^9.5",
         "phpspec/prophecy": "^1.11",
         "phpspec/prophecy-phpunit": "^2.0",
         "friendsofphp/php-cs-fixer": "^2.16",
         "phpstan/phpstan": "0.12.80",
         "sentry/sentry-symfony": "^4.0",
-        "symfony/framework-bundle": "^4.0||^5.0",
+        "symfony/framework-bundle": "^4.0 || ^5.0 || ^6.0",
         "nyholm/psr7": "^1.2",
         "doctrine/mongodb-odm": "^2.2",
         "blackfire/php-sdk": "^1.21",
         "doctrine/doctrine-bundle": "^2.1.1",
         "doctrine/orm": "^2.7.3",
-        "symfony/proxy-manager-bridge": "^4.0 || ^5.0",
+        "symfony/proxy-manager-bridge": "^4.0 || ^5.0 || ^6.0",
         "spiral/roadrunner-metrics": "^2.0.1",
         "mikey179/vfsstream": "^1.6.8",
         "pestphp/pest-plugin-expectations": "^1.0",
-        "symfony/runtime": "^5.3.0"
+        "symfony/runtime": "^5.3.0 || ^6.0"
     },
     "conflict": {
         "doctrine/doctrine-bundle": "<2.1.1",
