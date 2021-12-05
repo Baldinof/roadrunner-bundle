@@ -64,7 +64,7 @@ final class Runner implements HttpKernelInterface
         $this->iterators = new SplStack();
     }
 
-    public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true)
+    public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true): Response
     {
         if ($this->middlewares->isEmpty()) {
             $gen = $this->handler->handle($request);
