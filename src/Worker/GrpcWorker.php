@@ -6,7 +6,6 @@ namespace Baldinof\RoadRunnerBundle\Worker;
 
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
 use Psr\Log\LoggerInterface;
-use Spiral\RoadRunner\GRPC\InvokerInterface;
 use Spiral\RoadRunner\GRPC\Server;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use function sprintf;
@@ -19,24 +18,22 @@ final class GrpcWorker implements GrpcWorkerInterface
     private LoggerInterface $logger;
     private RoadRunnerWorker $roadRunnerWorker;
     private GrpcServiceProvider $grpcServiceProvider;
-    private InvokerInterface $invoker;
+    private Server $server;
 
     public function __construct(
         LoggerInterface $logger,
         RoadRunnerWorker $roadRunnerWorker,
         GrpcServiceProvider $grpcServiceProvider,
-        InvokerInterface $invoker
+        Server $server
     ) {
         $this->logger = $logger;
         $this->roadRunnerWorker = $roadRunnerWorker;
         $this->grpcServiceProvider = $grpcServiceProvider;
-        $this->invoker = $invoker;
+        $this->server = $server;
     }
 
     public function start(): void
     {
-        $server = new Server($this->invoker);
-
         foreach ($this->grpcServiceProvider->getRegisteredServices() as $interface => $service) {
             $this->logger->debug(
                 sprintf(
@@ -46,9 +43,9 @@ final class GrpcWorker implements GrpcWorkerInterface
                 ),
             );
 
-            $server->registerService($interface, $service);
+            $this->server->registerService($interface, $service);
         }
 
-        $server->serve($this->roadRunnerWorker);
+        $this->server->serve($this->roadRunnerWorker);
     }
 }

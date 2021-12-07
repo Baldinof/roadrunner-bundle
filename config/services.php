@@ -27,6 +27,7 @@ use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
 use Spiral\RoadRunner\GRPC\Invoker as GrpcInvoker;
+use Spiral\RoadRunner\GRPC\Server;
 use Spiral\RoadRunner\Http\HttpWorker;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Metrics\Metrics;
@@ -83,6 +84,11 @@ return static function (ContainerConfigurator $container) {
     $services->set(GrpcServiceProvider::class);
     $services->set(GrpcInvoker::class);
 
+    $services->set(Server::class)
+        ->args([
+            service(GrpcInvoker::class)
+        ]);
+
     $services->set(GrpcWorkerInterface::class, GrpcWorker::class)
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
         ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
@@ -90,9 +96,8 @@ return static function (ContainerConfigurator $container) {
             service(LoggerInterface::class),
             service(RoadRunnerWorkerInterface::class),
             service(GrpcServiceProvider::class),
-            service(GrpcInvoker::class),
+            service(Server::class),
         ]);
-
 
     $services->set(Dependencies::class)
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
