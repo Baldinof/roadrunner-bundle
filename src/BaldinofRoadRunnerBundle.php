@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle;
 
+use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\GrpcServiceCompilerPass;
 use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\MiddlewareCompilerPass;
 use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\RemoveConfigureVarDumperListenerPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -17,5 +18,6 @@ final class BaldinofRoadRunnerBundle extends Bundle
 
         $container->addCompilerPass(new RemoveConfigureVarDumperListenerPass());
         $container->addCompilerPass(new MiddlewareCompilerPass());
+        $container->addCompilerPass(new GrpcServiceCompilerPass());
     }
 }
