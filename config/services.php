@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Baldinof\RoadRunnerBundle\Command\GrpcWorkerCommand;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
+use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
 use Baldinof\RoadRunnerBundle\Helpers\RPCFactory;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
@@ -16,12 +18,15 @@ use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
+use Baldinof\RoadRunnerBundle\Worker\GrpcWorker;
+use Baldinof\RoadRunnerBundle\Worker\GrpcWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
 use Psr\Log\LoggerInterface;
 use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
+use Spiral\RoadRunner\GRPC\Invoker as GrpcInvoker;
 use Spiral\RoadRunner\Http\HttpWorker;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Metrics\Metrics;
@@ -75,6 +80,20 @@ return static function (ContainerConfigurator $container) {
             service(HttpFoundationWorkerInterface::class),
         ]);
 
+    $services->set(GrpcServiceProvider::class);
+    $services->set(GrpcInvoker::class);
+
+    $services->set(GrpcWorkerInterface::class, GrpcWorker::class)
+        ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
+        ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+        ->args([
+            service(LoggerInterface::class),
+            service(RoadRunnerWorkerInterface::class),
+            service(GrpcServiceProvider::class),
+            service(GrpcInvoker::class),
+        ]);
+
+
     $services->set(Dependencies::class)
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
         ->args([
@@ -85,6 +104,10 @@ return static function (ContainerConfigurator $container) {
 
     $services->set(WorkerCommand::class)
         ->args([service(WorkerInterface::class)])
+        ->autoconfigure();
+
+    $services->set(GrpcWorkerCommand::class)
+        ->args([service(GrpcWorkerInterface::class)])
         ->autoconfigure();
 
     $services->set(KernelHandler::class)

@@ -148,6 +148,67 @@ class YouController
 }
 ```
 
+## gRPC
+
+gRPC support was added by the roadrunner-grpc plugin for RoadRunner 2 (https://github.com/spiral/roadrunner-grpc).
+
+To configure Roadrunner for gRPC, refer to the configuration reference at https://roadrunner.dev/docs/beep-beep-grpc.
+
+Basic configuration example:
+
+```
+server:
+    command: "php bin/console baldinof:roadrunner:grpc-worker"
+    # If you are using symfony 5.3+ and the new Runtime component:
+    # remove the previous `command` line above and uncomment the line below.
+    # command: "php public/index.php"
+    env:
+        # APP_RUNTIME: Baldinof\RoadRunnerBundle\Runtime\Runtime
+        APP_RUNTIME: Baldinof\RoadRunnerBundle\Runtime\GrpcRuntime
+
+grpc:
+    listen: "tcp://:9001"
+
+    proto:
+        - "first.proto"
+        - "second.proto"
+```
+
+To register your gRPC services with this bundle, implement the `Baldinof\RoadRunnerBundle\Grpc\GrpcServiceInterface` interface and tag them with `baldinof.roadrunner.grpc_service`:
+
+```
+<?php
+
+declare(strict_types=1);
+
+namespace App\Grpc;
+
+use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceInterface;
+use MyServiceInterface;
+
+final class MyService implements MyServiceInterface, GrpcServiceInterface
+{
+    public static function getImplementedInterface(): string
+    {
+        return MyServiceInterface::class;
+    }
+}
+```
+
+```
+App\Grpc\MyService:
+    tags:
+        - 'baldinof.roadrunner.grpc_service'
+```
+
+You can also tag all your gRPC services at once by adding this to your `services.yaml`:
+
+```
+_instanceof:
+    Baldinof\RoadRunnerBundle\Grpc\GrpcServiceInterface:
+        tags: ['baldinof.roadrunner.grpc_service']
+```
+
 ## Usage with Docker
 
 ```Dockerfile
