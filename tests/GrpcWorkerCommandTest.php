@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle;
 
-use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
-use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
+use Baldinof\RoadRunnerBundle\Command\GrpcWorkerCommand;
+use Baldinof\RoadRunnerBundle\Worker\GrpcWorkerInterface;
 use PHPUnit\Framework\TestCase;
 use Spiral\RoadRunner\Environment\Mode;
 use Symfony\Component\Console\Tester\CommandTester;
 use function putenv;
 
-class WorkerCommandTest extends TestCase
+class GrpcWorkerCommandTest extends TestCase
 {
     public static bool $workerExecuted;
 
@@ -21,14 +21,14 @@ class WorkerCommandTest extends TestCase
     {
         self::$workerExecuted = false;
 
-        $worker = new class() implements WorkerInterface {
+        $worker = new class() implements GrpcWorkerInterface {
             public function start(): void
             {
-                WorkerCommandTest::$workerExecuted = true;
+                GrpcWorkerCommandTest::$workerExecuted = true;
             }
         };
 
-        $this->command = new CommandTester(new WorkerCommand($worker));
+        $this->command = new CommandTester(new GrpcWorkerCommand($worker));
     }
 
     protected function tearDown(): void
@@ -45,7 +45,7 @@ class WorkerCommandTest extends TestCase
 
     public function test_it_start_the_worker_when_ran_by_roadrunner()
     {
-        putenv('RR_MODE='.Mode::MODE_HTTP);
+        putenv('RR_MODE='.Mode::MODE_GRPC);
 
         $this->command->execute([]);
 
