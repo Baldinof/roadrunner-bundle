@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Baldinof\RoadRunnerBundle;
 
 use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
+use Baldinof\RoadRunnerBundle\Command\GrpcWorkerCommand;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
@@ -36,6 +37,17 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $cmd = $c->get(WorkerCommand::class);
 
         $this->assertInstanceOf(WorkerCommand::class, $cmd);
+    }
+
+    public function test_it_expose_the_grpc_worker_command()
+    {
+        $k = $this->getKernel();
+        $k->boot();
+        $c = $k->getContainer()->get('test.service_container');
+
+        $cmd = $c->get(GrpcWorkerCommand::class);
+
+        $this->assertInstanceOf(GrpcWorkerCommand::class, $cmd);
     }
 
     public function test_it_loads_sentry_middleware_if_needed()
