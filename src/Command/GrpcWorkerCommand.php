@@ -50,7 +50,7 @@ final class GrpcWorkerCommand extends Command
                 # remove the previous `command` line above and uncomment the line below.
                 # command: "php public/index.php"
                 env:
-                    APP_RUNTIME: Baldinof\RoadRunnerBundle\Runtime\GrpcRuntime
+                    APP_RUNTIME: Baldinof\RoadRunnerBundle\Runtime\Runtime
 
             grpc:
                 listen: "tcp://:9001"
