@@ -40,8 +40,6 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
     public function test_it_loads_sentry_middleware_if_needed()
     {
-        $this->markTestSkipped('Not compatible with sf6.0');
-
         $k = $this->getKernel([], [
             new SentryBundle(),
         ]);
@@ -55,8 +53,6 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
     public function test_it_does_not_load_sentry_middleware_if_not_needed()
     {
-        $this->markTestSkipped('Not compatible with sf6.0');
-
         $k = $this->getKernel([], []);
         $k->boot();
 
@@ -67,8 +63,6 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
     public function test_it_does_not_load_default_integrations_according_to_config()
     {
-        $this->markTestSkipped('Not compatible with sf6.0');
-
         $k = $this->getKernel([
             'baldinof_road_runner' => [
                 'default_integrations' => false,
@@ -202,12 +196,12 @@ class BaldinofRoadRunnerBundleTest extends TestCase
                 $this->extraBundles = $extraBundles;
             }
 
-            public function getCacheDir()
+            public function getCacheDir(): string
             {
                 return __DIR__.'/__cache';
             }
 
-            public function registerBundles()
+            public function registerBundles(): iterable
             {
                 yield new FrameworkBundle();
 
