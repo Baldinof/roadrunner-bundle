@@ -180,12 +180,14 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
     }
 
     /**
-     * @param array<int|string, array<int, string|null>|string|null> $headers
+     * @param array<string, array<int, string|null>>|array<int, string|null> $headers
      *
      * @return array<int|string, string[]>
      */
     private function stringifyHeaders(array $headers): array
     {
-        return array_map(static fn ($headerValues) => array_map(static fn ($val) => (string) $val, $headerValues), $headers);
+        return array_map(static function ($headerValues) {
+            return array_map(static fn ($val) => (string) $val, (array) $headerValues);
+        }, $headers);
     }
 }

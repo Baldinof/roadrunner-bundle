@@ -31,10 +31,10 @@ use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 // Polyfill of the `service()` function introduced in Symfony 5.1 when using older version
-if (!\function_exists(__NAMESPACE__.'\service') && \function_exists(__NAMESPACE__.'\ref')) {
+if (!\function_exists('Symfony\Component\DependencyInjection\Loader\Configurator\service')) {
     function service(string $id): ReferenceConfigurator
     {
-        return ref($id);
+        return ref($id); // @phpstan-ignore-line
     }
 }
 
