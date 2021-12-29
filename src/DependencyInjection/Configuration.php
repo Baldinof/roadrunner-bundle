@@ -11,10 +11,10 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 
 class Configuration implements ConfigurationInterface
 {
-    const MONOLOG_CHANNEL = 'roadrunner';
+    public const MONOLOG_CHANNEL = 'roadrunner';
 
-    const KERNEL_REBOOT_STRATEGY_ALWAYS = 'always';
-    const KERNEL_REBOOT_STRATEGY_ON_EXCEPTION = 'on_exception';
+    public const KERNEL_REBOOT_STRATEGY_ALWAYS = 'always';
+    public const KERNEL_REBOOT_STRATEGY_ON_EXCEPTION = 'on_exception';
 
     public function getConfigTreeBuilder(): TreeBuilder
     {

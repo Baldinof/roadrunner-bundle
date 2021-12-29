@@ -13,7 +13,7 @@ class Runtime extends SymfonyRuntime
 {
     public function getRunner(?object $application): RunnerInterface
     {
-        if ($application instanceof KernelInterface && \getenv('RR_MODE') === Mode::MODE_HTTP) {
+        if ($application instanceof KernelInterface && getenv('RR_MODE') === Mode::MODE_HTTP) {
             return new Runner($application);
         }
 

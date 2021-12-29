@@ -91,7 +91,7 @@ final class DoctrineORMMiddleware implements MiddlewareInterface
             $con->executeQuery($con->getDatabasePlatform()->getDummySelectSQL());
 
             return true;
-        } catch (Exception | DBALException $e) { // @phpstan-ignore-line
+        } catch (Exception|DBALException $e) { // @phpstan-ignore-line
             return false;
         }
     }

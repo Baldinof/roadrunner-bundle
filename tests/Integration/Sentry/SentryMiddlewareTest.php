@@ -41,7 +41,7 @@ final class SentryMiddlewareTest extends TestCase
             return new Response();
         };
 
-        $this->handler = new CallableHttpKernel(fn($req) => ($this->onRequest)($req));
+        $this->handler = new CallableHttpKernel(fn ($req) => ($this->onRequest)($req));
     }
 
     public function initHub(array $options): void

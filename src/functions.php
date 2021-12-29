@@ -10,6 +10,7 @@ if (!\function_exists('Baldinof\RoadRunnerBundle\consumes')) {
      */
     function consumes(\Iterator $gen): void
     {
-        foreach ($gen as $_);
+        foreach ($gen as $_) {
+        }
     }
 }

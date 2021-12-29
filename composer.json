@@ -37,7 +37,7 @@
         "phpunit/phpunit": "^9.5",
         "phpspec/prophecy": "^1.11",
         "phpspec/prophecy-phpunit": "^2.0",
-        "friendsofphp/php-cs-fixer": "^2.16",
+        "friendsofphp/php-cs-fixer": "^3.4",
         "phpstan/phpstan": "^1.2",
         "sentry/sentry-symfony": "^4.0",
         "symfony/framework-bundle": "^4.0 || ^5.0 || ^6.0",
