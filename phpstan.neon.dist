@@ -14,3 +14,5 @@ parameters:
           path: 'src/Http/KernelHandler.php'
         - message: '#Cannot call method arrayNode#'
           path: 'src/DependencyInjection'
+        - message: '#Cannot cast mixed to string.#'
+          path: 'src/Integration/PHP/NativeSessionMiddleware.php'
