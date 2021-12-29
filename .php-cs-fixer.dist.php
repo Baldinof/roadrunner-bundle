@@ -5,7 +5,7 @@ $finder = PhpCsFixer\Finder::create()
     ->notPath('__cache')
 ;
 
-return PhpCsFixer\Config::create()
+return (new PhpCsFixer\Config)
     ->setFinder($finder)
     ->setRules([
         '@Symfony' => true,

@@ -20,13 +20,12 @@ use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Tests\Baldinof\RoadRunnerBundle\Utils\CallableHttpKernel;
 
 class DoctrineORMMiddlewareTest extends TestCase
 {
-    const CONNECTION_NAME = 'doctrine.connection';
-    const MANAGER_NAME = 'doctrine.manager';
+    public const CONNECTION_NAME = 'doctrine.connection';
+    public const MANAGER_NAME = 'doctrine.manager';
 
     private $managerRegistryMock;
     private $connectionMock;

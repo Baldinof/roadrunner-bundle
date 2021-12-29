@@ -31,7 +31,7 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class BaldinofRoadRunnerExtension extends Extension
 {
-    const MONOLOG_CHANNEL = 'roadrunner';
+    public const MONOLOG_CHANNEL = 'roadrunner';
 
     /**
      * @param array<string, mixed> $configs

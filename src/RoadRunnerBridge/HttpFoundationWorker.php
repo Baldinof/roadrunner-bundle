@@ -126,11 +126,11 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
         $server['HTTP_USER_AGENT'] = '';
         foreach ($request->headers as $key => $value) {
-            $key = \strtoupper(\str_replace('-', '_', $key));
+            $key = strtoupper(str_replace('-', '_', $key));
             if (\in_array($key, ['CONTENT_TYPE', 'CONTENT_LENGTH'])) {
-                $server[$key] = \implode(', ', $value);
+                $server[$key] = implode(', ', $value);
             } else {
-                $server['HTTP_'.$key] = \implode(', ', $value);
+                $server['HTTP_'.$key] = implode(', ', $value);
             }
         }
 
@@ -171,12 +171,12 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
     private function timeInt(): int
     {
-        return \time();
+        return time();
     }
 
     private function timeFloat(): float
     {
-        return \microtime(true);
+        return microtime(true);
     }
 
     /**
