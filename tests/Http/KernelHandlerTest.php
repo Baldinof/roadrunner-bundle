@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
+use Tests\Baldinof\RoadRunnerBundle\Utils\CallableHttpKernel;
 
 class KernelHandlerTest extends TestCase
 {
@@ -102,19 +103,8 @@ class KernelHandlerTest extends TestCase
 
     private function kernel(callable $callback)
     {
-        return new class($callback) implements HttpKernelInterface, TerminableInterface {
-            private $callback;
+        return new class($callback) extends CallableHttpKernel implements TerminableInterface {
             public $terminateCalled = false;
-
-            public function __construct(callable $callback)
-            {
-                $this->callback = $callback;
-            }
-
-            public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true)
-            {
-                return ($this->callback)($request);
-            }
 
             public function terminate(Request $request, Response $response)
             {

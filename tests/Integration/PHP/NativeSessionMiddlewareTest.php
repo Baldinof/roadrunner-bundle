@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Tests\Baldinof\RoadRunnerBundle\Utils\CallableHttpKernel;
 
 class NativeSessionMiddlewareTest extends TestCase
 {
@@ -134,19 +134,7 @@ class NativeSessionMiddlewareTest extends TestCase
             };
         }
 
-        $it = $this->middleware->process($request, new class($handler) implements HttpKernelInterface {
-            private \Closure $handler;
-
-            public function __construct(\Closure $handler)
-            {
-                $this->handler = $handler;
-            }
-
-            public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true)
-            {
-                return ($this->handler)($request);
-            }
-        });
+        $it = $this->middleware->process($request, new CallableHttpKernel($handler));
 
         $resp = $it->current();
 

@@ -22,6 +22,7 @@ use SplStack;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Tests\Baldinof\RoadRunnerBundle\Utils\CallableHttpKernel;
 
 final class SentryMiddlewareTest extends TestCase
 {
@@ -40,19 +41,7 @@ final class SentryMiddlewareTest extends TestCase
             return new Response();
         };
 
-        $this->handler = new class($this) implements HttpKernelInterface {
-            private SentryMiddlewareTest $test;
-
-            public function __construct(SentryMiddlewareTest $test)
-            {
-                $this->test = $test;
-            }
-
-            public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true)
-            {
-                return ($this->test->onRequest)($request);
-            }
-        };
+        $this->handler = new CallableHttpKernel(fn($req) => ($this->onRequest)($req));
     }
 
     public function initHub(array $options): void
