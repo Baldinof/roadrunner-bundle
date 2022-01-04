@@ -11,6 +11,7 @@ use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListener;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
@@ -19,6 +20,8 @@ use Baldinof\RoadRunnerBundle\Worker\Dependencies;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
 use Psr\Log\LoggerInterface;
+use Sentry\SentryBundle\EventListener\TracingRequestListener;
+use Sentry\State\HubInterface;
 use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
@@ -104,5 +107,12 @@ return static function (ContainerConfigurator $container) {
         ->args([
             service(StreamedResponseListener::class.'.inner'),
             '%env(default::RR_MODE)%',
+        ]);
+    
+    $services->set(SentryTracingRequestListener::class)
+        ->decorate(TracingRequestListener::class, null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+        ->args([
+            service('.inner'),
+            service(HubInterface::class),
         ]);
 };
