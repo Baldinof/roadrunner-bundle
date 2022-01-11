@@ -28,6 +28,7 @@ use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
 use Spiral\RoadRunner\GRPC\Invoker as GrpcInvoker;
 use Spiral\RoadRunner\GRPC\Server;
+use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Spiral\RoadRunner\Http\HttpWorker;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Metrics\Metrics;
@@ -133,4 +134,8 @@ return static function (ContainerConfigurator $container) {
             service(StreamedResponseListener::class.'.inner'),
             '%env(default::RR_MODE)%',
         ]);
+
+    $services
+        ->instanceof(ServiceInterface::class)
+        ->tag('baldinof.roadrunner.grpc_service');
 };

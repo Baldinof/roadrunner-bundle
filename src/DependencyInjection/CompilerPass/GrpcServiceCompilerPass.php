@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass;
 
-use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceInterface;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
+use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Reference;
-use function sprintf;
+
+use function array_merge;
+use function class_implements;
+use function count;
+use function in_array;
 
 class GrpcServiceCompilerPass implements CompilerPassInterface
 {
@@ -25,20 +28,33 @@ class GrpcServiceCompilerPass implements CompilerPassInterface
 
         /** @var string $id */
         foreach ($taggedServices as $id => $tags) {
-            /** @var array $classInterfaces */
-            $classInterfaces = class_implements($id);
+            $definition = $container->getDefinition($id);
 
-            if (!isset($classInterfaces[GrpcServiceInterface::class])) {
-                throw new InvalidArgumentException(
-                    sprintf(
-                        '\'%s\' should implement %s',
-                        $id,
-                        GrpcServiceInterface::class,
-                    ),
-                );
+            $grpcServiceInterfaces = $this->findServiceInterfaceAncestors($definition->getClass());
+
+            foreach ($grpcServiceInterfaces as $grpcServiceInterface) {
+                $provider->addMethodCall('registerService', [$grpcServiceInterface, new Reference($id)]);
             }
-
-            $provider->addMethodCall('registerService', [$id::getImplementedInterface(), new Reference($id)]);
         }
+    }
+
+    private function findServiceInterfaceAncestors(string $className): array
+    {
+        $implementedInterfaces = class_implements($className);
+
+        if (
+            1 === count($implementedInterfaces)
+            && in_array(ServiceInterface::class, $implementedInterfaces)
+        ) {
+            return [$className];
+        }
+
+        $resultingClasses = [];
+
+        foreach ($implementedInterfaces as $implementedInterface) {
+            $resultingClasses = array_merge($resultingClasses, $this->findServiceInterfaceAncestors($implementedInterface));
+        }
+
+        return $resultingClasses;
     }
 }
