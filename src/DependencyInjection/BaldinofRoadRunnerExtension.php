@@ -13,6 +13,7 @@ use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryListener;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\ConfigureVarDumperListener;
+use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Persistence\ManagerRegistry;
@@ -48,11 +49,18 @@ class BaldinofRoadRunnerExtension extends Extension
             $this->loadDebug($container);
         }
 
-        $container->register(KernelRebootStrategyInterface::class, OnExceptionRebootStrategy::class)
-            ->addArgument($config['kernel_reboot']['allowed_exceptions'])
-            ->addArgument(new Reference(LoggerInterface::class))
-            ->setAutoconfigured(true)
-            ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL]);
+        if ($config['kernel_reboot']['strategy'] === Configuration::KERNEL_REBOOT_STRATEGY_ALWAYS) {
+            $container
+                ->register(KernelRebootStrategyInterface::class, AlwaysRebootStrategy::class)
+                ->setAutoconfigured(true);
+        } else {
+            $container
+                ->register(KernelRebootStrategyInterface::class, OnExceptionRebootStrategy::class)
+                ->addArgument($config['kernel_reboot']['allowed_exceptions'])
+                ->addArgument(new Reference(LoggerInterface::class))
+                ->setAutoconfigured(true)
+                ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL]);
+        }
 
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
 
