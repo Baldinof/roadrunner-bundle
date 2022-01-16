@@ -53,13 +53,15 @@ class BaldinofRoadRunnerExtension extends Extension
             $container
                 ->register(KernelRebootStrategyInterface::class, AlwaysRebootStrategy::class)
                 ->setAutoconfigured(true);
-        } else {
+        } elseif ($config['kernel_reboot']['strategy'] === Configuration::KERNEL_REBOOT_STRATEGY_ON_EXCEPTION) {
             $container
                 ->register(KernelRebootStrategyInterface::class, OnExceptionRebootStrategy::class)
                 ->addArgument($config['kernel_reboot']['allowed_exceptions'])
                 ->addArgument(new Reference(LoggerInterface::class))
                 ->setAutoconfigured(true)
                 ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL]);
+        } else {
+            $container->setAlias(KernelRebootStrategyInterface::class, $config['kernel_reboot']['strategy']);
         }
 
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
