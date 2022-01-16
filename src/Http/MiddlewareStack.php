@@ -17,6 +17,9 @@ final class MiddlewareStack
 {
     private RequestHandlerInterface $kernelHandler;
 
+    /**
+     * @var SplStack<MiddlewareInterface>
+     */
     private SplStack $middlewares;
 
     public function __construct(RequestHandlerInterface $kernelHandler)
