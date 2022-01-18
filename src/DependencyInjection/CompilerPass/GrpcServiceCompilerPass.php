@@ -30,7 +30,7 @@ class GrpcServiceCompilerPass implements CompilerPassInterface
         foreach ($taggedServices as $id => $tags) {
             $definition = $container->getDefinition($id);
 
-            $grpcServiceInterfaces = $this->findServiceInterfaceAncestors($definition->getClass());
+            $grpcServiceInterfaces = $this->findGrpcServiceInterfaces($definition->getClass());
 
             foreach ($grpcServiceInterfaces as $grpcServiceInterface) {
                 $provider->addMethodCall('registerService', [$grpcServiceInterface, new Reference($id)]);
@@ -38,23 +38,15 @@ class GrpcServiceCompilerPass implements CompilerPassInterface
         }
     }
 
-    private function findServiceInterfaceAncestors(string $className): array
+    /**
+     * @return \Generator<string>
+     */
+    private function findGrpcServiceInterfaces(string $className): \Generator
     {
-        $implementedInterfaces = class_implements($className);
-
-        if (
-            1 === count($implementedInterfaces)
-            && in_array(ServiceInterface::class, $implementedInterfaces)
-        ) {
-            return [$className];
+        foreach (class_implements($className) as $interface) {
+            if (is_subclass_of($interface, ServiceInterface::class, true)) {
+                yield $interface;
+            }
         }
-
-        $resultingClasses = [];
-
-        foreach ($implementedInterfaces as $implementedInterface) {
-            $resultingClasses = array_merge($resultingClasses, $this->findServiceInterfaceAncestors($implementedInterface));
-        }
-
-        return $resultingClasses;
     }
 }
