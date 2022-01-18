@@ -12,7 +12,11 @@
     "autoload": {
         "files": ["src/functions.php"],
         "psr-4": {
-            "Baldinof\\RoadRunnerBundle\\": "src",
+            "Baldinof\\RoadRunnerBundle\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
             "Tests\\Baldinof\\RoadRunnerBundle\\": "tests"
         }
     },
