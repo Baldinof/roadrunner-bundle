@@ -18,6 +18,8 @@ final class BaldinofRoadRunnerBundle extends Bundle
 
         $container->addCompilerPass(new RemoveConfigureVarDumperListenerPass());
         $container->addCompilerPass(new MiddlewareCompilerPass());
-        $container->addCompilerPass(new GrpcServiceCompilerPass());
+        if (interface_exists(ServiceInterface::class)) {
+            $container->addCompilerPass(new GrpcServiceCompilerPass());
+        }
     }
 }
