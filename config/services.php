@@ -82,24 +82,6 @@ return static function (ContainerConfigurator $container) {
             service(HttpFoundationWorkerInterface::class),
         ]);
 
-    $services->set(GrpcServiceProvider::class);
-    $services->set(GrpcInvoker::class);
-
-    $services->set(Server::class)
-        ->args([
-            service(GrpcInvoker::class)
-        ]);
-
-    $services->set(GrpcWorkerInterface::class, GrpcWorker::class)
-        ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
-        ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
-        ->args([
-            service(LoggerInterface::class),
-            service(RoadRunnerWorkerInterface::class),
-            service(GrpcServiceProvider::class),
-            service(Server::class),
-        ]);
-
     $services->set(Dependencies::class)
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
         ->args([
@@ -135,7 +117,24 @@ return static function (ContainerConfigurator $container) {
             '%env(default::RR_MODE)%',
         ]);
 
-    $services
-        ->instanceof(ServiceInterface::class)
-        ->tag('baldinof.roadrunner.grpc_service');
+    if (interface_exists(ServiceInterface::class)) {
+        $services->set(GrpcServiceProvider::class);
+        $services->set(GrpcInvoker::class);
+
+        $services->set(Server::class)
+            ->args([
+                service(GrpcInvoker::class)
+            ]);
+
+        $services->set(GrpcWorkerInterface::class, GrpcWorker::class)
+            ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
+            ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+            ->args([
+                service(LoggerInterface::class),
+                service(RoadRunnerWorkerInterface::class),
+                service(GrpcServiceProvider::class),
+                service(Server::class),
+            ]);
+
+    }
 };

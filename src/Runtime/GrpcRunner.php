@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\Runtime;
 
 use Baldinof\RoadRunnerBundle\Worker\GrpcWorkerInterface;
-use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Runtime\RunnerInterface;
 
@@ -22,7 +21,7 @@ class GrpcRunner implements RunnerInterface
     {
         $this->kernel->boot();
 
-        /** @var WorkerInterface */
+        /** @var GrpcWorkerInterface */
         $worker = $this->kernel->getContainer()->get(GrpcWorkerInterface::class);
 
         $worker->start();
