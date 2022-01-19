@@ -5,15 +5,11 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass;
 
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
+use function class_implements;
 use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
-
-use function array_merge;
-use function class_implements;
-use function count;
-use function in_array;
 
 class GrpcServiceCompilerPass implements CompilerPassInterface
 {
@@ -30,7 +26,13 @@ class GrpcServiceCompilerPass implements CompilerPassInterface
         foreach ($taggedServices as $id => $tags) {
             $definition = $container->getDefinition($id);
 
-            $grpcServiceInterfaces = $this->findGrpcServiceInterfaces($definition->getClass());
+            $class = $definition->getClass();
+
+            if ($class === null) {
+                continue;
+            }
+
+            $grpcServiceInterfaces = $this->findGrpcServiceInterfaces($class);
 
             foreach ($grpcServiceInterfaces as $grpcServiceInterface) {
                 $provider->addMethodCall('registerService', [$grpcServiceInterface, new Reference($id)]);
@@ -43,7 +45,13 @@ class GrpcServiceCompilerPass implements CompilerPassInterface
      */
     private function findGrpcServiceInterfaces(string $className): \Generator
     {
-        foreach (class_implements($className) as $interface) {
+        $interfaces = class_implements($className);
+
+        if (!$interfaces) {
+            return;
+        }
+
+        foreach ($interfaces as $interface) {
             if (is_subclass_of($interface, ServiceInterface::class, true)) {
                 yield $interface;
             }

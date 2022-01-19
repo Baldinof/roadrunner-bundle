@@ -7,9 +7,9 @@ namespace Tests\Baldinof\RoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
 use PHPUnit\Framework\TestCase;
+use function putenv;
 use Spiral\RoadRunner\Environment\Mode;
 use Symfony\Component\Console\Tester\CommandTester;
-use function putenv;
 
 class WorkerCommandTest extends TestCase
 {
