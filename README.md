@@ -152,67 +152,47 @@ class YouController
 
 gRPC support was added by the roadrunner-grpc plugin for RoadRunner 2 (https://github.com/spiral/roadrunner-grpc).
 
-To configure Roadrunner for gRPC, refer to the configuration reference at https://roadrunner.dev/docs/beep-beep-grpc.
+To configure Roadrunner for gRPC, refer to the configuration reference at https://roadrunner.dev/docs/beep-beep-grpc. Basic configuration example:
 
-Basic configuration example:
-
-```
+```yaml
 server:
-    command: "php bin/console baldinof:roadrunner:grpc-worker"
-    # If you are using symfony 5.3+ and the new Runtime component:
-    # remove the previous `command` line above and uncomment the line below.
-    # command: "php public/index.php"
-    env:
-        APP_RUNTIME: Baldinof\RoadRunnerBundle\Runtime\Runtime
+  command: "php public/index.php"
+  env:
+    APP_RUNTIME: Baldinof\RoadRunnerBundle\Runtime\Runtime
 
 grpc:
-    listen: "tcp://:9001"
+  listen: "tcp://:9001"
 
-    proto:
-        - "first.proto"
-        - "second.proto"
+  proto:
+    - "calculator.proto"
 ```
 
-To register your gRPC services with this bundle, implement the `Baldinof\RoadRunnerBundle\Grpc\GrpcServiceInterface` interface and tag them with `baldinof.roadrunner.grpc_service`:
+Once you have generated your PHP files from proto files, you just have to implement the service interfaces. GRPC services are registered automatically. Example service:
 
-```
+```php
 <?php
-
-declare(strict_types=1);
 
 namespace App\Grpc;
 
-use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceInterface;
-use MyServiceInterface;
+use Spiral\RoadRunner\GRPC;
+use App\Grpc\Generated\Calculator\Sum;
+use App\Grpc\Generated\Calculator\Result;
+use App\Grpc\Generated\Calculator\CalculatorInterface;
 
-final class MyService implements MyServiceInterface, GrpcServiceInterface
+class Calculator implements CalculatorInterface
 {
-    public static function getImplementedInterface(): string
+    public function Sum(GRPC\ContextInterface $ctx, Sum $in): Result
     {
-        return MyServiceInterface::class;
+        return (new Result())->setResult($in->getA() + $in->getB());
     }
 }
-```
-
-```
-App\Grpc\MyService:
-    tags:
-        - 'baldinof.roadrunner.grpc_service'
-```
-
-You can also tag all your gRPC services at once by adding this to your `services.yaml`:
-
-```
-_instanceof:
-    Baldinof\RoadRunnerBundle\Grpc\GrpcServiceInterface:
-        tags: ['baldinof.roadrunner.grpc_service']
 ```
 
 ## Usage with Docker
 
 ```Dockerfile
 # Dockerfile
-FROM php:7.4-alpine
+FROM php:8.1-alpine
 
 RUN apk add --no-cache autoconf openssl-dev g++ make pcre-dev icu-dev zlib-dev libzip-dev && \
     docker-php-ext-install bcmath intl opcache zip sockets && \
@@ -224,7 +204,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
 
-RUN composer install --no-dev --no-scripts --no-plugins --prefer-dist --no-progress --no-interaction
+RUN composer install --no-dev --no-scripts --prefer-dist --no-progress --no-interaction
 
 RUN ./vendor/bin/rr get-binary --location /usr/local/bin
 
