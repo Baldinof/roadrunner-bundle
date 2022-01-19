@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Baldinof\RoadRunnerBundle\Command\GrpcWorkerCommand;
 use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
@@ -94,10 +93,6 @@ return static function (ContainerConfigurator $container) {
         ->args([service(WorkerInterface::class)])
         ->autoconfigure();
 
-    $services->set(GrpcWorkerCommand::class)
-        ->args([service(GrpcWorkerInterface::class)])
-        ->autoconfigure();
-
     $services->set(KernelHandler::class)
         ->args([
             service('kernel'),
@@ -123,7 +118,7 @@ return static function (ContainerConfigurator $container) {
 
         $services->set(Server::class)
             ->args([
-                service(GrpcInvoker::class)
+                service(GrpcInvoker::class),
             ]);
 
         $services->set(GrpcWorkerInterface::class, GrpcWorker::class)
@@ -135,6 +130,5 @@ return static function (ContainerConfigurator $container) {
                 service(GrpcServiceProvider::class),
                 service(Server::class),
             ]);
-
     }
 };
