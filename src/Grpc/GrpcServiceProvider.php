@@ -6,7 +6,10 @@ namespace Baldinof\RoadRunnerBundle\Grpc;
 
 use Spiral\RoadRunner\GRPC\ServiceInterface;
 
-class GrpcServiceProvider
+/**
+ * @internal
+ */
+final class GrpcServiceProvider
 {
     /**
      * @var array<class-string<ServiceInterface>, ServiceInterface>
