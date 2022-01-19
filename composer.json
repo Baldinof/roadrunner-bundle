@@ -27,7 +27,7 @@
         "symfony/http-kernel": "^4.4 || ^5.0 || ^6.0",
         "symfony/yaml": "^4.4 || ^5.0 || ^6.0",
         "spiral/roadrunner": "^2.0.2",
-        "spiral/roadrunner-worker": ">=2.0.3",
+        "spiral/roadrunner-worker": "^2.1.4",
         "spiral/goridge": "^3.0",
         "symfony/psr-http-message-bridge": "^1.1 || ^2.0",
         "psr/log": "^1.1 || ^2.0 || ^3.0"
