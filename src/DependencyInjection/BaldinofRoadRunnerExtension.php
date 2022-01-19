@@ -19,6 +19,7 @@ use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Sentry\State\HubInterface;
+use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Spiral\RoadRunner\Metrics\Collector;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Component\Config\FileLocator;
@@ -29,7 +30,6 @@ use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
-use Spiral\RoadRunner\GRPC\ServiceInterface;
 
 class BaldinofRoadRunnerExtension extends Extension
 {
@@ -75,7 +75,7 @@ class BaldinofRoadRunnerExtension extends Extension
 
         if (interface_exists(ServiceInterface::class)) {
             $container->registerForAutoconfiguration(ServiceInterface::class)
-                ->addTag("baldinof.roadrunner.grpc_service");
+                ->addTag('baldinof.roadrunner.grpc_service');
         }
     }
 

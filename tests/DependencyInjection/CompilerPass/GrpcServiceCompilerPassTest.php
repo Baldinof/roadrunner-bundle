@@ -1,17 +1,18 @@
 <?php
 
-namespace Tests\Baldinof\RoadRunnerBundle\DepedencyInjection\CompilerPass;
+declare(strict_types=1);
 
-use PHPUnit\Framework\TestCase;
+namespace Tests\Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass;
+
 use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\GrpcServiceCompilerPass;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
+use PHPUnit\Framework\TestCase;
+use Spiral\RoadRunner\GRPC\ServiceInterface;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 
 class GrpcServiceCompilerPassTest extends TestCase
 {
-
     public function test_it()
     {
         $pass = new GrpcServiceCompilerPass();
@@ -45,7 +46,6 @@ class SimpleGrpcService implements SimpleGrpcServiceInterface
 {
 }
 
-
 interface FooGrpcServiceInterface extends ServiceInterface
 {
 }
@@ -53,7 +53,6 @@ interface FooGrpcServiceInterface extends ServiceInterface
 interface BarGrpcServiceInterface extends ServiceInterface
 {
 }
-
 
 interface NotAGrpcInterface
 {
