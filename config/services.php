@@ -26,8 +26,8 @@ use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
 use Spiral\RoadRunner\GRPC\Invoker as GrpcInvoker;
-use Spiral\RoadRunner\GRPC\Server;
-use Spiral\RoadRunner\GRPC\ServiceInterface;
+use Spiral\RoadRunner\GRPC\Server as GrpcServer;
+use Spiral\RoadRunner\GRPC\ServiceInterface as GrpcServiceInterface;
 use Spiral\RoadRunner\Http\HttpWorker;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Metrics\Metrics;
@@ -112,11 +112,11 @@ return static function (ContainerConfigurator $container) {
             '%env(default::RR_MODE)%',
         ]);
 
-    if (interface_exists(ServiceInterface::class)) {
+    if (interface_exists(GrpcServiceInterface::class)) {
         $services->set(GrpcServiceProvider::class);
         $services->set(GrpcInvoker::class);
 
-        $services->set(Server::class)
+        $services->set(GrpcServer::class)
             ->args([
                 service(GrpcInvoker::class),
             ]);
@@ -128,7 +128,7 @@ return static function (ContainerConfigurator $container) {
                 service(LoggerInterface::class),
                 service(RoadRunnerWorkerInterface::class),
                 service(GrpcServiceProvider::class),
-                service(Server::class),
+                service(GrpcServer::class),
             ]);
     }
 };
