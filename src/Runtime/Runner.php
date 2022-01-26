@@ -21,12 +21,6 @@ class Runner implements RunnerInterface
     {
         $this->kernel->boot();
 
-        if (!interface_exists(ServiceInterface::class)) {
-            error_log('Missing dependency, run `composer require spiral/roadrunner-grpc`');
-
-            return 1;
-        }
-
         /** @var WorkerInterface */
         $worker = $this->kernel->getContainer()->get(WorkerInterface::class);
 

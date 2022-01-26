@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\Runtime;
 
 use Baldinof\RoadRunnerBundle\Worker\GrpcWorkerInterface;
+use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Runtime\RunnerInterface;
 
@@ -19,6 +20,12 @@ class GrpcRunner implements RunnerInterface
 
     public function run(): int
     {
+        if (!interface_exists(ServiceInterface::class)) {
+            error_log('Missing dependency, run `composer require spiral/roadrunner-grpc`');
+
+            return 1;
+        }
+
         $this->kernel->boot();
 
         /** @var GrpcWorkerInterface */
