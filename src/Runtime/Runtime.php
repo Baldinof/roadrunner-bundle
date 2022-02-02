@@ -17,6 +17,10 @@ class Runtime extends SymfonyRuntime
             return new Runner($application);
         }
 
+        if ($application instanceof KernelInterface && getenv('RR_MODE') === Mode::MODE_GRPC) {
+            return new GrpcRunner($application);
+        }
+
         return parent::getRunner($application);
     }
 }

@@ -12,7 +12,11 @@
     "autoload": {
         "files": ["src/functions.php"],
         "psr-4": {
-            "Baldinof\\RoadRunnerBundle\\": "src",
+            "Baldinof\\RoadRunnerBundle\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
             "Tests\\Baldinof\\RoadRunnerBundle\\": "tests"
         }
     },
@@ -23,7 +27,7 @@
         "symfony/http-kernel": "^4.4 || ^5.0 || ^6.0",
         "symfony/yaml": "^4.4 || ^5.0 || ^6.0",
         "spiral/roadrunner": "^2.0.2",
-        "spiral/roadrunner-worker": ">=2.0.3",
+        "spiral/roadrunner-worker": "^2.1.4",
         "spiral/goridge": "^3.0",
         "symfony/psr-http-message-bridge": "^1.1 || ^2.0",
         "psr/log": "^1.1 || ^2.0 || ^3.0"
@@ -51,7 +55,8 @@
         "mikey179/vfsstream": "^1.6.8",
         "pestphp/pest-plugin-expectations": "^1.0",
         "symfony/runtime": "^5.3.0 || ^6.0",
-        "laminas/laminas-zendframework-bridge": "^1.4"
+        "laminas/laminas-zendframework-bridge": "^1.4",
+        "spiral/roadrunner-grpc": "^2.0"
     },
     "conflict": {
         "doctrine/doctrine-bundle": "<2.1.1",

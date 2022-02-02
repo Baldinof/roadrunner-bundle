@@ -148,11 +148,51 @@ class YouController
 }
 ```
 
+## gRPC
+
+gRPC support was added by the roadrunner-grpc plugin for RoadRunner 2 (https://github.com/spiral/roadrunner-grpc).
+
+To configure Roadrunner for gRPC, refer to the configuration reference at https://roadrunner.dev/docs/beep-beep-grpc. Basic configuration example:
+
+```yaml
+server:
+  command: "php public/index.php"
+  env:
+    APP_RUNTIME: Baldinof\RoadRunnerBundle\Runtime\Runtime
+
+grpc:
+  listen: "tcp://:9001"
+
+  proto:
+    - "calculator.proto"
+```
+
+Once you have generated your PHP files from proto files, you just have to implement the service interfaces. GRPC services are registered automatically. Example service:
+
+```php
+<?php
+
+namespace App\Grpc;
+
+use Spiral\RoadRunner\GRPC;
+use App\Grpc\Generated\Calculator\Sum;
+use App\Grpc\Generated\Calculator\Result;
+use App\Grpc\Generated\Calculator\CalculatorInterface;
+
+class Calculator implements CalculatorInterface
+{
+    public function Sum(GRPC\ContextInterface $ctx, Sum $in): Result
+    {
+        return (new Result())->setResult($in->getA() + $in->getB());
+    }
+}
+```
+
 ## Usage with Docker
 
 ```Dockerfile
 # Dockerfile
-FROM php:7.4-alpine
+FROM php:8.1-alpine
 
 RUN apk add --no-cache autoconf openssl-dev g++ make pcre-dev icu-dev zlib-dev libzip-dev && \
     docker-php-ext-install bcmath intl opcache zip sockets && \
@@ -164,7 +204,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
 
-RUN composer install --no-dev --no-scripts --no-plugins --prefer-dist --no-progress --no-interaction
+RUN composer install --no-dev --no-scripts --prefer-dist --no-progress --no-interaction
 
 RUN ./vendor/bin/rr get-binary --location /usr/local/bin
 

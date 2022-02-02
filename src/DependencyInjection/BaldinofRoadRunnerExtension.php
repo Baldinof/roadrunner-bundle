@@ -13,11 +13,13 @@ use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryListener;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\ConfigureVarDumperListener;
+use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Sentry\State\HubInterface;
+use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Spiral\RoadRunner\Metrics\Collector;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Component\Config\FileLocator;
@@ -48,11 +50,20 @@ class BaldinofRoadRunnerExtension extends Extension
             $this->loadDebug($container);
         }
 
-        $container->register(KernelRebootStrategyInterface::class, OnExceptionRebootStrategy::class)
-            ->addArgument($config['kernel_reboot']['allowed_exceptions'])
-            ->addArgument(new Reference(LoggerInterface::class))
-            ->setAutoconfigured(true)
-            ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL]);
+        if ($config['kernel_reboot']['strategy'] === Configuration::KERNEL_REBOOT_STRATEGY_ALWAYS) {
+            $container
+                ->register(KernelRebootStrategyInterface::class, AlwaysRebootStrategy::class)
+                ->setAutoconfigured(true);
+        } elseif ($config['kernel_reboot']['strategy'] === Configuration::KERNEL_REBOOT_STRATEGY_ON_EXCEPTION) {
+            $container
+                ->register(KernelRebootStrategyInterface::class, OnExceptionRebootStrategy::class)
+                ->addArgument($config['kernel_reboot']['allowed_exceptions'])
+                ->addArgument(new Reference(LoggerInterface::class))
+                ->setAutoconfigured(true)
+                ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL]);
+        } else {
+            $container->setAlias(KernelRebootStrategyInterface::class, $config['kernel_reboot']['strategy']);
+        }
 
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
 
@@ -60,6 +71,11 @@ class BaldinofRoadRunnerExtension extends Extension
 
         if ($config['metrics']['enabled']) {
             $this->configureMetrics($config, $container);
+        }
+
+        if (interface_exists(ServiceInterface::class)) {
+            $container->registerForAutoconfiguration(ServiceInterface::class)
+                ->addTag('baldinof.roadrunner.grpc_service');
         }
     }
 
