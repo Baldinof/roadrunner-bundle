@@ -157,7 +157,13 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
         $c = $k->getContainer()->get('test.service_container');
 
-        $this->assertTrue($c->has(NativeSessionMiddleware::class));
+        $hasSessionMiddleware = $c->has(NativeSessionMiddleware::class);
+
+        if (Kernel::VERSION_ID >= 50400) {
+            $this->assertFalse($hasSessionMiddleware);
+        } else {
+            $this->assertTrue($hasSessionMiddleware);
+        }
     }
 
     public function test_it_removes_session_middleware()
