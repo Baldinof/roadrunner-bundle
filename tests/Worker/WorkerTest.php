@@ -39,6 +39,7 @@ class WorkerTest extends TestCase
     private \Closure $responder;
 
     private EventDispatcher $eventDispatcher;
+    private Container $container;
 
     public function setUp(): void
     {
@@ -94,6 +95,8 @@ class WorkerTest extends TestCase
             }
         };
 
+        $this->container = $c;
+
         $c->set(Dependencies::class, new Dependencies(new MiddlewareStack($this->handler), $kernelBootStrategyClass, $this->eventDispatcher));
 
         $this->worker = new Worker(
@@ -105,14 +108,23 @@ class WorkerTest extends TestCase
 
     public function test_it_setup_trusted_proxies_and_hosts()
     {
-        $_ENV['TRUSTED_PROXIES'] = '10.0.0.1,10.0.0.2';
-        $_ENV['TRUSTED_HOSTS'] = 'example.org,example.com';
+        $_SERVER['REMOTE_ADDR'] = '10.0.0.2';
 
-        $this->worker->start();
+        $this->container->setParameter('kernel.trusted_proxies', '10.0.0.1,REMOTE_ADDR');
+        $this->container->setParameter('kernel.trusted_headers', Request::HEADER_FORWARDED);
+
+        $worker = new Worker(
+            $this->kernel->reveal(),
+            new NullLogger(),
+            $this->psrClient->reveal()
+        );
+
+        $this->requests->push(Request::create('http://example.org/'));
+
+        $worker->start();
 
         $this->assertSame(['10.0.0.1', '10.0.0.2'], Request::getTrustedProxies());
-        $this->assertSame(['{example.org}i', '{example.com}i'], Request::getTrustedHosts());
-        $this->assertSame(Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO, Request::getTrustedHeaderSet());
+        $this->assertSame(Request::HEADER_FORWARDED, Request::getTrustedHeaderSet());
     }
 
     /**
