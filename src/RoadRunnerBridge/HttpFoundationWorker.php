@@ -70,7 +70,7 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
     private function toSymfonyRequest(RoadRunnerRequest $rrRequest): SymfonyRequest
     {
-        $server = $this->configureServer($rrRequest);
+        $_SERVER = $this->configureServer($rrRequest);
 
         $files = $this->wrapUploads($rrRequest->uploads);
 
@@ -80,7 +80,7 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
             $rrRequest->attributes,
             $rrRequest->cookies,
             $files,
-            $server,
+            $_SERVER,
             $rrRequest->body
         );
 
@@ -96,8 +96,9 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
         $components = parse_url($request->uri);
 
         if ($components === false) {
-            throw new \Exception('TODO');
+            throw new \Exception('Failed to parse RoadRunner request URI');
         }
+
         if (isset($components['host'])) {
             $server['SERVER_NAME'] = $components['host'];
         }

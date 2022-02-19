@@ -255,6 +255,36 @@ class HttpFoundationWorkerTest extends TestCase
         ];
     }
 
+    public function test_it_overrides_SERVER_global()
+    {
+        $rrRequest = new RoadRunnerRequest();
+        $rrRequest->remoteAddr = '10.0.0.2';
+        $rrRequest->uri = 'https://localhost/foo/bar?hello=world';
+        $rrRequest->headers = [
+            'Hello-World-Header' => ['World'],
+        ];
+
+        $innerWorker = new MockWorker();
+        $innerWorker->nextRequest = $rrRequest;
+
+        $worker = new HttpFoundationWorker($innerWorker);
+        $symfonyRequest = $worker->waitRequest();
+
+        $this->assertSame('10.0.0.2', $symfonyRequest->server->get('REMOTE_ADDR'));
+        $this->assertSame('10.0.0.2', $_SERVER['REMOTE_ADDR']);
+
+        $this->assertSame('/foo/bar?hello=world', $symfonyRequest->server->get('REQUEST_URI'));
+        $this->assertSame('/foo/bar?hello=world', $_SERVER['REQUEST_URI']);
+
+        $this->assertSame('World', $_SERVER['HTTP_HELLO_WORLD_HEADER']);
+
+        $rrRequest = new RoadRunnerRequest();
+        $innerWorker->nextRequest = $rrRequest;
+        $newSymfonyRequest = $worker->waitRequest();
+
+        $this->assertArrayNotHasKey('HTTP_HELLO_WORLD_HEADER', $_SERVER);
+    }
+
     private function createUploadedFile(string $content, int $error, string $clientFileName, string $clientMediaType)
     {
         $tmpPath = $this->createFile($clientFileName, $content);
