@@ -96,18 +96,20 @@ class HttpFoundationWorkerTest extends TestCase
 
         yield 'non default port' => [
             fn (RoadRunnerRequest $r) => $r->uri = 'https://les-tilleuls.coop:8443/about/kevin',
-            fn (SymfonyRequest $r) => expect($r->getPort())->toBe(8443),
+            fn (SymfonyRequest $r) => $this->assertSame(8443, $r->getPort()),
         ];
 
         yield 'https detection' => [
             fn (RoadRunnerRequest $r) => $r->uri = 'https://les-tilleuls.coop:8443/about/kevin',
-            fn (SymfonyRequest $r) => expect($r->isSecure())->toBeTrue(),
+            fn (SymfonyRequest $r) => $this->assertTrue($r->isSecure()),
         ];
 
         yield 'POST body not parsed' => [
             fn (RoadRunnerRequest $r) => $r->body = 'the body',
-            fn (SymfonyRequest $r) => expect($r->getContent())->toBe('the body')
-                    ->and($r->request->all())->toBeEmpty(),
+            function (SymfonyRequest $r) {
+                $this->assertSame('the body', $r->getContent());
+                $this->assertEmpty($r->request->all());
+            },
         ];
 
         yield 'content-type & length added to $_SERVER' => [
@@ -115,32 +117,34 @@ class HttpFoundationWorkerTest extends TestCase
                 'content-type' => ['application/json'],
                 'content-length' => ['42'],
             ],
-            fn (SymfonyRequest $r) => expect($r->server->get('CONTENT_TYPE'))->toBe('application/json')
-                    ->and($r->server->get('CONTENT_LENGTH'))->toBe('42'),
+            function (SymfonyRequest $r) {
+                $this->assertSame('application/json', $r->server->get('CONTENT_TYPE'));
+                $this->assertSame('42', $r->server->get('CONTENT_LENGTH'));
+            },
         ];
 
         yield 'basic authorization' => [
             fn (RoadRunnerRequest $request) => $request->headers = [
                 'Authorization' => ['Basic '.base64_encode('user:pass')],
             ],
-            fn (SymfonyRequest $r) => expect($r->getUser())->toBe('user')
-                ->and($r->getPassword())->toBe('pass'),
+            function (SymfonyRequest $r) {
+                $this->assertSame('user', $r->getUser());
+                $this->assertSame('pass', $r->getPassword());
+            },
         ];
 
         yield 'upload error' => [
             fn (RoadRunnerRequest $request) => $request->uploads = [
                 'error' => $this->createUploadedFile('', \UPLOAD_ERR_CANT_WRITE, 'error.txt', 'plain/text'),
             ],
-            fn (SymfonyRequest $request) => expect($request->files->get('error')->getError())
-                ->toBe(\UPLOAD_ERR_CANT_WRITE),
+            fn (SymfonyRequest $request) => $this->assertSame(\UPLOAD_ERR_CANT_WRITE, $request->files->get('error')->getError()),
         ];
 
         yield 'valid upload' => [
             fn (RoadRunnerRequest $request) => $request->uploads = [
                 'doc1' => $this->createUploadedFile('Doc 1', \UPLOAD_ERR_OK, 'doc1.txt', 'text/plain'),
             ],
-            fn (SymfonyRequest $request) => expect($request->files->get('doc1')->isValid())
-                ->toBeTrue(),
+            fn (SymfonyRequest $request) => $this->assertTrue($request->files->get('doc1')->isValid()),
         ];
     }
 
@@ -160,7 +164,8 @@ class HttpFoundationWorkerTest extends TestCase
 
         $worker->respond($sfResponse);
 
-        expect($innerWorker->responded)->not->toBeNull();
+        $this->assertNotNull($innerWorker->responded);
+
         $expectations($innerWorker->responded);
     }
 
@@ -168,42 +173,39 @@ class HttpFoundationWorkerTest extends TestCase
     {
         yield 'simple response' => [
             new Response(),
-            fn (RoadRunnerResponse $roadRunnerResponse) => expect($roadRunnerResponse)->toMatchObject([
-                    'status' => 200,
-                    'content' => '',
-                ]),
+            function (RoadRunnerResponse $roadRunnerResponse) {
+                $this->assertSame(200, $roadRunnerResponse->status);
+                $this->assertSame('', $roadRunnerResponse->content);
+            },
         ];
 
         yield 'response with content' => [
             new Response('Hello world'),
-            fn (RoadRunnerResponse $response) => expect($response->content)->toBe('Hello world'),
+            fn (RoadRunnerResponse $response) => $this->assertSame('Hello world', $response->content),
         ];
 
         yield 'non 200 status code' => [
             new Response('', 404),
-            fn (RoadRunnerResponse $response) => expect($response->status)->toBe(404),
+            fn (RoadRunnerResponse $response) => $this->assertSame(404, $response->status),
         ];
 
         yield 'binary file response' => [
             fn () => new BinaryFileResponse($this->createFile('binary-response.txt', 'hello')),
-            fn (RoadRunnerResponse $response) => expect($response)
-                ->toMatchObject([
-                    'status' => 200,
-                    'content' => 'hello',
-                ]),
+            function (RoadRunnerResponse $roadRunnerResponse) {
+                $this->assertSame(200, $roadRunnerResponse->status);
+                $this->assertSame('hello', $roadRunnerResponse->content);
+            },
         ];
 
         yield 'binary file response with content disposition' => [
             fn () => (new BinaryFileResponse($this->createFile('binary-response.txt', 'hello')))
                 ->setContentDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, 'file.txt'),
-            fn (RoadRunnerResponse $response) => expect($response)
-                ->toMatchObject([
-                    'status' => 200,
-                    'content' => 'hello',
-                ])
-                ->and($response->headers)->toMatchArray([
-                    'content-disposition' => ['attachment; filename=file.txt'],
-                ]),
+            function (RoadRunnerResponse $response) {
+                $this->assertSame(200, $response->status);
+                $this->assertSame('hello', $response->content);
+                $this->assertArrayHasKey('content-disposition', $response->headers);
+                $this->assertEquals(['attachment; filename=file.txt'], $response->headers['content-disposition']);
+            },
         ];
 
         yield 'streamed response' => [
@@ -212,11 +214,10 @@ class HttpFoundationWorkerTest extends TestCase
                 echo ' ';
                 echo 'world';
             }),
-            fn (RoadRunnerResponse $response) => expect($response)
-                ->toMatchObject([
-                    'status' => 200,
-                    'content' => 'hello world',
-                ]),
+            function (RoadRunnerResponse $response) {
+                $this->assertSame(200, $response->status);
+                $this->assertSame('hello world', $response->content);
+            },
         ];
 
         yield 'cookies' => [
@@ -227,10 +228,11 @@ class HttpFoundationWorkerTest extends TestCase
 
                 return $response;
             },
-            fn (RoadRunnerResponse $response) => expect($response->headers)
-                ->toMatchArray([
-                    'set-cookie' => ['hello=world; path=/; httponly; samesite=lax'],
-                ]),
+            function (RoadRunnerResponse $response) {
+                $this->assertSame(200, $response->status);
+                $this->assertArrayHasKey('set-cookie', $response->headers);
+                $this->assertEquals(['hello=world; path=/; httponly; samesite=lax'], $response->headers['set-cookie']);
+            },
         ];
 
         yield 'non string headers' => [
@@ -243,10 +245,13 @@ class HttpFoundationWorkerTest extends TestCase
                     }
                 },
             ]),
-            fn (RoadRunnerResponse $r) => expect($r->headers)
-                ->toHaveKeys(['foo', 'bar'])
-                ->and($r->headers['foo'])->toBe(['1234'])
-                ->and($r->headers['bar'])->toBe(['bar']),
+            function (RoadRunnerResponse $response) {
+                $this->assertSame(200, $response->status);
+                $this->assertArrayHasKey('foo', $response->headers);
+                $this->assertArrayHasKey('bar', $response->headers);
+                $this->assertEquals(['bar'], $response->headers['bar']);
+                $this->assertEquals(['1234'], $response->headers['foo']);
+            },
         ];
     }
 
