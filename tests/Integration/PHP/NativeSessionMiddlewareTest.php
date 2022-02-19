@@ -15,6 +15,8 @@ use Tests\Baldinof\RoadRunnerBundle\Utils\CallableHttpKernel;
 
 class NativeSessionMiddlewareTest extends TestCase
 {
+    public const MOCKED_TIME = 1645290061;
+
     private NativeSessionMiddleware $middleware;
 
     public function setUp(): void
@@ -51,7 +53,7 @@ class NativeSessionMiddlewareTest extends TestCase
     public function test_it_uses_php_params()
     {
         $lifetime = 600;
-        $now = time();
+        $now = self::MOCKED_TIME;
         session_set_cookie_params([
             'lifetime' => $lifetime,
             'path' => '/hello',
@@ -158,4 +160,12 @@ class NativeSessionMiddlewareTest extends TestCase
 
         throw new \OutOfBoundsException("Cannot find cookie '$cookieName'");
     }
+}
+
+namespace Baldinof\RoadRunnerBundle\Integration\PHP;
+
+// Mock time function used by the middleware
+function time()
+{
+    return \Tests\Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddlewareTest::MOCKED_TIME;
 }
