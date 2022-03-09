@@ -11,6 +11,7 @@ use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\ErrorHandler\ErrorRenderer\HtmlErrorRenderer;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Kernel;
@@ -30,6 +31,11 @@ final class Worker implements WorkerInterface
     private array $trustedProxies = [];
     private int $trustedHeaders = 0;
     private bool $shouldRedeclareTrustedProxies = false;
+
+    /**
+     * @var \Closure(\Throwable): Response
+     */
+    private \Closure $renderError;
 
     public function __construct(
         KernelInterface $kernel,
@@ -70,6 +76,21 @@ final class Worker implements WorkerInterface
         }
 
         $this->shouldRedeclareTrustedProxies = \in_array('REMOTE_ADDR', $this->trustedProxies, true);
+
+        if (class_exists(HtmlErrorRenderer::class)) {
+            $htmlRenderer = new HtmlErrorRenderer($kernel->isDebug());
+            $this->renderError = static function (\Throwable $e) use ($htmlRenderer): Response {
+                $flatten = $htmlRenderer->render($e);
+
+                return new Response($flatten->getAsString(), $flatten->getStatusCode(), $flatten->getHeaders());
+            };
+        } else {
+            $this->renderError = static function (\Throwable $e) use ($kernel) {
+                $message = $kernel->isDebug() ? (string) $e : 'Internal error';
+
+                return new Response($message, 500, ['Content-Type' => 'text/plain']);
+            };
+        }
     }
 
     public function start(): void
@@ -95,7 +116,8 @@ final class Worker implements WorkerInterface
                 consumes($gen);
             } catch (\Throwable $e) {
                 if (!$sent) {
-                    $this->httpFoundationWorker->getWorker()->error($this->kernel->isDebug() ? (string) $e : 'Internal server error');
+                    $response = ($this->renderError)($e);
+                    $this->httpFoundationWorker->respond($response);
                 }
 
                 $this->logger->error('An error occured: '.$e->getMessage(), ['throwable' => $e]);
@@ -103,6 +125,7 @@ final class Worker implements WorkerInterface
                 $this->dependencies->getEventDispatcher()->dispatch(new WorkerExceptionEvent($e));
 
                 $this->httpFoundationWorker->getWorker()->stop();
+                break;
             } finally {
                 if ($this->kernel instanceof RebootableInterface && $this->dependencies->getKernelRebootStrategy()->shouldReboot()) {
                     $this->kernel->reboot(null);
