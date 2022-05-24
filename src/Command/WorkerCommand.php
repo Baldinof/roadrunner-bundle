@@ -34,7 +34,7 @@ final class WorkerCommand extends Command
             EOF);
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function execute(InputInterface $input, OutputInterface $output): int
     {
         if (getenv('RR_MODE') !== Mode::MODE_HTTP) {
             $io = new SymfonyStyle($input, $output);
