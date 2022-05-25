@@ -32,7 +32,7 @@ final class SentryListener implements EventSubscriberInterface
         $this->hub->captureException($event->getException());
     }
 
-    public static function getSubscribedEvents()
+    public static function getSubscribedEvents(): array
     {
         return [
             WorkerStopEvent::class => 'onWorkerStop',

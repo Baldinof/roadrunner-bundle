@@ -86,7 +86,7 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
         $this->forceRebootEventCaught = null;
     }
 
-    public static function getSubscribedEvents()
+    public static function getSubscribedEvents(): array
     {
         return [
             KernelEvents::EXCEPTION => 'onException',
