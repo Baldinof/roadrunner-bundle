@@ -34,6 +34,7 @@ use Spiral\RoadRunner\Metrics\Metrics;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
+use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 // Polyfill of the `service()` function introduced in Symfony 5.1 when using older version
@@ -105,12 +106,15 @@ return static function (ContainerConfigurator $container) {
 
     $services->set(NativeSessionMiddleware::class);
 
-    $services->set(StreamedResponseListener::class)
-        ->decorate('streamed_response_listener')
-        ->args([
-            service(StreamedResponseListener::class.'.inner'),
-            '%env(default::RR_MODE)%',
-        ]);
+    // @phpstan-ignore-next-line - PHPStan says this is always true, but the constant value depends on the currently installed Symfony version
+    if (Kernel::VERSION_ID < 60100) {
+        $services->set(StreamedResponseListener::class)
+            ->decorate('streamed_response_listener')
+            ->args([
+                service(StreamedResponseListener::class.'.inner'),
+                '%env(default::RR_MODE)%',
+            ]);
+    }
 
     if (interface_exists(GrpcServiceInterface::class)) {
         $services->set(GrpcServiceProvider::class);
