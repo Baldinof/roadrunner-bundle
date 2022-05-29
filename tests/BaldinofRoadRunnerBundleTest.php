@@ -121,10 +121,13 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $k = $this->getKernel([], []);
 
         $k->boot();
-
         $c = $k->getContainer()->get('test.service_container');
 
-        $this->assertInstanceOf(StreamedResponseListener::class, $c->get('streamed_response_listener'));
+        if (Kernel::VERSION_ID < 60100) {
+            $this->assertInstanceOf(StreamedResponseListener::class, $c->get('streamed_response_listener'));
+        } else {
+            $this->assertFalse($c->has('streamed_response_listener'));
+        }
     }
 
     public function test_it_loads_doctrine_orm_middleware()
