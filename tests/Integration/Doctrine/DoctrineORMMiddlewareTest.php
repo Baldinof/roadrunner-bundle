@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\Integration\Doctrine;
 
-use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Doctrine\DBAL\Connection;
@@ -21,6 +20,8 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Baldinof\RoadRunnerBundle\Utils\CallableHttpKernel;
+
+use function Baldinof\RoadRunnerBundle\consumes;
 
 class DoctrineORMMiddlewareTest extends TestCase
 {

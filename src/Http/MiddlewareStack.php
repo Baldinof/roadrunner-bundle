@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Http;
 
-use function Baldinof\RoadRunnerBundle\consumes;
 use SplStack;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+
+use function Baldinof\RoadRunnerBundle\consumes;
 
 /**
  * @internal

@@ -8,6 +8,7 @@ use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
 use Psr\Log\LoggerInterface;
 use Spiral\RoadRunner\GRPC\Server;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
+
 use function sprintf;
 
 /**

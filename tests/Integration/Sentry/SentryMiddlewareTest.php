@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\Integration\Sentry;
 
-use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Closure;
 use GuzzleHttp\Promise\Promise;
@@ -23,6 +22,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Tests\Baldinof\RoadRunnerBundle\Utils\CallableHttpKernel;
+
+use function Baldinof\RoadRunnerBundle\consumes;
 
 final class SentryMiddlewareTest extends TestCase
 {

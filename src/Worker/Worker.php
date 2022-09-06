@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Worker;
 
-use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
@@ -17,6 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
+
+use function Baldinof\RoadRunnerBundle\consumes;
 
 /**
  * @internal

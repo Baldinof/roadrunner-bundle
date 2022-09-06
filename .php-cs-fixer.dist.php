@@ -11,6 +11,7 @@ return (new PhpCsFixer\Config)
         '@Symfony' => true,
         'array_syntax' => ['syntax' => 'short'],
         'ordered_class_elements' => true,
+        'ordered_imports' => ['imports_order' => ['class', 'function', 'const']],
         'yoda_style' => false,
         'native_function_invocation' => [
             'include' => ['@compiler_optimized']

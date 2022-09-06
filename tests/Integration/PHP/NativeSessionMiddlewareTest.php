@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\Integration\PHP;
 
-use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Exception\HeadersAlreadySentException;
 use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use PHPUnit\Framework\TestCase;
@@ -12,6 +11,8 @@ use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Baldinof\RoadRunnerBundle\Utils\CallableHttpKernel;
+
+use function Baldinof\RoadRunnerBundle\consumes;
 
 class NativeSessionMiddlewareTest extends TestCase
 {
@@ -26,6 +27,7 @@ class NativeSessionMiddlewareTest extends TestCase
 
     /**
      * @runInSeparateProcess
+     *
      * @preserveGlobalState disabled
      */
     public function test_sessions_works()
@@ -48,6 +50,7 @@ class NativeSessionMiddlewareTest extends TestCase
 
     /**
      * @runInSeparateProcess
+     *
      * @preserveGlobalState disabled
      */
     public function test_it_uses_php_params()
@@ -76,6 +79,7 @@ class NativeSessionMiddlewareTest extends TestCase
 
     /**
      * @runInSeparateProcess
+     *
      * @preserveGlobalState disabled
      */
     public function test_it_closes_session_if_the_handler_throws()

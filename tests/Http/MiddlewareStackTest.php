@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\Http;
 
-use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
@@ -14,6 +13,8 @@ use Prophecy\PhpUnit\ProphecyTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+
+use function Baldinof\RoadRunnerBundle\consumes;
 
 class MiddlewareStackTest extends TestCase
 {
