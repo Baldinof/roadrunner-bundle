@@ -13,7 +13,6 @@ use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\Dependencies;
 use Baldinof\RoadRunnerBundle\Worker\Worker;
-use Iterator;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
@@ -80,7 +79,7 @@ class WorkerTest extends TestCase
                 $this->handler = $handler;
             }
 
-            public function handle(Request $request): Iterator
+            public function handle(Request $request): \Iterator
             {
                 yield from ($this->handler)($request);
             }

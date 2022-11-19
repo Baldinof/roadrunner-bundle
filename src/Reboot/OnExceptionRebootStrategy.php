@@ -10,11 +10,10 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
-use Throwable;
 
 class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventSubscriberInterface
 {
-    private ?Throwable $exceptionCaught = null;
+    private ?\Throwable $exceptionCaught = null;
     private ?ForceKernelRebootEvent $forceRebootEventCaught = null;
     private LoggerInterface $logger;
 

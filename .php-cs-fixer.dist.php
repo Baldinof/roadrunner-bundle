@@ -17,6 +17,9 @@ return (new PhpCsFixer\Config)
             'include' => ['@compiler_optimized']
         ],
         'php_unit_method_casing' => false,
-        'declare_strict_types' => true
+        'declare_strict_types' => true,
+        'global_namespace_import' => [
+            'import_classes' => false,
+        ],
     ])
 ;

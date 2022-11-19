@@ -5,18 +5,17 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\Event;
 
 use Symfony\Contracts\EventDispatcher\Event;
-use Throwable;
 
 final class WorkerExceptionEvent extends Event
 {
-    private Throwable $exception;
+    private \Throwable $exception;
 
-    public function __construct(Throwable $exception)
+    public function __construct(\Throwable $exception)
     {
         $this->exception = $exception;
     }
 
-    public function getException(): Throwable
+    public function getException(): \Throwable
     {
         return $this->exception;
     }

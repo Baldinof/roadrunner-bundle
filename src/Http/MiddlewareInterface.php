@@ -27,7 +27,7 @@ interface MiddlewareInterface
      *   // code here will be executed after sending the response
      * ```
      *
-     * @return Iterator<Response> Only the first item will be sent to the client
+     * @return \Iterator<Response> Only the first item will be sent to the client
      */
-    public function process(Request $request, HttpKernelInterface $next): Iterator;
+    public function process(Request $request, HttpKernelInterface $next): \Iterator;
 }

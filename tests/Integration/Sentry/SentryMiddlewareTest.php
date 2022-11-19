@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Baldinof\RoadRunnerBundle\Integration\Sentry;
 
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
-use Closure;
 use GuzzleHttp\Promise\Promise;
 use GuzzleHttp\Promise\PromiseInterface;
 use PHPUnit\Framework\TestCase;
@@ -17,7 +16,6 @@ use Sentry\SentrySdk;
 use Sentry\State\Hub;
 use Sentry\Transport\TransportFactoryInterface;
 use Sentry\Transport\TransportInterface;
-use SplStack;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -27,10 +25,10 @@ use function Baldinof\RoadRunnerBundle\consumes;
 
 final class SentryMiddlewareTest extends TestCase
 {
-    public static SplStack $collectedEvents;
+    public static \SplStack $collectedEvents;
 
-    /** @var Closure(): Response */
-    public Closure $onRequest;
+    /** @var \Closure(): Response */
+    public \Closure $onRequest;
 
     private HttpKernelInterface $handler;
 

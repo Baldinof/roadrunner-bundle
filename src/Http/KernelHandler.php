@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Http;
 
-use Closure;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\Kernel;
@@ -16,7 +15,7 @@ use Symfony\Component\HttpKernel\TerminableInterface;
 final class KernelHandler implements RequestHandlerInterface
 {
     private HttpKernelInterface $kernel;
-    private Closure $startTimeReset;
+    private \Closure $startTimeReset;
 
     public function __construct(HttpKernelInterface $kernel)
     {

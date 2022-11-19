@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Http;
 
-use SplStack;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -19,14 +18,14 @@ final class MiddlewareStack
     private RequestHandlerInterface $kernelHandler;
 
     /**
-     * @var SplStack<MiddlewareInterface>
+     * @var \SplStack<MiddlewareInterface>
      */
-    private SplStack $middlewares;
+    private \SplStack $middlewares;
 
     public function __construct(RequestHandlerInterface $kernelHandler)
     {
         $this->kernelHandler = $kernelHandler;
-        $this->middlewares = new SplStack();
+        $this->middlewares = new \SplStack();
     }
 
     public function handle(Request $request): \Iterator
@@ -53,19 +52,19 @@ final class Runner implements HttpKernelInterface
 {
     private RequestHandlerInterface $handler;
 
-    /** @var SplStack<MiddlewareInterface> */
-    private SplStack $middlewares;
-    /** @var SplStack<\Iterator<Response>> */
-    private SplStack $iterators;
+    /** @var \SplStack<MiddlewareInterface> */
+    private \SplStack $middlewares;
+    /** @var \SplStack<\Iterator<Response>> */
+    private \SplStack $iterators;
 
     /**
-     * @param SplStack<MiddlewareInterface> $middlewares A stack of MiddlewareInterface or IteratorMiddlewareInterface
+     * @param \SplStack<MiddlewareInterface> $middlewares A stack of MiddlewareInterface or IteratorMiddlewareInterface
      */
-    public function __construct(SplStack $middlewares, RequestHandlerInterface $handler)
+    public function __construct(\SplStack $middlewares, RequestHandlerInterface $handler)
     {
         $this->middlewares = $middlewares;
         $this->handler = $handler;
-        $this->iterators = new SplStack();
+        $this->iterators = new \SplStack();
     }
 
     public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true): Response
