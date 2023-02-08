@@ -91,7 +91,7 @@ baldinof_road_runner:
     kernel_reboot:
       strategy: max_jobs
       max_jobs: 1000 # maximum number of request
-      dispersion: 0.2 # dispersion 20% used to prevent simultaneous reboot of all active workers (kernel will rebooted between 800 and 1000 requests) 
+      max_jobs_dispersion: 0.2 # dispersion 20% used to prevent simultaneous reboot of all active workers (kernel will rebooted between 800 and 1000 requests) 
 ```
 
 

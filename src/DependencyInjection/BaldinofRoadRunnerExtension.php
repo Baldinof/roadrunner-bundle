@@ -67,7 +67,7 @@ class BaldinofRoadRunnerExtension extends Extension
             $container
                 ->register(KernelRebootStrategyInterface::class, MaxJobsRebootStrategy::class)
                 ->addArgument($config['kernel_reboot']['max_jobs'])
-                ->addArgument($config['kernel_reboot']['dispersion'])
+                ->addArgument($config['kernel_reboot']['max_jobs_dispersion'])
                 ->setAutoconfigured(true);
         } else {
             $container->setAlias(KernelRebootStrategyInterface::class, $config['kernel_reboot']['strategy']);

@@ -47,7 +47,7 @@ class Configuration implements ConfigurationInterface
                             ->info('Only used when `reboot_kernel.strategy: max_jobs`. Maximum numbers of jobs before kernel reboot')
                             ->defaultValue(1000)
                         ->end()
-                        ->scalarNode('dispersion')
+                        ->scalarNode('max_jobs_dispersion')
                             ->info('Only used when `reboot_kernel.strategy: max_jobs`. Dispersion persent')
                             ->defaultValue(0.2)
                         ->end()
