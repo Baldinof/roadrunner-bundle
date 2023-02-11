@@ -15,6 +15,7 @@ use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\ConfigureVarDumperListener;
 use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
+use Baldinof\RoadRunnerBundle\Reboot\MaxJobsRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
@@ -62,6 +63,12 @@ class BaldinofRoadRunnerExtension extends Extension
                 ->addArgument(new Reference(LoggerInterface::class))
                 ->setAutoconfigured(true)
                 ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL]);
+        } elseif ($config['kernel_reboot']['strategy'] === Configuration::KERNEL_REBOOT_STRATEGY_MAX_JOBS) {
+            $container
+                ->register(KernelRebootStrategyInterface::class, MaxJobsRebootStrategy::class)
+                ->addArgument($config['kernel_reboot']['max_jobs'])
+                ->addArgument($config['kernel_reboot']['max_jobs_dispersion'])
+                ->setAutoconfigured(true);
         } else {
             $container->setAlias(KernelRebootStrategyInterface::class, $config['kernel_reboot']['strategy']);
         }
