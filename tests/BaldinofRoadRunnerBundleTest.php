@@ -11,6 +11,11 @@ use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
+use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
+use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
+use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
+use Baldinof\RoadRunnerBundle\Reboot\MaxJobsRebootStrategy;
+use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use PHPUnit\Framework\TestCase;
 use Sentry\SentryBundle\SentryBundle;
@@ -182,6 +187,50 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $c = $k->getContainer()->get('test.service_container');
 
         $this->assertFalse($c->has(NativeSessionMiddleware::class));
+    }
+
+    public function test_it_supports_single_strategy()
+    {
+        $k = $this->getKernel([
+            'baldinof_road_runner' => [
+                'kernel_reboot' => [
+                    'strategy' => 'always',
+                ],
+            ],
+        ]);
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertInstanceOf(AlwaysRebootStrategy::class, $c->get(KernelRebootStrategyInterface::class));
+    }
+
+    public function test_it_supports_multiple_strategies()
+    {
+        $k = $this->getKernel([
+            'baldinof_road_runner' => [
+                'kernel_reboot' => [
+                    'strategy' => ['on_exception', 'max_jobs'],
+                ],
+            ],
+        ]);
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $strategy = $c->get(KernelRebootStrategyInterface::class);
+
+        $this->assertInstanceOf(ChainRebootStrategy::class, $strategy);
+
+        $strategies = (function () {
+            return $this->strategies;
+        })->bindTo($strategy, ChainRebootStrategy::class)();
+
+        $this->assertCount(2, $strategies);
+        $this->assertInstanceOf(OnExceptionRebootStrategy::class, $strategies[0]);
+        $this->assertInstanceOf(MaxJobsRebootStrategy::class, $strategies[1]);
     }
 
     /**

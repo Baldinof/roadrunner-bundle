@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 
+use AllowDynamicProperties;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
@@ -27,6 +28,7 @@ use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 
+#[\AllowDynamicProperties]
 class WorkerTest extends TestCase
 {
     use ProphecyTrait;
