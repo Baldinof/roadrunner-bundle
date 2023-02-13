@@ -12,13 +12,14 @@ class MaxJobsRebootStrategy implements KernelRebootStrategyInterface
     public function __construct(int $maxJobs, float $dispersion)
     {
         $minJobs = $maxJobs - (int) round($maxJobs * $dispersion);
-        $this->maxJobs = \random_int($minJobs, $maxJobs);
+        $this->maxJobs = random_int($minJobs, $maxJobs);
     }
 
     public function shouldReboot(): bool
     {
         if ($this->jobsCount < $this->maxJobs) {
-            $this->jobsCount++;
+            ++$this->jobsCount;
+
             return false;
         }
 

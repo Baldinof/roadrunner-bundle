@@ -28,7 +28,7 @@ class Configuration implements ConfigurationInterface
                 ->arrayNode('kernel_reboot')
                     ->addDefaultsIfNotSet()
                     ->children()
-                        ->scalarNode('strategy')
+                        ->arrayNode('strategy')
                             ->info(sprintf(
                                 'Possible values are "%s", "%s", "%s" or any service that implements "%s"/',
                                 self::KERNEL_REBOOT_STRATEGY_ALWAYS,
@@ -36,7 +36,9 @@ class Configuration implements ConfigurationInterface
                                 self::KERNEL_REBOOT_STRATEGY_MAX_JOBS,
                                 KernelRebootStrategyInterface::class
                             ))
-                            ->defaultValue(self::KERNEL_REBOOT_STRATEGY_ON_EXCEPTION)
+                            ->defaultValue([self::KERNEL_REBOOT_STRATEGY_ON_EXCEPTION])
+                            ->beforeNormalization()->castToArray()->end()
+                            ->scalarPrototype()->end()
                         ->end()
                         ->arrayNode('allowed_exceptions')
                             ->info('Only used when `reboot_kernel.strategy: on_exception`. Exceptions defined here will not cause kernel reboots.')
