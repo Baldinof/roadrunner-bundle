@@ -11,8 +11,8 @@ use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
-use Baldinof\RoadRunnerBundle\Worker\Dependencies;
-use Baldinof\RoadRunnerBundle\Worker\Worker;
+use Baldinof\RoadRunnerBundle\Worker\HttpDependencies;
+use Baldinof\RoadRunnerBundle\Worker\HttpWorker;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
@@ -33,7 +33,7 @@ class WorkerTest extends TestCase
 
     public static $rebootStrategyReturns = false;
 
-    private Worker $worker;
+    private HttpWorker $worker;
     private \SplStack $requests;
     private \Closure $responder;
 
@@ -99,9 +99,9 @@ class WorkerTest extends TestCase
 
         $this->container = $c;
 
-        $c->set(Dependencies::class, new Dependencies(new MiddlewareStack($this->handler), $kernelBootStrategyClass, $this->eventDispatcher));
+        $c->set(HttpDependencies::class, new HttpDependencies(new MiddlewareStack($this->handler), $kernelBootStrategyClass, $this->eventDispatcher));
 
-        $this->worker = new Worker(
+        $this->worker = new HttpWorker(
             $this->kernel->reveal(),
             new NullLogger(),
             $this->httpFoundationWorker->reveal()
@@ -115,7 +115,7 @@ class WorkerTest extends TestCase
         $this->container->setParameter('kernel.trusted_proxies', '10.0.0.1,REMOTE_ADDR');
         $this->container->setParameter('kernel.trusted_headers', Request::HEADER_FORWARDED);
 
-        $worker = new Worker(
+        $worker = new HttpWorker(
             $this->kernel->reveal(),
             new NullLogger(),
             $this->httpFoundationWorker->reveal()
