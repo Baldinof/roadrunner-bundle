@@ -22,11 +22,11 @@ use function Baldinof\RoadRunnerBundle\consumes;
 /**
  * @internal
  */
-final class Worker implements WorkerInterface
+final class HttpWorker implements WorkerInterface
 {
     private KernelInterface $kernel;
     private LoggerInterface $logger;
-    private Dependencies $dependencies;
+    private HttpDependencies $dependencies;
     private HttpFoundationWorkerInterface $httpFoundationWorker;
 
     private array $trustedProxies = [];
@@ -49,8 +49,8 @@ final class Worker implements WorkerInterface
 
         $container = $kernel->getContainer();
 
-        /** @var Dependencies */
-        $dependencies = $container->get(Dependencies::class);
+        /** @var HttpDependencies */
+        $dependencies = $container->get(HttpDependencies::class);
         $this->dependencies = $dependencies;
 
         if ($container->hasParameter('kernel.trusted_proxies') && $container->hasParameter('kernel.trusted_headers')) {
@@ -130,8 +130,8 @@ final class Worker implements WorkerInterface
             } finally {
                 if ($this->kernel instanceof RebootableInterface && $this->dependencies->getKernelRebootStrategy()->shouldReboot()) {
                     $this->kernel->reboot(null);
-                    /** @var Dependencies */
-                    $deps = $this->kernel->getContainer()->get(Dependencies::class);
+                    /** @var HttpDependencies */
+                    $deps = $this->kernel->getContainer()->get(HttpDependencies::class);
 
                     $this->dependencies = $deps;
                     $this->dependencies->getEventDispatcher()->dispatch(new WorkerKernelRebootedEvent());

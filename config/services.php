@@ -16,11 +16,12 @@ use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
-use Baldinof\RoadRunnerBundle\Worker\Dependencies;
-use Baldinof\RoadRunnerBundle\Worker\GrpcWorker;
+use Baldinof\RoadRunnerBundle\Worker\GrpcWorker as InternalGrpcWorker;
 use Baldinof\RoadRunnerBundle\Worker\GrpcWorkerInterface;
-use Baldinof\RoadRunnerBundle\Worker\Worker;
-use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
+use Baldinof\RoadRunnerBundle\Worker\HttpDependencies;
+use Baldinof\RoadRunnerBundle\Worker\HttpWorker as InternalHttpWorker;
+use Baldinof\RoadRunnerBundle\Worker\WorkerRegistry;
+use Baldinof\RoadRunnerBundle\Worker\WorkerRegistryInterface;
 use Psr\Log\LoggerInterface;
 use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
@@ -73,7 +74,10 @@ return static function (ContainerConfigurator $container) {
     $services->set(HttpFoundationWorkerInterface::class, HttpFoundationWorker::class)
         ->args([service(HttpWorkerInterface::class)]);
 
-    $services->set(WorkerInterface::class, Worker::class)
+    $services->set(WorkerRegistryInterface::class, WorkerRegistry::class)
+        ->public();
+
+    $services->set(InternalHttpWorker::class)
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
         ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
         ->args([
@@ -82,7 +86,14 @@ return static function (ContainerConfigurator $container) {
             service(HttpFoundationWorkerInterface::class),
         ]);
 
-    $services->set(Dependencies::class)
+    $services
+        ->get(WorkerRegistryInterface::class)
+        ->call('registerWorker', [
+            Environment\Mode::MODE_HTTP,
+            service(InternalHttpWorker::class),
+        ]);
+
+    $services->set(HttpDependencies::class)
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
         ->args([
             service(MiddlewareStack::class),
@@ -91,7 +102,7 @@ return static function (ContainerConfigurator $container) {
         ]);
 
     $services->set(WorkerCommand::class)
-        ->args([service(WorkerInterface::class)])
+        ->args([service(InternalHttpWorker::class)])
         ->autoconfigure();
 
     $services->set(KernelHandler::class)
@@ -125,7 +136,7 @@ return static function (ContainerConfigurator $container) {
                 service(GrpcInvoker::class),
             ]);
 
-        $services->set(GrpcWorkerInterface::class, GrpcWorker::class)
+        $services->set(GrpcWorkerInterface::class, InternalGrpcWorker::class)
             ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
             ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
             ->args([
@@ -133,6 +144,13 @@ return static function (ContainerConfigurator $container) {
                 service(RoadRunnerWorkerInterface::class),
                 service(GrpcServiceProvider::class),
                 service(GrpcServer::class),
+            ]);
+
+        $services
+            ->get(WorkerRegistryInterface::class)
+            ->call('registerWorker', [
+                Environment\Mode::MODE_GRPC,
+                service(GrpcWorkerInterface::class),
             ]);
     }
 };
