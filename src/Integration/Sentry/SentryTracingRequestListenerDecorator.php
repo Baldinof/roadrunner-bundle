@@ -14,14 +14,14 @@ final class SentryTracingRequestListenerDecorator
 {
     private TracingRequestListener $innerListener;
     
-    private HubInterface $hub
+    private HubInterface $hub;
     
     public function __construct(TracingRequestListener $innerListener, HubInterface $hub)
     {
         $this->innerListener = $innerListener;
         $this->hub = $hub;
     }
-    
+
     public function handleKernelRequestEvent(RequestEvent $event): void
     {
         $this->innerListener->handleKernelRequestEvent($event);
