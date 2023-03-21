@@ -124,7 +124,7 @@ return static function (ContainerConfigurator $container) {
     $services->set(SentryTracingRequestListenerDecorator::class)
         ->decorate(TracingRequestListener::class, null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
         ->args([
-            service('.inner'),
+            service(TracingRequestListener::class.'.inner'),
             service(HubInterface::class),
         ]);
     // @phpstan-ignore-next-line - PHPStan says this is always true, but the constant value depends on the currently installed Symfony version
