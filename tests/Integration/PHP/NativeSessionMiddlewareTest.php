@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\Integration\PHP;
 
-use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Exception\HeadersAlreadySentException;
 use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use PHPUnit\Framework\TestCase;
@@ -13,8 +12,12 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Baldinof\RoadRunnerBundle\Utils\CallableHttpKernel;
 
+use function Baldinof\RoadRunnerBundle\consumes;
+
 class NativeSessionMiddlewareTest extends TestCase
 {
+    public const MOCKED_TIME = 1645290061;
+
     private NativeSessionMiddleware $middleware;
 
     public function setUp(): void
@@ -24,6 +27,7 @@ class NativeSessionMiddlewareTest extends TestCase
 
     /**
      * @runInSeparateProcess
+     *
      * @preserveGlobalState disabled
      */
     public function test_sessions_works()
@@ -46,12 +50,13 @@ class NativeSessionMiddlewareTest extends TestCase
 
     /**
      * @runInSeparateProcess
+     *
      * @preserveGlobalState disabled
      */
     public function test_it_uses_php_params()
     {
         $lifetime = 600;
-        $now = time();
+        $now = self::MOCKED_TIME;
         session_set_cookie_params([
             'lifetime' => $lifetime,
             'path' => '/hello',
@@ -74,6 +79,7 @@ class NativeSessionMiddlewareTest extends TestCase
 
     /**
      * @runInSeparateProcess
+     *
      * @preserveGlobalState disabled
      */
     public function test_it_closes_session_if_the_handler_throws()
@@ -158,4 +164,12 @@ class NativeSessionMiddlewareTest extends TestCase
 
         throw new \OutOfBoundsException("Cannot find cookie '$cookieName'");
     }
+}
+
+namespace Baldinof\RoadRunnerBundle\Integration\PHP;
+
+// Mock time function used by the middleware
+function time()
+{
+    return \Tests\Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddlewareTest::MOCKED_TIME;
 }

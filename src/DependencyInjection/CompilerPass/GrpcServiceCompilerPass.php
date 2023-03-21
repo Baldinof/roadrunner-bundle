@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass;
 
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
-use function class_implements;
 use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
+
+use function class_implements;
 
 class GrpcServiceCompilerPass implements CompilerPassInterface
 {

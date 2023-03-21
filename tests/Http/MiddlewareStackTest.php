@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\Http;
 
-use function Baldinof\RoadRunnerBundle\consumes;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
-use Iterator;
 use PHPUnit\Framework\TestCase;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+
+use function Baldinof\RoadRunnerBundle\consumes;
 
 class MiddlewareStackTest extends TestCase
 {
@@ -29,7 +29,7 @@ class MiddlewareStackTest extends TestCase
     public function test_it_calls_middlewares_in_expected_order()
     {
         $stack = new MiddlewareStack(new class() implements RequestHandlerInterface {
-            public function handle(Request $request): Iterator
+            public function handle(Request $request): \Iterator
             {
                 MiddlewareStackTest::$out .= "Main handler\n";
 
@@ -83,7 +83,7 @@ class MiddlewareStackTest extends TestCase
 
         $stack = new MiddlewareStack($handler);
         $stack->pipe(new class() implements MiddlewareInterface {
-            public function process(Request $request, HttpKernelInterface $handler): Iterator
+            public function process(Request $request, HttpKernelInterface $handler): \Iterator
             {
                 $response = $handler->handle($request);
                 $response->headers->set('X-Test', 'foo');
@@ -102,7 +102,7 @@ class MiddlewareStackTest extends TestCase
         $m = new class() implements MiddlewareInterface {
             public $name;
 
-            public function process(Request $request, HttpKernelInterface $next): Iterator
+            public function process(Request $request, HttpKernelInterface $next): \Iterator
             {
                 MiddlewareStackTest::$out .= "Before {$this->name}\n";
                 $res = $next->handle($request);
@@ -129,7 +129,7 @@ class MiddlewareStackTest extends TestCase
                 $this->response = $response;
             }
 
-            public function handle(Request $request): Iterator
+            public function handle(Request $request): \Iterator
             {
                 yield $this->response;
             }

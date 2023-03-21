@@ -26,7 +26,7 @@ interface RequestHandlerInterface
      *   // code here will be executed after sending the response
      * ```
      *
-     * @return Iterator<Response> Only the first item will be sent to the client
+     * @return \Iterator<Response> Only the first item will be sent to the client
      */
-    public function handle(Request $request): Iterator;
+    public function handle(Request $request): \Iterator;
 }

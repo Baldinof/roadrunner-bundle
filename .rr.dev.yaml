@@ -1,10 +1,12 @@
+version: "2.7"
+
 server:
-  command: "php bin/console baldinof:roadrunner:worker"
-  # If you are using symfony 5.3+ and the new Runtime component:
-  # remove the previous `command` line above and uncomment the line below.
-  # command: "php public/index.php"
+  command: "php public/index.php"
+  # If you are not using symfony 5.3+ and the new Runtime component:
+  # remove the previous `command` line above and uncomment the line below to use the deprecated command.
+  # command: "php bin/console baldinof:roadrunner:worker"
   env:
-    APP_RUNTIME: Baldinof\RoadRunnerBundle\Runtime\Runtime
+    - APP_RUNTIME: Baldinof\RoadRunnerBundle\Runtime\Runtime
 
 http:
   address: 0.0.0.0:8080

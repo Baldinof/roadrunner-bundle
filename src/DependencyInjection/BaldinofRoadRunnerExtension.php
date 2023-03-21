@@ -14,7 +14,9 @@ use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryListener;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\ConfigureVarDumperListener;
 use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
+use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
+use Baldinof\RoadRunnerBundle\Reboot\MaxJobsRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
@@ -29,6 +31,7 @@ use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class BaldinofRoadRunnerExtension extends Extension
@@ -50,19 +53,42 @@ class BaldinofRoadRunnerExtension extends Extension
             $this->loadDebug($container);
         }
 
-        if ($config['kernel_reboot']['strategy'] === Configuration::KERNEL_REBOOT_STRATEGY_ALWAYS) {
-            $container
-                ->register(KernelRebootStrategyInterface::class, AlwaysRebootStrategy::class)
-                ->setAutoconfigured(true);
-        } elseif ($config['kernel_reboot']['strategy'] === Configuration::KERNEL_REBOOT_STRATEGY_ON_EXCEPTION) {
-            $container
-                ->register(KernelRebootStrategyInterface::class, OnExceptionRebootStrategy::class)
-                ->addArgument($config['kernel_reboot']['allowed_exceptions'])
-                ->addArgument(new Reference(LoggerInterface::class))
-                ->setAutoconfigured(true)
-                ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL]);
+        $strategies = $config['kernel_reboot']['strategy'];
+        $strategyServices = [];
+
+        foreach ($strategies as $strategy) {
+            if ($strategy === Configuration::KERNEL_REBOOT_STRATEGY_ALWAYS) {
+                $strategyService = (new Definition(AlwaysRebootStrategy::class))
+                    ->setAutoconfigured(true);
+            } elseif ($strategy === Configuration::KERNEL_REBOOT_STRATEGY_ON_EXCEPTION) {
+                $strategyService = (new Definition(OnExceptionRebootStrategy::class))
+                    ->addArgument($config['kernel_reboot']['allowed_exceptions'])
+                    ->addArgument(new Reference(LoggerInterface::class))
+                    ->setAutoconfigured(true)
+                    ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL]);
+            } elseif ($strategy === Configuration::KERNEL_REBOOT_STRATEGY_MAX_JOBS) {
+                $strategyService = (new Definition(MaxJobsRebootStrategy::class))
+                    ->addArgument($config['kernel_reboot']['max_jobs'])
+                    ->addArgument($config['kernel_reboot']['max_jobs_dispersion'])
+                    ->setAutoconfigured(true);
+            } else {
+                $strategyService = new Reference($strategy);
+            }
+
+            $strategyServices[] = $strategyService;
+        }
+
+        if (\count($strategyServices) > 1) {
+            $container->register(KernelRebootStrategyInterface::class, ChainRebootStrategy::class)
+                ->setArguments([$strategyServices]);
         } else {
-            $container->setAlias(KernelRebootStrategyInterface::class, $config['kernel_reboot']['strategy']);
+            $strategy = $strategyServices[0];
+
+            if ($strategy instanceof Reference) {
+                $container->setAlias(KernelRebootStrategyInterface::class, (string) $strategy);
+            } else {
+                $container->setDefinition(KernelRebootStrategyInterface::class, $strategy);
+            }
         }
 
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
@@ -140,7 +166,10 @@ class BaldinofRoadRunnerExtension extends Extension
             $beforeMiddlewares[] = DoctrineORMMiddleware::class;
         }
 
-        $beforeMiddlewares[] = NativeSessionMiddleware::class;
+        // @phpstan-ignore-next-line - PHPStan says this is always true, but the constant value depends on the currently installed Symfony version
+        if (Kernel::VERSION_ID < 50400) {
+            $beforeMiddlewares[] = NativeSessionMiddleware::class;
+        }
 
         $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
     }

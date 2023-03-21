@@ -10,11 +10,10 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
-use Throwable;
 
 class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventSubscriberInterface
 {
-    private ?Throwable $exceptionCaught = null;
+    private ?\Throwable $exceptionCaught = null;
     private ?ForceKernelRebootEvent $forceRebootEventCaught = null;
     private LoggerInterface $logger;
 
@@ -86,7 +85,7 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
         $this->forceRebootEventCaught = null;
     }
 
-    public static function getSubscribedEvents()
+    public static function getSubscribedEvents(): array
     {
         return [
             KernelEvents::EXCEPTION => 'onException',

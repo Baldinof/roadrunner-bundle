@@ -9,14 +9,14 @@ use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * A simple container class holding services needed by the Worker.
+ * A simple container class holding services needed by the Http Worker.
  *
  * It's used to ease worker dependencies retrieval when the kernel
  * has been rebooted.
  *
  * @internal
  */
-final class Dependencies
+final class HttpDependencies
 {
     private MiddlewareStack $requestHandler;
     private KernelRebootStrategyInterface $kernelRebootStrategy;

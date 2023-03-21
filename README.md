@@ -84,6 +84,34 @@ baldinof_road_runner:
       strategy: always
 ```
 
+If you are building long-running application and need to reboot it every XXX request to prevent memory leaks you can use `max_jobs` reboot strategy:
+
+```yaml
+# config/packages/baldinof_road_runner.yaml
+baldinof_road_runner:
+    kernel_reboot:
+      strategy: max_jobs
+      max_jobs: 1000 # maximum number of request
+      max_jobs_dispersion: 0.2 # dispersion 20% used to prevent simultaneous reboot of all active workers (kernel will rebooted between 800 and 1000 requests) 
+```
+
+You can combine reboot strategies:
+
+
+```yaml
+# config/packages/baldinof_road_runner.yaml
+baldinof_road_runner:
+    kernel_reboot:
+      strategy: [on_exception, max_jobs]
+      allowed_exceptions:
+        - Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+        - Symfony\Component\Serializer\Exception\ExceptionInterface
+        - App\Exception\YourDomainException
+      max_jobs: 1000
+      max_jobs_dispersion: 0.2
+```
+
+
 ## Events
 
 The following events are dispatched throughout the worker lifecycle:

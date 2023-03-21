@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 
+use AllowDynamicProperties;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
@@ -11,9 +12,8 @@ use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
-use Baldinof\RoadRunnerBundle\Worker\Dependencies;
-use Baldinof\RoadRunnerBundle\Worker\Worker;
-use Iterator;
+use Baldinof\RoadRunnerBundle\Worker\HttpDependencies;
+use Baldinof\RoadRunnerBundle\Worker\HttpWorker;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
@@ -28,17 +28,21 @@ use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 
+#[\AllowDynamicProperties]
 class WorkerTest extends TestCase
 {
     use ProphecyTrait;
 
     public static $rebootStrategyReturns = false;
 
-    private Worker $worker;
+    private HttpWorker $worker;
     private \SplStack $requests;
     private \Closure $responder;
 
     private EventDispatcher $eventDispatcher;
+    private Container $container;
+
+    private bool $isDebug = false;
 
     public function setUp(): void
     {
@@ -46,17 +50,18 @@ class WorkerTest extends TestCase
 
         $this->roadrunnerWorker = $this->prophesize(RoadrunnerWorker::class);
 
-        $this->psrClient = $this->prophesize(HttpFoundationWorkerInterface::class);
-        $this->psrClient->waitRequest()->will(fn () => $requests->isEmpty() ? null : $requests->pop());
+        $this->httpFoundationWorker = $this->prophesize(HttpFoundationWorkerInterface::class);
+        $this->httpFoundationWorker->waitRequest()->will(fn () => $requests->isEmpty() ? null : $requests->pop());
+        $this->httpFoundationWorker->respond(Argument::any());
 
-        $this->psrClient->getWorker()->willReturn($this->roadrunnerWorker->reveal());
+        $this->httpFoundationWorker->getWorker()->willReturn($this->roadrunnerWorker->reveal());
 
         $this->eventDispatcher = new EventDispatcher();
         $this->kernel = $this->prophesize(KernelInterface::class)
             ->willImplement(TerminableInterface::class)
             ->willImplement(RebootableInterface::class);
 
-        $this->kernel->isDebug()->willReturn(false);
+        $this->kernel->isDebug()->willReturn($this->isDebug);
         $this->kernel->boot()->willReturn(null);
         $this->kernel->getContainer()->willReturn($c = new Container());
 
@@ -76,7 +81,7 @@ class WorkerTest extends TestCase
                 $this->handler = $handler;
             }
 
-            public function handle(Request $request): Iterator
+            public function handle(Request $request): \Iterator
             {
                 yield from ($this->handler)($request);
             }
@@ -94,25 +99,36 @@ class WorkerTest extends TestCase
             }
         };
 
-        $c->set(Dependencies::class, new Dependencies(new MiddlewareStack($this->handler), $kernelBootStrategyClass, $this->eventDispatcher));
+        $this->container = $c;
 
-        $this->worker = new Worker(
+        $c->set(HttpDependencies::class, new HttpDependencies(new MiddlewareStack($this->handler), $kernelBootStrategyClass, $this->eventDispatcher));
+
+        $this->worker = new HttpWorker(
             $this->kernel->reveal(),
             new NullLogger(),
-            $this->psrClient->reveal()
+            $this->httpFoundationWorker->reveal()
         );
     }
 
     public function test_it_setup_trusted_proxies_and_hosts()
     {
-        $_ENV['TRUSTED_PROXIES'] = '10.0.0.1,10.0.0.2';
-        $_ENV['TRUSTED_HOSTS'] = 'example.org,example.com';
+        $_SERVER['REMOTE_ADDR'] = '10.0.0.2';
 
-        $this->worker->start();
+        $this->container->setParameter('kernel.trusted_proxies', '10.0.0.1,REMOTE_ADDR');
+        $this->container->setParameter('kernel.trusted_headers', Request::HEADER_FORWARDED);
+
+        $worker = new HttpWorker(
+            $this->kernel->reveal(),
+            new NullLogger(),
+            $this->httpFoundationWorker->reveal()
+        );
+
+        $this->requests->push(Request::create('http://example.org/'));
+
+        $worker->start();
 
         $this->assertSame(['10.0.0.1', '10.0.0.2'], Request::getTrustedProxies());
-        $this->assertSame(['{example.org}i', '{example.com}i'], Request::getTrustedHosts());
-        $this->assertSame(Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO, Request::getTrustedHeaderSet());
+        $this->assertSame(Request::HEADER_FORWARDED, Request::getTrustedHeaderSet());
     }
 
     /**
@@ -147,22 +163,22 @@ class WorkerTest extends TestCase
             $terminated = true;
         };
 
-        $psrClientCalled = false;
-        $this->psrClient->respond(Argument::any())
+        $httpFoundationWorkerCalled = false;
+        $this->httpFoundationWorker->respond(Argument::any())
             ->shouldBeCalled()
-            ->will(function (array $args) use (&$terminated, &$psrClientCalled) {
+            ->will(function (array $args) use (&$terminated, &$httpFoundationWorkerCalled) {
                 $psrResponse = $args[0];
 
                 Assert::assertInstanceOf(Response::class, $psrResponse);
                 Assert::assertSame('hello', $psrResponse->getContent());
                 Assert::assertFalse($terminated);
-                $psrClientCalled = true;
+                $httpFoundationWorkerCalled = true;
             });
 
         $this->worker->start();
 
         $this->assertTrue($terminated);
-        $this->assertTrue($psrClientCalled, 'PSR Client seems to not have been called.');
+        $this->assertTrue($httpFoundationWorkerCalled, 'PSR Client seems to not have been called.');
     }
 
     public function test_an_error_stops_the_worker()
@@ -171,7 +187,7 @@ class WorkerTest extends TestCase
         $this->requests->push(Request::create('http://example.org/'));
 
         $this->responder = function () {
-            throw new \RuntimeException('error');
+            throw new \RuntimeException('should not be displayed');
         };
 
         $called = false;
@@ -179,7 +195,11 @@ class WorkerTest extends TestCase
             $called = true;
         });
 
-        $this->roadrunnerWorker->error('Internal server error')->shouldBeCalled();
+        $this->httpFoundationWorker->respond(Argument::type(Response::class))
+            ->shouldBeCalled()
+            ->will(function (array $args) {
+                Assert::assertStringNotContainsString('should not be displayed', $args[0]->getContent());
+            });
         $this->roadrunnerWorker->stop()->shouldBeCalled();
 
         $this->worker->start();
@@ -189,13 +209,15 @@ class WorkerTest extends TestCase
 
     public function test_an_error_in_debug_mode_shows_the_trace_and_stops_the_worker()
     {
-        $this->requests->push(Request::create('http://example.org/'));
-        $this->requests->push(Request::create('http://example.org/'));
+        $this->isDebug = true;
 
-        $this->kernel->isDebug()->willReturn(true);
+        $this->setup(); // Debug kernel param is read only at work instantiation. `setup()` resets it.
+
+        $this->requests->push(Request::create('http://example.org/'));
+        $this->requests->push(Request::create('http://example.org/'));
 
         $this->responder = function () {
-            throw new \RuntimeException('error in debug');
+            throw new \RuntimeException('Should be displayed');
         };
 
         $called = false;
@@ -204,11 +226,10 @@ class WorkerTest extends TestCase
         });
 
         $this->roadrunnerWorker->stop()->shouldBeCalled();
-
-        $this->roadrunnerWorker->error(Argument::type('string'))
+        $this->httpFoundationWorker->respond(Argument::type(Response::class))
             ->shouldBeCalled()
             ->will(function (array $args) {
-                Assert::assertStringContainsString('error in debug', $args[0]);
+                Assert::assertStringContainsString('Should be displayed', $args[0]->getContent());
             });
 
         $this->worker->start();
@@ -224,7 +245,7 @@ class WorkerTest extends TestCase
             $terminated = true;
         };
 
-        $this->psrClient->respond(Argument::any()); // Allow resond() calls
+        $this->httpFoundationWorker->respond(Argument::any()); // Allow resond() calls
 
         $this->requests->push(Request::create('http://example.org/'));
 

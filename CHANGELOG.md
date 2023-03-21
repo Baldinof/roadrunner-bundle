@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.3] - 2022-05-29
+
+### Fixed
+
+- Stops using deprecated StreamedResponseListener in Symfony >=6.1 see [#85](https://github.com/Baldinof/roadrunner-bundle/pull/85)
+
+## [2.2.2] - 2022-05-25
+
+### Fixed
+
+- Fix deprecations. Thank you [@sabrimarz](https://github.com/sabrimarz), see [#83](https://github.com/Baldinof/roadrunner-bundle/pull/83)
+
+## [2.2.1] - 2022-03-09
+
+### Fixed
+
+- Provided updated RoadRunner config files to new project installed via Symfony Flex
+
+## [2.2.0] - 2022-02-28
+
+### Changed
+
+- Stops loading `NativeSessionMiddleware` if using Symfony >= 5.4 because it is well handled in the framework
+- Override `$_SERVER` when receiving a new RR request
+
+### Added
+
+- Supports for gRPC. Thank you [@StephenBeirlaen](https://github.com/StephenBeirlaen), see [#62](https://github.com/Baldinof/roadrunner-bundle/pull/62)
+- Supports for `REMOTE_ADDR` in `framework.trusted_proxies` configuration. See [#71](https://github.com/Baldinof/roadrunner-bundle/pull/71)
+
+
 ## [2.1.4] - 2022-01-16
 
 ### Fixed

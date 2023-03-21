@@ -17,7 +17,7 @@ final class DeclareMetricsListener implements EventSubscriberInterface
     /**
      * @var array<string, CollectorInterface>
      */
-    private array $collectors;
+    private array $collectors = [];
 
     public function __construct(MetricsInterface $metrics)
     {
