@@ -12,10 +12,16 @@ use Symfony\Component\HttpKernel\Event\TerminateEvent;
 
 final class SentryTracingRequestListenerDecorator
 {
-    public function __construct(private TracingRequestListener $innerListener, private HubInterface $hub)
+    private TracingRequestListener $innerListener;
+    
+    private HubInterface $hub
+    
+    public function __construct(TracingRequestListener $innerListener, HubInterface $hub)
     {
+        $this->innerListener = $innerListener;
+        $this->hub = $hub;
     }
-
+    
     public function handleKernelRequestEvent(RequestEvent $event): void
     {
         $this->innerListener->handleKernelRequestEvent($event);
