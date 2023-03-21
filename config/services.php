@@ -12,7 +12,7 @@ use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
-use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListener;
+use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListenerDecorator;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
@@ -121,7 +121,7 @@ return static function (ContainerConfigurator $container) {
 
     $services->set(NativeSessionMiddleware::class);
     
-    $services->set(SentryTracingRequestListener::class)
+    $services->set(SentryTracingRequestListenerDecorator::class)
         ->decorate(TracingRequestListener::class, null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
         ->args([
             service('.inner'),
