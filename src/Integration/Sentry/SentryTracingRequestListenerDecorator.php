@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ba\Tracing\Integration\RoadRunner\Http;
+namespace Baldinof\RoadRunnerBundle\Integration\Sentry;
 
 use Sentry\SentryBundle\EventListener\TracingRequestListener;
 use Sentry\State\HubInterface;
