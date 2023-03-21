@@ -120,11 +120,11 @@ return static function (ContainerConfigurator $container) {
     $services->alias(RequestHandlerInterface::class, MiddlewareStack::class);
 
     $services->set(NativeSessionMiddleware::class);
-    
+
     $services->set(SentryTracingRequestListenerDecorator::class)
         ->decorate(TracingRequestListener::class, null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
         ->args([
-            service(TracingRequestListener::class.'.inner'),
+            service('.inner'),
             service(HubInterface::class),
         ]);
     // @phpstan-ignore-next-line - PHPStan says this is always true, but the constant value depends on the currently installed Symfony version
