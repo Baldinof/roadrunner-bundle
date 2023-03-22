@@ -12,6 +12,7 @@ use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryListener;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListenerDecorator;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\ConfigureVarDumperListener;
 use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
@@ -20,12 +21,14 @@ use Baldinof\RoadRunnerBundle\Reboot\MaxJobsRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
+use Sentry\SentryBundle\EventListener\TracingRequestListener;
 use Sentry\State\HubInterface;
 use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Spiral\RoadRunner\Metrics\Collector;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -142,6 +145,14 @@ class BaldinofRoadRunnerExtension extends Extension
                 ->register(SentryListener::class)
                 ->addArgument(new Reference(HubInterface::class))
                 ->setAutoconfigured(true);
+
+            $container
+                ->register(SentryTracingRequestListenerDecorator::class)
+                ->setDecoratedService(TracingRequestListener::class, null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+                ->setArguments([
+                    new Reference(TracingRequestListener::class.'.inner'),
+                    new Reference(HubInterface::class),
+                ]);
 
             $beforeMiddlewares[] = SentryMiddleware::class;
         }

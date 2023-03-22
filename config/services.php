@@ -12,7 +12,6 @@ use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
-use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListenerDecorator;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
@@ -24,8 +23,6 @@ use Baldinof\RoadRunnerBundle\Worker\HttpWorker as InternalHttpWorker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerRegistry;
 use Baldinof\RoadRunnerBundle\Worker\WorkerRegistryInterface;
 use Psr\Log\LoggerInterface;
-use Sentry\SentryBundle\EventListener\TracingRequestListener;
-use Sentry\State\HubInterface;
 use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
@@ -38,7 +35,6 @@ use Spiral\RoadRunner\Metrics\Metrics;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
@@ -121,12 +117,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->set(NativeSessionMiddleware::class);
 
-    $services->set(SentryTracingRequestListenerDecorator::class)
-        ->decorate(TracingRequestListener::class, null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
-        ->args([
-            service('.inner'),
-            service(HubInterface::class),
-        ]);
     // @phpstan-ignore-next-line - PHPStan says this is always true, but the constant value depends on the currently installed Symfony version
     if (Kernel::VERSION_ID < 60100) {
         $services->set(StreamedResponseListener::class)
