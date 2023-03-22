@@ -148,9 +148,9 @@ class BaldinofRoadRunnerExtension extends Extension
 
             $container
                 ->register(SentryTracingRequestListenerDecorator::class)
-                ->setDecoratedService(TracingRequestListener::class, null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+                ->setDecoratedService(TracingRequestListener::class)
                 ->setArguments([
-                    new Reference(TracingRequestListener::class.'.inner'),
+                    new Reference('.inner'),
                     new Reference(HubInterface::class),
                 ]);
 
