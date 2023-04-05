@@ -12,6 +12,7 @@ use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryListener;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListenerDecorator;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\ConfigureVarDumperListener;
 use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
@@ -20,6 +21,7 @@ use Baldinof\RoadRunnerBundle\Reboot\MaxJobsRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
+use Sentry\SentryBundle\EventListener\TracingRequestListener;
 use Sentry\State\HubInterface;
 use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Spiral\RoadRunner\Metrics\Collector;
@@ -142,6 +144,14 @@ class BaldinofRoadRunnerExtension extends Extension
                 ->register(SentryListener::class)
                 ->addArgument(new Reference(HubInterface::class))
                 ->setAutoconfigured(true);
+
+            $container
+                ->register(SentryTracingRequestListenerDecorator::class)
+                ->setDecoratedService(TracingRequestListener::class)
+                ->setArguments([
+                    new Reference(SentryTracingRequestListenerDecorator::class.'.inner'),
+                    new Reference(HubInterface::class),
+                ]);
 
             $beforeMiddlewares[] = SentryMiddleware::class;
         }

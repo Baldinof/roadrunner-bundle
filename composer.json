@@ -43,7 +43,7 @@
         "phpspec/prophecy-phpunit": "^2.0",
         "friendsofphp/php-cs-fixer": "^3.4",
         "phpstan/phpstan": "^1.2",
-        "sentry/sentry-symfony": "^4.0",
+        "sentry/sentry-symfony": "^4.5",
         "symfony/framework-bundle": "^4.0 || ^5.0 || ^6.0",
         "nyholm/psr7": "^1.2",
         "doctrine/mongodb-odm": "^2.2",
@@ -59,7 +59,7 @@
     },
     "conflict": {
         "doctrine/doctrine-bundle": "<2.1.1",
-        "sentry/sentry-symfony": "<4.0.0",
+        "sentry/sentry-symfony": "<4.5.0",
         "spiral/roadrunner-metrics": "<2.0.1"
     },
     "scripts": {
