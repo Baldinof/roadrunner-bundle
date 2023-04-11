@@ -6,11 +6,13 @@ namespace Baldinof\RoadRunnerBundle\Command;
 
 use Baldinof\RoadRunnerBundle\Worker\WorkerInterface;
 use Spiral\RoadRunner\Environment\Mode;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+#[AsCommand(name: 'baldinof:roadrunner:worker')]
 final class WorkerCommand extends Command
 {
     protected static $defaultName = 'baldinof:roadrunner:worker';
