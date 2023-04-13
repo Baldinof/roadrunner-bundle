@@ -18,3 +18,5 @@ parameters:
           path: 'src/Integration/PHP/NativeSessionMiddleware.php'
         - message: '#Cannot cast mixed to string.#'
           path: 'src/Worker/Worker.php'
+        - message: '#Attribute class Symfony\\Component\\Console\\Attribute\\AsCommand does not exist.#'
+          path: 'src/Command/WorkerCommand.php'
