@@ -10,6 +10,7 @@ use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
+use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListenerDecorator;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
@@ -54,6 +55,44 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $c = $k->getContainer()->get('test.service_container');
 
         $this->assertTrue($c->has(SentryMiddleware::class));
+    }
+
+    public function test_with_sentry_tracing_disabled()
+    {
+        $k = $this->getKernel([
+            'sentry' => [
+                'tracing' => [
+                    'enabled' => false,
+                ],
+            ],
+        ], [
+            new SentryBundle(),
+        ]);
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertFalse($c->has(SentryTracingRequestListenerDecorator::class));
+    }
+
+    public function test_with_sentry_tracing_enabled()
+    {
+        $k = $this->getKernel([
+            'sentry' => [
+                'tracing' => [
+                    'enabled' => true,
+                ],
+            ],
+        ], [
+            new SentryBundle(),
+        ]);
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertTrue($c->has(SentryTracingRequestListenerDecorator::class));
     }
 
     public function test_it_does_not_load_sentry_middleware_if_not_needed()
