@@ -28,6 +28,7 @@ use Spiral\RoadRunner\Metrics\Collector;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -147,7 +148,7 @@ class BaldinofRoadRunnerExtension extends Extension
 
             $container
                 ->register(SentryTracingRequestListenerDecorator::class)
-                ->setDecoratedService(TracingRequestListener::class)
+                ->setDecoratedService(TracingRequestListener::class, null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
                 ->setArguments([
                     new Reference(SentryTracingRequestListenerDecorator::class.'.inner'),
                     new Reference(HubInterface::class),
