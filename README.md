@@ -222,15 +222,41 @@ class Calculator implements CalculatorInterface
 # Dockerfile
 FROM php:8.1-alpine
 
-RUN apk add --no-cache autoconf openssl-dev g++ make pcre-dev icu-dev zlib-dev libzip-dev && \
-    docker-php-ext-install bcmath intl opcache zip sockets && \
-    apk del --purge autoconf g++ make
+RUN apk add --no-cache --virtual .build-deps \
+        $PHPIZE_DEPS \
+        linux-headers \
+    && apk add --update --no-cache \
+        openssl-dev \
+        pcre-dev \
+        icu-dev \
+        icu-data-full \
+        libzip-dev \
+        postgresql-dev \
+        protobuf \
+        grpc \
+    && docker-php-ext-install  \
+        bcmath \
+        intl \
+        opcache \
+        zip \
+        sockets \
+        pdo_pgsql \
+    && pecl install protobuf \
+    && pecl install grpc \
+    && docker-php-ext-enable \
+        grpc \
+        protobuf \
+    && pecl clear-cache \
+    && apk del --purge .build-deps
 
 WORKDIR /usr/src/app
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
+
+#DEV
+#RUN composer install --no-scripts --no-progress --no-interaction
 
 RUN composer install --no-dev --no-scripts --prefer-dist --no-progress --no-interaction
 
@@ -245,6 +271,9 @@ RUN composer dump-autoload --optimize && \
     php bin/console cache:warmup
 
 EXPOSE 8080
+
+#DEV
+# CMD ["rr", "serve", "-c", ".rr.dev.yaml"]
 
 CMD ["rr", "serve"]
 ```
