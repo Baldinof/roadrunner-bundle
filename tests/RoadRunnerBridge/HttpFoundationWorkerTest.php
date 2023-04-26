@@ -35,8 +35,7 @@ class HttpFoundationWorkerTest extends TestCase
      */
     public function test_it_convert_roadrunner_request_to_symfony(\Closure $rrRequestConfigurator, \Closure $expectations)
     {
-        $rrRequest = new RoadRunnerRequest();
-        $rrRequestConfigurator($rrRequest);
+        $rrRequest = $rrRequestConfigurator();
 
         $innerWorker = new MockWorker();
         $innerWorker->nextRequest = $rrRequest;
@@ -51,19 +50,19 @@ class HttpFoundationWorkerTest extends TestCase
     public function provideRequests()
     {
         yield 'full request' => [
-            function (RoadRunnerRequest $rrRequest) {
-                $rrRequest->method = 'GET';
-                $rrRequest->uri = 'https://les-tilleuls.coop/about/kevin?page=1';
-                $rrRequest->protocol = 'HTTP/1.1';
-                $rrRequest->headers = [
+            fn () => new RoadRunnerRequest(
+                method: 'GET',
+                uri: 'https://les-tilleuls.coop/about/kevin?page=1',
+                protocol: 'HTTP/1.1',
+                headers: [
                     'X-Dunglas-API-Platform' => ['1.0'],
                     'X-data' => ['a', 'b'],
-                ];
-                $rrRequest->query = ['page' => '1'];
-                $rrRequest->body = json_encode(['country' => 'France']);
-                $rrRequest->parsed = true;
-                $rrRequest->cookies = ['city' => 'Lille'];
-                $rrRequest->uploads = [
+                ],
+                query: ['page' => '1'],
+                body: json_encode(['country' => 'France']),
+                parsed: true,
+                cookies: ['city' => 'Lille'],
+                uploads: [
                     'doc1' => $this->createUploadedFile('Doc 1', \UPLOAD_ERR_OK, 'doc1.txt', 'text/plain'),
                     'nested' => [
                         'docs' => [
@@ -71,10 +70,9 @@ class HttpFoundationWorkerTest extends TestCase
                             $this->createUploadedFile('Doc 3', \UPLOAD_ERR_OK, 'doc3.txt', 'text/plain'),
                         ],
                     ],
-                ];
-                $stdClass = new \stdClass();
-                $rrRequest->attributes = ['custom' => $stdClass];
-            },
+                ],
+                attributes: ['custom' => new \stdClass()],
+            ),
             function (SymfonyRequest $symfonyRequest) {
                 $files = $symfonyRequest->files->all();
 
@@ -95,17 +93,17 @@ class HttpFoundationWorkerTest extends TestCase
         ];
 
         yield 'non default port' => [
-            fn (RoadRunnerRequest $r) => $r->uri = 'https://les-tilleuls.coop:8443/about/kevin',
+            fn () => new RoadRunnerRequest(uri: 'https://les-tilleuls.coop:8443/about/kevin'),
             fn (SymfonyRequest $r) => $this->assertSame(8443, $r->getPort()),
         ];
 
         yield 'https detection' => [
-            fn (RoadRunnerRequest $r) => $r->uri = 'https://les-tilleuls.coop:8443/about/kevin',
+            fn () => new RoadRunnerRequest(uri: 'https://les-tilleuls.coop:8443/about/kevin'),
             fn (SymfonyRequest $r) => $this->assertTrue($r->isSecure()),
         ];
 
         yield 'POST body not parsed' => [
-            fn (RoadRunnerRequest $r) => $r->body = 'the body',
+            fn () => new RoadRunnerRequest(body: 'the body'),
             function (SymfonyRequest $r) {
                 $this->assertSame('the body', $r->getContent());
                 $this->assertEmpty($r->request->all());
@@ -113,10 +111,10 @@ class HttpFoundationWorkerTest extends TestCase
         ];
 
         yield 'content-type & length added to $_SERVER' => [
-            fn (RoadRunnerRequest $r) => $r->headers = [
+            fn () => new RoadRunnerRequest(headers: [
                 'content-type' => ['application/json'],
                 'content-length' => ['42'],
-            ],
+            ]),
             function (SymfonyRequest $r) {
                 $this->assertSame('application/json', $r->server->get('CONTENT_TYPE'));
                 $this->assertSame('42', $r->server->get('CONTENT_LENGTH'));
@@ -124,9 +122,9 @@ class HttpFoundationWorkerTest extends TestCase
         ];
 
         yield 'basic authorization' => [
-            fn (RoadRunnerRequest $request) => $request->headers = [
+            fn () => new RoadRunnerRequest(headers: [
                 'Authorization' => ['Basic '.base64_encode('user:pass')],
-            ],
+            ]),
             function (SymfonyRequest $r) {
                 $this->assertSame('user', $r->getUser());
                 $this->assertSame('pass', $r->getPassword());
@@ -134,16 +132,16 @@ class HttpFoundationWorkerTest extends TestCase
         ];
 
         yield 'upload error' => [
-            fn (RoadRunnerRequest $request) => $request->uploads = [
+            fn () => new RoadRunnerRequest(uploads: [
                 'error' => $this->createUploadedFile('', \UPLOAD_ERR_CANT_WRITE, 'error.txt', 'plain/text'),
-            ],
+            ]),
             fn (SymfonyRequest $request) => $this->assertSame(\UPLOAD_ERR_CANT_WRITE, $request->files->get('error')->getError()),
         ];
 
         yield 'valid upload' => [
-            fn (RoadRunnerRequest $request) => $request->uploads = [
+            fn () => new RoadRunnerRequest(uploads: [
                 'doc1' => $this->createUploadedFile('Doc 1', \UPLOAD_ERR_OK, 'doc1.txt', 'text/plain'),
-            ],
+            ]),
             fn (SymfonyRequest $request) => $this->assertTrue($request->files->get('doc1')->isValid()),
         ];
     }
@@ -257,12 +255,13 @@ class HttpFoundationWorkerTest extends TestCase
 
     public function test_it_overrides_SERVER_global()
     {
-        $rrRequest = new RoadRunnerRequest();
-        $rrRequest->remoteAddr = '10.0.0.2';
-        $rrRequest->uri = 'https://localhost/foo/bar?hello=world';
-        $rrRequest->headers = [
-            'Hello-World-Header' => ['World'],
-        ];
+        $rrRequest = new RoadRunnerRequest(
+            remoteAddr: '10.0.0.2',
+            uri: 'https://localhost/foo/bar?hello=world',
+            headers: [
+                'Hello-World-Header' => ['World'],
+            ]
+        );
 
         $innerWorker = new MockWorker();
         $innerWorker->nextRequest = $rrRequest;
@@ -338,7 +337,7 @@ class MockWorker implements HttpWorkerInterface
         return $req;
     }
 
-    public function respond(int $status, string $body, array $headers = []): void
+    public function respond(int $status, string|\Generator $body, array $headers = []): void
     {
         $this->responded = new RoadRunnerResponse($status, $body, $headers);
     }
