@@ -70,7 +70,7 @@ final class DoctrineORMMiddleware implements MiddlewareInterface
             $manager = $this->container->get($managerName);
 
             \assert($manager instanceof EntityManagerInterface);
-
+            // TODO: what about Symfony\Component\VarExporter\LazyObjectInterface ?
             if ($manager instanceof LazyLoadingInterface) {
                 continue; // Doctrine bundle will handle manager reset on next request
             }
