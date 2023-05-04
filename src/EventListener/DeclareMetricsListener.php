@@ -13,16 +13,13 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 final class DeclareMetricsListener implements EventSubscriberInterface
 {
-    private MetricsInterface $metrics;
-
     /**
      * @var array<non-empty-string, CollectorInterface>
      */
     private array $collectors = [];
 
-    public function __construct(MetricsInterface $metrics)
+    public function __construct(private MetricsInterface $metrics)
     {
-        $this->metrics = $metrics;
     }
 
     /**

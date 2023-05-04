@@ -8,11 +8,8 @@ use Symfony\Contracts\EventDispatcher\Event;
 
 final class ForceKernelRebootEvent extends Event
 {
-    private string $reason;
-
-    public function __construct(string $reason)
+    public function __construct(private string $reason)
     {
-        $this->reason = $reason;
     }
 
     public function getReason(): string

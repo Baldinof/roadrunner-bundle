@@ -12,13 +12,10 @@ use Symfony\Component\HttpKernel\Event\TerminateEvent;
 
 final class SentryTracingRequestListenerDecorator
 {
-    private TracingRequestListener $innerListener;
-    private HubInterface $hub;
-
-    public function __construct(TracingRequestListener $innerListener, HubInterface $hub)
-    {
-        $this->innerListener = $innerListener;
-        $this->hub = $hub;
+    public function __construct(
+        private TracingRequestListener $innerListener,
+        private HubInterface $hub
+    ) {
     }
 
     public function handleKernelRequestEvent(RequestEvent $event): void
@@ -29,13 +26,8 @@ final class SentryTracingRequestListenerDecorator
     public function handleKernelResponseEvent(ResponseEvent $event): void
     {
         $this->innerListener->handleKernelResponseEvent($event);
-        $transaction = $this->hub->getTransaction();
 
-        if (null === $transaction) {
-            return;
-        }
-
-        $transaction->finish();
+        $this->hub->getTransaction()?->finish();
     }
 
     public function handleKernelTerminateEvent(TerminateEvent $event): void

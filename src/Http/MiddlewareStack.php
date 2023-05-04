@@ -15,17 +15,13 @@ use function Baldinof\RoadRunnerBundle\consumes;
  */
 final class MiddlewareStack
 {
-    private RequestHandlerInterface $kernelHandler;
-
-    /**
-     * @var \SplStack<MiddlewareInterface>
-     */
-    private \SplStack $middlewares;
-
-    public function __construct(RequestHandlerInterface $kernelHandler)
-    {
-        $this->kernelHandler = $kernelHandler;
-        $this->middlewares = new \SplStack();
+    public function __construct(
+        private RequestHandlerInterface $kernelHandler,
+        /**
+         * @var \SplStack<MiddlewareInterface>
+         */
+        private \SplStack $middlewares = new \SplStack(),
+    ) {
     }
 
     public function handle(Request $request): \Iterator
@@ -50,21 +46,13 @@ final class MiddlewareStack
  */
 final class Runner implements HttpKernelInterface
 {
-    private RequestHandlerInterface $handler;
-
-    /** @var \SplStack<MiddlewareInterface> */
-    private \SplStack $middlewares;
-    /** @var \SplStack<\Iterator<Response>> */
-    private \SplStack $iterators;
-
-    /**
-     * @param \SplStack<MiddlewareInterface> $middlewares A stack of MiddlewareInterface or IteratorMiddlewareInterface
-     */
-    public function __construct(\SplStack $middlewares, RequestHandlerInterface $handler)
-    {
-        $this->middlewares = $middlewares;
-        $this->handler = $handler;
-        $this->iterators = new \SplStack();
+    public function __construct(
+        /** @var \SplStack<MiddlewareInterface> */
+        private \SplStack $middlewares,
+        private RequestHandlerInterface $handler,
+        /** @var \SplStack<\Iterator<Response>> */
+        private \SplStack $iterators = new \SplStack(),
+    ) {
     }
 
     public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true): Response

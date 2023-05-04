@@ -14,11 +14,8 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
  */
 final class SentryMiddleware implements MiddlewareInterface
 {
-    private HubInterface $hub;
-
-    public function __construct(HubInterface $hub)
+    public function __construct(private HubInterface $hub)
     {
-        $this->hub = $hub;
     }
 
     public function process(Request $request, HttpKernelInterface $next): \Iterator
@@ -29,9 +26,8 @@ final class SentryMiddleware implements MiddlewareInterface
             yield $next->handle($request);
         } finally {
             $client = $this->hub->getClient();
-            if ($client !== null) {
-                $client->flush()->wait(false);
-            }
+            $client?->flush()->wait(false);
+
             $this->hub->popScope();
         }
     }

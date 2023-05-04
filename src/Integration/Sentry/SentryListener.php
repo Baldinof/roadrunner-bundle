@@ -11,20 +11,15 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 final class SentryListener implements EventSubscriberInterface
 {
-    private HubInterface $hub;
-
-    public function __construct(HubInterface $hub)
+    public function __construct(private HubInterface $hub)
     {
-        $this->hub = $hub;
     }
 
     public function onWorkerStop(WorkerStopEvent $event): void
     {
         $client = $this->hub->getClient();
 
-        if ($client !== null) {
-            $client->flush()->wait(false);
-        }
+        $client?->flush()->wait(false);
     }
 
     public function onWorkerException(WorkerExceptionEvent $event): void

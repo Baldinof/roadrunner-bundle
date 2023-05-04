@@ -8,11 +8,8 @@ use Symfony\Contracts\EventDispatcher\Event;
 
 final class WorkerExceptionEvent extends Event
 {
-    private \Throwable $exception;
-
-    public function __construct(\Throwable $exception)
+    public function __construct(private \Throwable $exception)
     {
-        $this->exception = $exception;
     }
 
     public function getException(): \Throwable
