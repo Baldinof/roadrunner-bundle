@@ -38,11 +38,6 @@
     },
     "require-dev": {
         "symfony/var-dumper": "^6.0",
-        "phpunit/phpunit": "^9.6",
-        "phpspec/prophecy": "^1.11",
-        "phpspec/prophecy-phpunit": "^2.0",
-        "friendsofphp/php-cs-fixer": "^3.4",
-        "phpstan/phpstan": "^1.10",
         "sentry/sentry-symfony": "^4.5",
         "symfony/framework-bundle": "^6.0",
         "nyholm/psr7": "^1.2",
@@ -64,10 +59,10 @@
         "spiral/roadrunner-metrics": "<3.0.0"
     },
     "scripts": {
-        "test": "phpunit --testdox --colors=always",
-        "phpstan": "phpstan analyse --no-progress --ansi",
-        "cs:lint": "php-cs-fixer fix --dry-run --diff --ansi --allow-risky=yes",
-        "cs:fix": "php-cs-fixer fix --ansi --allow-risky=yes",
+        "test": "tools/vendor/bin/phpunit --testdox --colors=always",
+        "phpstan": "tools/vendor/bin/phpstan analyse --no-progress --ansi",
+        "cs:lint": "tools/vendor/bin/php-cs-fixer fix --dry-run --diff --ansi --allow-risky=yes",
+        "cs:fix": "tools/vendor/bin/php-cs-fixer fix --ansi --allow-risky=yes",
         "ci": [
             "@test", "@phpstan", "@cs:lint"
         ]
