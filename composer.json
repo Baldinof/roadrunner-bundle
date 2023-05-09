@@ -50,6 +50,7 @@
         "spiral/roadrunner-metrics": "^3.0.0",
         "mikey179/vfsstream": "^1.6.8",
         "symfony/runtime": "^6.0",
+        "symfony/var-exporter": "^6.2",
         "laminas/laminas-zendframework-bridge": "^1.4",
         "spiral/roadrunner-grpc": "^3.0.0"
     },
