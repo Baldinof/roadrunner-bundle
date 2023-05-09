@@ -61,7 +61,10 @@ final class DoctrineODMListener implements EventSubscriberInterface
         return null;
     }
 
-    public static function getSubscribedEvents()
+    /**
+     * @return array<string, string>
+     */
+    public static function getSubscribedEvents(): array
     {
         return [
             KernelEvents::TERMINATE => 'onTerminate',
