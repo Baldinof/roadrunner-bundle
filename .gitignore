@@ -2,3 +2,4 @@
 /tests/__cache
 /.phpunit.result.cache
 /.php-cs-fixer.cache
+/tools/vendor

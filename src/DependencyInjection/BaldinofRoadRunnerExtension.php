@@ -9,7 +9,6 @@ use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\Integration\Blackfire\BlackfireMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineODMListener;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
-use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryListener;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListenerDecorator;
@@ -34,7 +33,6 @@ use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 class BaldinofRoadRunnerExtension extends Extension
@@ -175,11 +173,6 @@ class BaldinofRoadRunnerExtension extends Extension
             ;
 
             $beforeMiddlewares[] = DoctrineORMMiddleware::class;
-        }
-
-        // @phpstan-ignore-next-line - PHPStan says this is always true, but the constant value depends on the currently installed Symfony version
-        if (Kernel::VERSION_ID < 50400) {
-            $beforeMiddlewares[] = NativeSessionMiddleware::class;
         }
 
         $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);

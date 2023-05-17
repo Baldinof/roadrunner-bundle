@@ -4,20 +4,16 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
 use Baldinof\RoadRunnerBundle\Helpers\RPCFactory;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
-use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
-use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\GrpcWorker as InternalGrpcWorker;
-use Baldinof\RoadRunnerBundle\Worker\GrpcWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\HttpDependencies;
 use Baldinof\RoadRunnerBundle\Worker\HttpWorker as InternalHttpWorker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerRegistry;
@@ -37,14 +33,6 @@ use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
-
-// Polyfill of the `service()` function introduced in Symfony 5.1 when using older version
-if (!\function_exists('Symfony\Component\DependencyInjection\Loader\Configurator\service')) {
-    function service(string $id): ReferenceConfigurator
-    {
-        return ref($id); // @phpstan-ignore-line
-    }
-}
 
 return static function (ContainerConfigurator $container) {
     $container->parameters()
@@ -101,10 +89,6 @@ return static function (ContainerConfigurator $container) {
             service(EventDispatcherInterface::class),
         ]);
 
-    $services->set(WorkerCommand::class)
-        ->args([service(InternalHttpWorker::class)])
-        ->autoconfigure();
-
     $services->set(KernelHandler::class)
         ->args([
             service('kernel'),
@@ -115,18 +99,6 @@ return static function (ContainerConfigurator $container) {
 
     $services->alias(RequestHandlerInterface::class, MiddlewareStack::class);
 
-    $services->set(NativeSessionMiddleware::class);
-
-    // @phpstan-ignore-next-line - PHPStan says this is always true, but the constant value depends on the currently installed Symfony version
-    if (Kernel::VERSION_ID < 60100) {
-        $services->set(StreamedResponseListener::class)
-            ->decorate('streamed_response_listener')
-            ->args([
-                service(StreamedResponseListener::class.'.inner'),
-                '%env(default::RR_MODE)%',
-            ]);
-    }
-
     if (interface_exists(GrpcServiceInterface::class)) {
         $services->set(GrpcServiceProvider::class);
         $services->set(GrpcInvoker::class);
@@ -136,7 +108,7 @@ return static function (ContainerConfigurator $container) {
                 service(GrpcInvoker::class),
             ]);
 
-        $services->set(GrpcWorkerInterface::class, InternalGrpcWorker::class)
+        $services->set(InternalGrpcWorker::class)
             ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
             ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
             ->args([
@@ -150,7 +122,7 @@ return static function (ContainerConfigurator $container) {
             ->get(WorkerRegistryInterface::class)
             ->call('registerWorker', [
                 Environment\Mode::MODE_GRPC,
-                service(GrpcWorkerInterface::class),
+                service(InternalGrpcWorker::class),
             ]);
     }
 };

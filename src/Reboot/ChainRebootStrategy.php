@@ -7,16 +7,10 @@ namespace Baldinof\RoadRunnerBundle\Reboot;
 class ChainRebootStrategy implements KernelRebootStrategyInterface
 {
     /**
-     * @var iterable<KernelRebootStrategyInterface>
-     */
-    private iterable $strategies;
-
-    /**
      * @param iterable<KernelRebootStrategyInterface> $strategies
      */
-    public function __construct(iterable $strategies)
+    public function __construct(private iterable $strategies)
     {
-        $this->strategies = $strategies;
     }
 
     public function shouldReboot(): bool

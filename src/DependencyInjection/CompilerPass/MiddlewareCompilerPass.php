@@ -6,7 +6,6 @@ namespace Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass;
 
 use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
-use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
@@ -29,9 +28,6 @@ class MiddlewareCompilerPass implements CompilerPassInterface
         $defaultMiddlewares = $container->getParameter('baldinof_road_runner.middlewares.default');
 
         $middlewaresToRemove = [];
-        if (!$container->hasDefinition('session') && !$container->hasDefinition('session.factory')) {
-            $middlewaresToRemove[] = NativeSessionMiddleware::class;
-        }
 
         $beforeMiddlewares = array_diff($defaultMiddlewares['before'], $middlewaresToRemove);
         $afterMiddlewares = array_diff($defaultMiddlewares['after'], $middlewaresToRemove);

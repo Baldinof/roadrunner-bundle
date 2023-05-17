@@ -1,0 +1,9 @@
+{
+    "require": {
+        "friendsofphp/php-cs-fixer": "^3.16",
+        "phpstan/phpstan": "^1.10",
+        "phpunit/phpunit": "^9.6",
+        "phpspec/prophecy": "^1.11",
+        "phpspec/prophecy-phpunit": "^2.0"
+    }
+}

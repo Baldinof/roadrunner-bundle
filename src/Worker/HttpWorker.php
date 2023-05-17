@@ -13,7 +13,6 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\ErrorHandler\ErrorRenderer\HtmlErrorRenderer;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
 
@@ -67,13 +66,6 @@ final class HttpWorker implements WorkerInterface
 
             $this->trustedProxies = \is_array($trustedProxies) ? $trustedProxies : array_map('trim', explode(',', $trustedProxies));
             $this->trustedHeaders = $trustedHeaders;
-        } elseif (Kernel::VERSION_ID <= 50200) { // @phpstan-ignore-line - PHPStan says this is always true, but the constant value depends on the currently installed Symfony version
-            if ($trustedProxies = $_SERVER['TRUSTED_PROXIES'] ?? $_ENV['TRUSTED_PROXIES'] ?? false) {
-                $this->trustedProxies = array_map('trim', explode(',', (string) $trustedProxies));
-                $this->trustedHeaders = Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO;
-
-                Request::setTrustedProxies($this->trustedProxies, $this->trustedHeaders);
-            }
         }
 
         $this->shouldRedeclareTrustedProxies = \in_array('REMOTE_ADDR', $this->trustedProxies, true);

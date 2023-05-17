@@ -1,16 +1,15 @@
-version: "2.7"
+version: "3"
 
 server:
   command: "php public/index.php"
-  # If you are not using symfony 5.3+ and the new Runtime component:
-  # remove the previous `command` line above and uncomment the line below to use the deprecated command.
-  # command: "php bin/console baldinof:roadrunner:worker"
   env:
     - APP_RUNTIME: Baldinof\RoadRunnerBundle\Runtime\Runtime
 
 http:
   address: 0.0.0.0:8080
   middleware: [ "static", "gzip" ]
+  pool:
+    debug: true
   uploads:
     forbid: [ ".php", ".exe", ".bat" ]
   static:
@@ -27,12 +26,3 @@ logs:
       mode: raw
     metrics:
       level: debug
-
-reload:
-  enabled: true
-  interval: 1s
-  patterns: [".php", ".yaml"]
-  services:
-    http:
-      dirs: ["."]
-      recursive: true

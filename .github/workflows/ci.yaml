@@ -1,6 +1,5 @@
 name: CI
 on:
-  push:
   pull_request:
   schedule:
     - cron:  '0 0 * * *'
@@ -12,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.4', '8.0', '8.1', '8.2']
+        php-versions: ['8.1', '8.2']
         composer:
           - {name: "lowest", flags: " --prefer-dist --prefer-lowest"}
           - {name: "stable", flags: " --prefer-dist --prefer-stable"}
@@ -26,7 +25,9 @@ jobs:
           extensions: mbstring,intl,mongodb-mongodb/mongo-php-driver@master
           tools: composer:v2
       - name: Install dependencies
-        run: composer update ${{ matrix.composer.flags }}
+        run: |
+          composer update ${{ matrix.composer.flags }}
+          cd tools && composer install
       - name: PHPUnit
         run: composer test
 
@@ -37,7 +38,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.4', '8.0', '8.1', '8.2']
+        php-versions: ['8.1', '8.2']
         composer:
           - {name: "lowest", flags: " --prefer-dist --prefer-lowest"}
           - {name: "stable", flags: " --prefer-dist --prefer-stable"}
@@ -51,7 +52,9 @@ jobs:
           extensions: mbstring,intl,mongodb
           tools: composer:v2
       - name: Install dependencies
-        run: composer update ${{ matrix.composer.flags }}
+        run: |
+          composer update ${{ matrix.composer.flags }}
+          cd tools && composer install
       - name: PHPStan
         run: composer phpstan
 
@@ -64,7 +67,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.0'
+          php-version: '8.1'
           extensions: mbstring,intl,mongodb
           tools: composer:v2
       - name: Get composer cache directory
@@ -77,6 +80,8 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
           restore-keys: ${{ runner.os }}-composer-
       - name: Install dependencies
-        run: composer install --prefer-dist
+        run: |
+          composer update ${{ matrix.composer.flags }}
+          cd tools && composer install
       - name: PHP CS Fixer
         run: composer cs:lint

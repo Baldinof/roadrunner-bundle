@@ -10,13 +10,10 @@ use Symfony\Component\Runtime\RunnerInterface;
 
 class Runner implements RunnerInterface
 {
-    private KernelInterface $kernel;
-    private string $mode;
-
-    public function __construct(KernelInterface $kernel, string $mode)
+    public function __construct(
+        private KernelInterface $kernel,
+        private string $mode)
     {
-        $this->kernel = $kernel;
-        $this->mode = $mode;
     }
 
     public function run(): int

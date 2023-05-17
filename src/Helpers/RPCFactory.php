@@ -22,6 +22,6 @@ final class RPCFactory
             throw BadConfigurationException::rpcNotEnabled();
         }
 
-        return RPC::create($environment->getRPCAddress());
+        return RPC::create($environment->getRPCAddress() ?: throw BadConfigurationException::missingRpcAddr());
     }
 }

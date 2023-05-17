@@ -14,23 +14,14 @@ use function sprintf;
 /**
  * @internal
  */
-final class GrpcWorker implements GrpcWorkerInterface
+final class GrpcWorker implements WorkerInterface
 {
-    private LoggerInterface $logger;
-    private RoadRunnerWorker $roadRunnerWorker;
-    private GrpcServiceProvider $grpcServiceProvider;
-    private Server $server;
-
     public function __construct(
-        LoggerInterface $logger,
-        RoadRunnerWorker $roadRunnerWorker,
-        GrpcServiceProvider $grpcServiceProvider,
-        Server $server
+        private LoggerInterface $logger,
+        private RoadRunnerWorker $roadRunnerWorker,
+        private GrpcServiceProvider $grpcServiceProvider,
+        private Server $server
     ) {
-        $this->logger = $logger;
-        $this->roadRunnerWorker = $roadRunnerWorker;
-        $this->grpcServiceProvider = $grpcServiceProvider;
-        $this->server = $server;
     }
 
     public function start(): void

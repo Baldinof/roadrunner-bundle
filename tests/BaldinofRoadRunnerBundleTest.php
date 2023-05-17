@@ -5,13 +5,10 @@ declare(strict_types=1);
 namespace Tests\Baldinof\RoadRunnerBundle;
 
 use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
-use Baldinof\RoadRunnerBundle\Command\WorkerCommand;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
-use Baldinof\RoadRunnerBundle\Integration\PHP\NativeSessionMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListenerDecorator;
-use Baldinof\RoadRunnerBundle\Integration\Symfony\StreamedResponseListener;
 use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
@@ -33,17 +30,6 @@ use Symfony\Component\Routing\RouteCollectionBuilder;
 
 class BaldinofRoadRunnerBundleTest extends TestCase
 {
-    public function test_it_expose_the_worker_command()
-    {
-        $k = $this->getKernel();
-        $k->boot();
-        $c = $k->getContainer()->get('test.service_container');
-
-        $cmd = $c->get(WorkerCommand::class);
-
-        $this->assertInstanceOf(WorkerCommand::class, $cmd);
-    }
-
     public function test_it_loads_sentry_middleware_if_needed()
     {
         $k = $this->getKernel([], [
@@ -160,20 +146,6 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $this->assertEquals($expectedListener, $listener);
     }
 
-    public function test_it_decorates_StreamedResponseListener()
-    {
-        $k = $this->getKernel([], []);
-
-        $k->boot();
-        $c = $k->getContainer()->get('test.service_container');
-
-        if (Kernel::VERSION_ID < 60100) {
-            $this->assertInstanceOf(StreamedResponseListener::class, $c->get('streamed_response_listener'));
-        } else {
-            $this->assertFalse($c->has('streamed_response_listener'));
-        }
-    }
-
     public function test_it_loads_doctrine_orm_middleware()
     {
         $k = $this->getKernel([
@@ -190,42 +162,6 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $c = $k->getContainer()->get('test.service_container');
 
         $this->assertTrue($c->has(DoctrineORMMiddleware::class));
-    }
-
-    public function test_it_loads_session_middleware()
-    {
-        $k = $this->getKernel([
-            'framework' => [
-                'session' => ['enabled' => true],
-            ],
-        ], []);
-
-        $k->boot();
-
-        $c = $k->getContainer()->get('test.service_container');
-
-        $hasSessionMiddleware = $c->has(NativeSessionMiddleware::class);
-
-        if (Kernel::VERSION_ID >= 50400) {
-            $this->assertFalse($hasSessionMiddleware);
-        } else {
-            $this->assertTrue($hasSessionMiddleware);
-        }
-    }
-
-    public function test_it_removes_session_middleware()
-    {
-        $k = $this->getKernel([
-            'framework' => [
-                'session' => ['enabled' => false],
-            ],
-        ], []);
-
-        $k->boot();
-
-        $c = $k->getContainer()->get('test.service_container');
-
-        $this->assertFalse($c->has(NativeSessionMiddleware::class));
     }
 
     public function test_it_supports_single_strategy()

@@ -7,62 +7,56 @@ namespace Baldinof\RoadRunnerBundle\EventListener;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Spiral\RoadRunner\Metrics\Collector;
 use Spiral\RoadRunner\Metrics\CollectorInterface;
+use Spiral\RoadRunner\Metrics\CollectorType;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 final class DeclareMetricsListener implements EventSubscriberInterface
 {
-    private MetricsInterface $metrics;
-
     /**
-     * @var array<string, CollectorInterface>
+     * @var array<non-empty-string, CollectorInterface>
      */
     private array $collectors = [];
 
-    public function __construct(MetricsInterface $metrics)
+    public function __construct(private MetricsInterface $metrics)
     {
-        $this->metrics = $metrics;
     }
 
     /**
+     * @param non-empty-string $name
      * @param array{
      *   type: string,
      *   buckets?: float[],
      *   help?: string,
      *   namespace?: string,
      *   subsystem?: string,
-     *   labels?: string[]
+     *   labels?: non-empty-string[]
      * } $definition
      */
     public function addCollector(string $name, array $definition): void
     {
-        $factories = [
-            CollectorInterface::TYPE_HISTOGRAM => fn () => Collector::histogram(...$definition['buckets'] ?? []),
-            CollectorInterface::TYPE_COUNTER => fn () => Collector::counter(),
-            CollectorInterface::TYPE_GAUGE => fn () => Collector::gauge(),
-        ];
-
-        if (!isset($factories[$definition['type']])) {
-            throw new \InvalidArgumentException(sprintf('Metric type should be "gauge", "counter" or "histogram". "%s" given', $definition['type']));
-        }
-
         /** @var Collector $collector */
-        $collector = ($factories[$definition['type']])();
+        $collector = match ($definition['type'] ?? null) {
+            CollectorType::Histogram->value => Collector::histogram(...$definition['buckets'] ?? []),
+            CollectorType::Counter->value => Collector::counter(),
+            CollectorType::Gauge->value => Collector::gauge(),
+            default => throw new \InvalidArgumentException(sprintf('Metric type should be "gauge", "counter" or "histogram". "%s" given', $definition['type'])),
+        };
 
-        $help = $definition['help'] ?? null;
-        $namespace = $definition['namespace'] ?? null;
-        $subsystem = $definition['subsystem'] ?? null;
+        $help = $definition['help'] ?? '';
+        $namespace = $definition['namespace'] ?? '';
+        $subsystem = $definition['subsystem'] ?? '';
         $labels = $definition['labels'] ?? [];
 
-        if ($help !== null) {
+        if ($help !== '') {
             $collector = $collector->withHelp((string) $help);
         }
 
-        if ($namespace !== null) {
+        if ($namespace !== '') {
             $collector = $collector->withNamespace((string) $namespace);
         }
 
-        if ($subsystem !== null) {
+        if ($subsystem !== '') {
             $collector = $collector->withSubsystem((string) $subsystem);
         }
 

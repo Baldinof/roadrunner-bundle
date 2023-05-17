@@ -15,11 +15,10 @@ use Symfony\Component\HttpKernel\KernelEvents;
 final class DoctrineODMListener implements EventSubscriberInterface
 {
     private ?ManagerRegistry $registry = null;
-    private ContainerInterface $container;
 
-    public function __construct(ContainerInterface $container)
-    {
-        $this->container = $container;
+    public function __construct(
+        private ContainerInterface $container
+    ) {
     }
 
     public function onTerminate(TerminateEvent $event): void
@@ -62,7 +61,10 @@ final class DoctrineODMListener implements EventSubscriberInterface
         return null;
     }
 
-    public static function getSubscribedEvents()
+    /**
+     * @return array<string, string>
+     */
+    public static function getSubscribedEvents(): array
     {
         return [
             KernelEvents::TERMINATE => 'onTerminate',

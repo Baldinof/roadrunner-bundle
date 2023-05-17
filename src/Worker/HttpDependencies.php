@@ -18,18 +18,11 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  */
 final class HttpDependencies
 {
-    private MiddlewareStack $requestHandler;
-    private KernelRebootStrategyInterface $kernelRebootStrategy;
-    private EventDispatcherInterface $eventDispatcher;
-
     public function __construct(
-        MiddlewareStack $requestHandler,
-        KernelRebootStrategyInterface $kernelRebootStrategy,
-        EventDispatcherInterface $eventDispatcher
+        private MiddlewareStack $requestHandler,
+        private KernelRebootStrategyInterface $kernelRebootStrategy,
+        private EventDispatcherInterface $eventDispatcher
     ) {
-        $this->requestHandler = $requestHandler;
-        $this->kernelRebootStrategy = $kernelRebootStrategy;
-        $this->eventDispatcher = $eventDispatcher;
     }
 
     public function getRequestHandler(): MiddlewareStack
