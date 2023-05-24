@@ -7,6 +7,7 @@ namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 use AllowDynamicProperties;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
+use Baldinof\RoadRunnerBundle\Event\WorkerRequestHandledEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
@@ -153,6 +154,10 @@ class WorkerTest extends TestCase
         $this->eventDispatcher->addListener(WorkerExceptionEvent::class, function (WorkerExceptionEvent $e) {
             throw $e->getException();
         });
+        $called = false;
+        $this->eventDispatcher->addListener(WorkerRequestHandledEvent::class, function () use (&$called) {
+            $called = true;
+        });
 
         $this->requests->push(Request::create('http://example.org/'));
 
@@ -179,6 +184,7 @@ class WorkerTest extends TestCase
 
         $this->assertTrue($terminated);
         $this->assertTrue($httpFoundationWorkerCalled, 'PSR Client seems to not have been called.');
+        $this->assertTrue($called, WorkerRequestHandledEvent::class.' has not been dispatched');
     }
 
     public function test_an_error_stops_the_worker()
@@ -190,9 +196,13 @@ class WorkerTest extends TestCase
             throw new \RuntimeException('should not be displayed');
         };
 
-        $called = false;
-        $this->eventDispatcher->addListener(WorkerStopEvent::class, function () use (&$called) {
-            $called = true;
+        $calledWorkerStopEvent = false;
+        $this->eventDispatcher->addListener(WorkerStopEvent::class, function () use (&$calledWorkerStopEvent) {
+            $calledWorkerStopEvent = true;
+        });
+        $calledWorkerRequestHandledEvent = false;
+        $this->eventDispatcher->addListener(WorkerRequestHandledEvent::class, function () use (&$calledWorkerRequestHandledEvent) {
+            $calledWorkerRequestHandledEvent = true;
         });
 
         $this->httpFoundationWorker->respond(Argument::type(Response::class))
@@ -204,7 +214,8 @@ class WorkerTest extends TestCase
 
         $this->worker->start();
 
-        $this->assertTrue($called, WorkerStopEvent::class.' has not been dispatched');
+        $this->assertTrue($calledWorkerStopEvent, WorkerStopEvent::class.' has not been dispatched');
+        $this->assertFalse($calledWorkerRequestHandledEvent, WorkerRequestHandledEvent::class.' has been dispatched');
     }
 
     public function test_an_error_in_debug_mode_shows_the_trace_and_stops_the_worker()

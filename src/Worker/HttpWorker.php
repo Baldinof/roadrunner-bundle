@@ -6,6 +6,7 @@ namespace Baldinof\RoadRunnerBundle\Worker;
 
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
+use Baldinof\RoadRunnerBundle\Event\WorkerRequestHandledEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
@@ -107,6 +108,8 @@ final class HttpWorker implements WorkerInterface
                 $sent = true;
 
                 consumes($gen);
+
+                $this->dependencies->getEventDispatcher()->dispatch(new WorkerRequestHandledEvent());
             } catch (\Throwable $e) {
                 if (!$sent) {
                     $response = ($this->renderError)($e);

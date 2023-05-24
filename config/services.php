@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
+use Baldinof\RoadRunnerBundle\EventListener\ResetServicesListener;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
 use Baldinof\RoadRunnerBundle\Helpers\RPCFactory;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
@@ -98,6 +99,10 @@ return static function (ContainerConfigurator $container) {
         ->args([service(KernelHandler::class)]);
 
     $services->alias(RequestHandlerInterface::class, MiddlewareStack::class);
+
+    $services->set(ResetServicesListener::class)
+        ->args([service('services_resetter')])
+        ->tag('kernel.event_subscriber');
 
     if (interface_exists(GrpcServiceInterface::class)) {
         $services->set(GrpcServiceProvider::class);
