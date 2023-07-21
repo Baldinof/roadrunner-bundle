@@ -41,7 +41,7 @@ class StreamableFileResponse extends Response
     {
         return new self(
             $binaryFileResponse->getFile()->getPathname(),
-            $binaryFileResponse->headers->get('Content-Disposition', ''),
+            $binaryFileResponse->headers->get('Content-Disposition', HeaderUtils::DISPOSITION_ATTACHMENT),
             $binaryFileResponse->headers->get('Content-Type'),
             $binaryFileResponse->getFile()->getFilename(),
         );
