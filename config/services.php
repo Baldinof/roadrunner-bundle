@@ -13,12 +13,17 @@ use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
+use Baldinof\RoadRunnerBundle\Worker\CentrifugeWorker as InternalCentrifugeWorker;
 use Baldinof\RoadRunnerBundle\Worker\GrpcWorker as InternalGrpcWorker;
 use Baldinof\RoadRunnerBundle\Worker\HttpDependencies;
 use Baldinof\RoadRunnerBundle\Worker\HttpWorker as InternalHttpWorker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerRegistry;
 use Baldinof\RoadRunnerBundle\Worker\WorkerRegistryInterface;
 use Psr\Log\LoggerInterface;
+use RoadRunner\Centrifugo\CentrifugoApiInterface;
+use RoadRunner\Centrifugo\CentrifugoWorker;
+use RoadRunner\Centrifugo\Request\RequestFactory;
+use RoadRunner\Centrifugo\RPCCentrifugoApi;
 use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
@@ -31,7 +36,6 @@ use Spiral\RoadRunner\Metrics\Metrics;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
-use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 return static function (ContainerConfigurator $container) {
@@ -40,7 +44,7 @@ return static function (ContainerConfigurator $container) {
 
     $services = $container->services();
 
-    // RoadRuner services
+    // RoadRunner services
     $services->set(EnvironmentInterface::class)
         ->factory([Environment::class, 'fromGlobals']);
 
@@ -123,6 +127,27 @@ return static function (ContainerConfigurator $container) {
             ->call('registerWorker', [
                 Environment\Mode::MODE_GRPC,
                 service(InternalGrpcWorker::class),
+            ]);
+    }
+
+    if (interface_exists(CentrifugoApiInterface::class)) {
+        $services->set(RequestFactory::class);
+        $services->set(CentrifugoWorker::class);
+        $services->set(RPCCentrifugoApi::class);
+
+        $services->set(InternalCentrifugeWorker::class)
+            ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+            ->args([
+                service(LoggerInterface::class),
+                service(CentrifugoWorker::class),
+                service(EventDispatcherInterface::class),
+            ]);
+
+        $services
+            ->get(WorkerRegistryInterface::class)
+            ->call('registerWorker', [
+                Environment\Mode::MODE_CENTRIFUGE,
+                service(InternalCentrifugeWorker::class),
             ]);
     }
 };
