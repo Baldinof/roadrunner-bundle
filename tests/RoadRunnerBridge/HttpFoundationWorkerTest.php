@@ -7,6 +7,7 @@ namespace Tests\Baldinof\RoadRunnerBundle\RoadRunnerBridge;
 use Baldinof\RoadRunnerBundle\Exception\StreamedResponseNotSupportedException;
 use Baldinof\RoadRunnerBundle\Helpers\RoadRunnerConfig;
 use Baldinof\RoadRunnerBundle\Response\NonStreamableBinaryFileResponse;
+use Baldinof\RoadRunnerBundle\Response\StreamableFileResponse;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
@@ -154,7 +155,7 @@ class HttpFoundationWorkerTest extends TestCase
     /**
      * @dataProvider provideResponses
      *
-     * @param Response|(\Closure(): Response)    $sfResponse
+     * @param Response|(\Closure(): Response) $sfResponse
      * @param \Closure<RoadRunnerResponse>: void $expectations
      * @param ?\Closure<\Throwable>: void $exceptionHandler
      */
@@ -206,7 +207,16 @@ class HttpFoundationWorkerTest extends TestCase
         yield 'binary file response' => [
             fn () => new BinaryFileResponse($this->createFile('binary-response.txt', 'hello')),
             function (RoadRunnerResponse $roadRunnerResponse) {
-                $this->assertSame(200, $roadRunnerResponse->status);
+                $this->assertSame(201, $roadRunnerResponse->status);
+                $this->assertSame('', $roadRunnerResponse->content);
+                $this->assertSame($roadRunnerResponse->headers['x-sendfile'][0] ?? null, 'vfs://uploads/binary-response.txt');
+            },
+        ];
+
+        yield 'streamable file response' => [
+            fn () => new StreamableFileResponse($this->createFile('binary-response.txt', 'hello')),
+            function (RoadRunnerResponse $roadRunnerResponse) {
+                $this->assertSame(201, $roadRunnerResponse->status);
                 $this->assertSame('', $roadRunnerResponse->content);
                 $this->assertSame($roadRunnerResponse->headers['x-sendfile'][0] ?? null, 'vfs://uploads/binary-response.txt');
             },
@@ -224,12 +234,12 @@ class HttpFoundationWorkerTest extends TestCase
         yield 'binary file response with content disposition' => [
             fn () => (new BinaryFileResponse($this->createFile('binary-response.txt', 'hello')))
                 ->setContentDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, 'file.txt'),
-            function (RoadRunnerResponse $response) {
-                $this->assertSame(200, $response->status);
-                $this->assertSame('', $response->content);
-                $this->assertSame($response->headers['x-sendfile'][0] ?? null, 'vfs://uploads/binary-response.txt');
-                $this->assertArrayHasKey('content-disposition', $response->headers);
-                $this->assertEquals(['attachment; filename=file.txt'], $response->headers['content-disposition']);
+            function (RoadRunnerResponse $roadRunnerResponse) {
+                $this->assertSame(201, $roadRunnerResponse->status);
+                $this->assertSame('', $roadRunnerResponse->content);
+                $this->assertSame($roadRunnerResponse->headers['x-sendfile'][0] ?? null, 'vfs://uploads/binary-response.txt');
+                $this->assertArrayHasKey('content-disposition', $roadRunnerResponse->headers);
+                $this->assertEquals(['attachment; filename=file.txt'], $roadRunnerResponse->headers['content-disposition']);
             },
         ];
 

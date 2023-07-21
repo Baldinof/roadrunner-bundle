@@ -63,7 +63,10 @@ return static function (ContainerConfigurator $container) {
         ->args([param('kernel.project_dir')]);
 
     $services->set(HttpFoundationWorkerInterface::class, HttpFoundationWorker::class)
-        ->args([service(HttpWorkerInterface::class)]);
+        ->args([
+            service(HttpWorkerInterface::class),
+            service(RoadRunnerConfig::class),
+        ]);
 
     $services->set(WorkerRegistryInterface::class, WorkerRegistry::class)
         ->public();

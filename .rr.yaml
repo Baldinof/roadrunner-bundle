@@ -7,7 +7,7 @@ server:
 
 http:
   address: 0.0.0.0:8080
-  middleware: [ "sendfile", "static", "gzip" ]
+  middleware: [ "sendfile", "gzip", "static" ]
   pool:
     debug: false
   uploads:

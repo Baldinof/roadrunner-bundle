@@ -25,6 +25,7 @@
         "symfony/config": "^6.0",
         "symfony/dependency-injection": "^6.0",
         "symfony/http-kernel": "^6.0",
+        "symfony/mime": "^6.0",
         "symfony/yaml": "^6.0",
         "spiral/roadrunner": "^2023.1.0",
         "spiral/roadrunner-worker": "^3.0.0",

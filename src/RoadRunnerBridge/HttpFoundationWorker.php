@@ -9,6 +9,7 @@ use Baldinof\RoadRunnerBundle\Exception\StreamedResponseNotSupportedException;
 use Baldinof\RoadRunnerBundle\Exception\UnableToReadFileException;
 use Baldinof\RoadRunnerBundle\Helpers\RoadRunnerConfig;
 use Baldinof\RoadRunnerBundle\Response\NonStreamableBinaryFileResponse;
+use Baldinof\RoadRunnerBundle\Response\StreamableFileResponse;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Http\Request as RoadRunnerRequest;
 use Spiral\RoadRunner\WorkerInterface;
@@ -74,9 +75,7 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
                 throw new MissingHttpMiddlewareException(sprintf("You need to enable '%s' http middleware in order to send '%s'. If you do not want to enable this middleware, use '%s' as fallback", RoadRunnerConfig::HTTP_MIDDLEWARE_SENDFILE, $symfonyResponse::class, NonStreamableBinaryFileResponse::class));
             }
 
-            if (!$symfonyResponse->headers->has('x-sendfile')) {
-                $symfonyResponse->headers->set('x-sendfile', $symfonyResponse->getFile()->getPathname());
-            }
+            $symfonyResponse = StreamableFileResponse::fromBinaryFileResponse($symfonyResponse);
         } else {
             $content = (string) $symfonyResponse->getContent();
         }
