@@ -6,6 +6,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
+use Baldinof\RoadRunnerBundle\Helpers\RoadRunnerConfig;
 use Baldinof\RoadRunnerBundle\Helpers\RPCFactory;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
@@ -31,7 +32,6 @@ use Spiral\RoadRunner\Metrics\Metrics;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
-use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 return static function (ContainerConfigurator $container) {
@@ -59,6 +59,9 @@ return static function (ContainerConfigurator $container) {
         ->args([service(RPCInterface::class)]);
 
     // Bundle services
+    $services->set(RoadRunnerConfig::class)
+        ->args([param('kernel.project_dir')]);
+
     $services->set(HttpFoundationWorkerInterface::class, HttpFoundationWorker::class)
         ->args([service(HttpWorkerInterface::class)]);
 

@@ -131,9 +131,14 @@ Start RoadRunner with the dev config file:
 bin/rr serve -c .rr.dev.yaml
 ```
 
-Reference: https://roadrunner.dev/docs/beep-beep-reload
+Reference: https://roadrunner.dev/docs/php-developer/current
 
 If you use the Symfony VarDumper, dumps will not be shown in the HTTP Response body. You can view dumps with `bin/console server:dump` or in the profiler.
+
+## RoadRunner yaml configs
+Bundle expects you to use `.rr.yaml` for `prod` environment and then for others environments it uses `APP_ENV`. For example the `dev` app environment uses `.rr.dev.yaml`
+or `test` would use `.rr.test.yaml`. If you need to use different config naming, set environment variable `RR_CONFIG_NAME`. For example to `.rr.my_custom_name.yaml`.
+You can retrieve current RR config by injecting `Baldinof\RoadRunnerBundle\Helpers\RoadRunnerConfig`, more info inside.
 
 ## Metrics
 Roadrunner can [collect application metrics](https://roadrunner.dev/docs/beep-beep-metrics), and expose a prometheus endpoint.

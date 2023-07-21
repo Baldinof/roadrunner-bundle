@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\RoadRunnerBridge;
 
+use Baldinof\RoadRunnerBundle\Exception\MissingHttpMiddlewareException;
+use Baldinof\RoadRunnerBundle\Exception\StreamedResponseNotSupportedException;
+use Baldinof\RoadRunnerBundle\Exception\UnableToReadFileException;
+use Baldinof\RoadRunnerBundle\Helpers\RoadRunnerConfig;
+use Baldinof\RoadRunnerBundle\Response\NonStreamableBinaryFileResponse;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Http\Request as RoadRunnerRequest;
 use Spiral\RoadRunner\WorkerInterface;
@@ -16,11 +21,13 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 {
     private HttpWorkerInterface $httpWorker;
+    private RoadRunnerConfig $roadRunnerConfig;
     private array $originalServer;
 
-    public function __construct(HttpWorkerInterface $httpWorker)
+    public function __construct(HttpWorkerInterface $httpWorker, RoadRunnerConfig $roadRunnerConfig)
     {
         $this->httpWorker = $httpWorker;
+        $this->roadRunnerConfig = $roadRunnerConfig;
         $this->originalServer = $_SERVER;
     }
 
@@ -37,14 +44,22 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
     public function respond(SymfonyResponse $symfonyResponse): void
     {
-        if ($symfonyResponse instanceof BinaryFileResponse && !$symfonyResponse->headers->has('Content-Range')) {
-            $content = file_get_contents($symfonyResponse->getFile()->getPathname());
-            if ($content === false) {
-                throw new \RuntimeException(sprintf("Cannot read file '%s'", $symfonyResponse->getFile()->getPathname())); // TODO: custom error
+        if ($symfonyResponse instanceof StreamedResponse) {
+            throw new StreamedResponseNotSupportedException($symfonyResponse, $this->roadRunnerConfig->isHttpMiddlewareEnabled(RoadRunnerConfig::HTTP_MIDDLEWARE_SENDFILE));
+        }
+
+        $content = '';
+        if ($symfonyResponse instanceof NonStreamableBinaryFileResponse) {
+            if ($symfonyResponse->headers->has('x-sendfile')) {
+                $symfonyResponse->headers->remove('x-sendfile');
             }
-        } else {
-            if ($symfonyResponse instanceof StreamedResponse || $symfonyResponse instanceof BinaryFileResponse) {
-                $content = '';
+
+            if (!$symfonyResponse->headers->has('Content-Range')) {
+                $content = file_get_contents($symfonyResponse->getFile()->getPathname());
+                if ($content === false) {
+                    throw new UnableToReadFileException($symfonyResponse);
+                }
+            } else {
                 ob_start(function ($buffer) use (&$content) {
                     $content .= $buffer;
 
@@ -53,9 +68,17 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
                 $symfonyResponse->sendContent();
                 ob_end_clean();
-            } else {
-                $content = (string) $symfonyResponse->getContent();
             }
+        } elseif ($symfonyResponse instanceof BinaryFileResponse) {
+            if (!$this->roadRunnerConfig->isHttpMiddlewareEnabled(RoadRunnerConfig::HTTP_MIDDLEWARE_SENDFILE)) {
+                throw new MissingHttpMiddlewareException(sprintf("You need to enable '%s' http middleware in order to send '%s'. If you do not want to enable this middleware, use '%s' as fallback", RoadRunnerConfig::HTTP_MIDDLEWARE_SENDFILE, $symfonyResponse::class, NonStreamableBinaryFileResponse::class));
+            }
+
+            if (!$symfonyResponse->headers->has('x-sendfile')) {
+                $symfonyResponse->headers->set('x-sendfile', $symfonyResponse->getFile()->getPathname());
+            }
+        } else {
+            $content = (string) $symfonyResponse->getContent();
         }
 
         $headers = $this->stringifyHeaders($symfonyResponse->headers->all());

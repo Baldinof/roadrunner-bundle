@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\RoadRunnerBridge;
 
+use Baldinof\RoadRunnerBundle\Exception\StreamedResponseNotSupportedException;
+use Baldinof\RoadRunnerBundle\Helpers\RoadRunnerConfig;
+use Baldinof\RoadRunnerBundle\Response\NonStreamableBinaryFileResponse;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
@@ -40,7 +43,9 @@ class HttpFoundationWorkerTest extends TestCase
         $innerWorker = new MockWorker();
         $innerWorker->nextRequest = $rrRequest;
 
-        $worker = new HttpFoundationWorker($innerWorker);
+        $_ENV['RR_CONFIG_NAME'] = '.rr.dev.yaml'; // load example dev yaml
+
+        $worker = new HttpFoundationWorker($innerWorker, new RoadRunnerConfig(__DIR__.'/../..'));
         $symfonyRequest = $worker->waitRequest();
 
         $expectations($symfonyRequest);
@@ -151,20 +156,31 @@ class HttpFoundationWorkerTest extends TestCase
      *
      * @param Response|(\Closure(): Response)    $sfResponse
      * @param \Closure<RoadRunnerResponse>: void $expectations
+     * @param ?\Closure<\Throwable>: void $exceptionHandler
      */
-    public function test_it_convert_symfony_response_to_roadrunner($sfResponse, \Closure $expectations)
+    public function test_it_convert_symfony_response_to_roadrunner($sfResponse, \Closure $expectations, ?\Closure $exceptionHandler = null)
     {
         $sfResponse = $sfResponse instanceof Response ? $sfResponse : $sfResponse();
 
         $innerWorker = new MockWorker();
 
-        $worker = new HttpFoundationWorker($innerWorker);
+        $_ENV['RR_CONFIG_NAME'] = '.rr.dev.yaml'; // load example dev yaml
 
-        $worker->respond($sfResponse);
+        $worker = new HttpFoundationWorker($innerWorker, new RoadRunnerConfig(__DIR__.'/../..'));
 
-        $this->assertNotNull($innerWorker->responded);
+        try {
+            $worker->respond($sfResponse);
 
-        $expectations($innerWorker->responded);
+            $this->assertNotNull($innerWorker->responded);
+
+            $expectations($innerWorker->responded);
+        } catch (\Throwable $throwable) {
+            if ($exceptionHandler !== null) {
+                $exceptionHandler($throwable);
+            } else {
+                throw $throwable;
+            }
+        }
     }
 
     public function provideResponses()
@@ -191,7 +207,17 @@ class HttpFoundationWorkerTest extends TestCase
             fn () => new BinaryFileResponse($this->createFile('binary-response.txt', 'hello')),
             function (RoadRunnerResponse $roadRunnerResponse) {
                 $this->assertSame(200, $roadRunnerResponse->status);
+                $this->assertSame('', $roadRunnerResponse->content);
+                $this->assertSame($roadRunnerResponse->headers['x-sendfile'][0] ?? null, 'vfs://uploads/binary-response.txt');
+            },
+        ];
+
+        yield 'non-streamable binary file response' => [
+            fn () => new NonStreamableBinaryFileResponse($this->createFile('binary-response.txt', 'hello')),
+            function (RoadRunnerResponse $roadRunnerResponse) {
+                $this->assertSame(200, $roadRunnerResponse->status);
                 $this->assertSame('hello', $roadRunnerResponse->content);
+                $this->assertFalse(isset($roadRunnerResponse->headers['x-sendfile'][0]));
             },
         ];
 
@@ -200,21 +226,24 @@ class HttpFoundationWorkerTest extends TestCase
                 ->setContentDisposition(HeaderUtils::DISPOSITION_ATTACHMENT, 'file.txt'),
             function (RoadRunnerResponse $response) {
                 $this->assertSame(200, $response->status);
-                $this->assertSame('hello', $response->content);
+                $this->assertSame('', $response->content);
+                $this->assertSame($response->headers['x-sendfile'][0] ?? null, 'vfs://uploads/binary-response.txt');
                 $this->assertArrayHasKey('content-disposition', $response->headers);
                 $this->assertEquals(['attachment; filename=file.txt'], $response->headers['content-disposition']);
             },
         ];
 
-        yield 'streamed response' => [
+        yield 'unsupported streamed response' => [
             new StreamedResponse(function () {
                 echo 'hello';
                 echo ' ';
                 echo 'world';
             }),
-            function (RoadRunnerResponse $response) {
-                $this->assertSame(200, $response->status);
-                $this->assertSame('hello world', $response->content);
+            function () {
+                $this->fail(sprintf("'%s' should not be supported", StreamedResponse::class));
+            },
+            function (\Throwable $throwable) {
+                $this->assertSame($throwable::class, StreamedResponseNotSupportedException::class);
             },
         ];
 
@@ -266,7 +295,9 @@ class HttpFoundationWorkerTest extends TestCase
         $innerWorker = new MockWorker();
         $innerWorker->nextRequest = $rrRequest;
 
-        $worker = new HttpFoundationWorker($innerWorker);
+        $_ENV['RR_CONFIG_NAME'] = '.rr.dev.yaml'; // load example dev yaml
+
+        $worker = new HttpFoundationWorker($innerWorker, new RoadRunnerConfig(__DIR__.'/../..'));
         $symfonyRequest = $worker->waitRequest();
 
         $this->assertSame('10.0.0.2', $symfonyRequest->server->get('REMOTE_ADDR'));

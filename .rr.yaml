@@ -7,9 +7,9 @@ server:
 
 http:
   address: 0.0.0.0:8080
+  middleware: [ "sendfile", "static", "gzip" ]
   pool:
     debug: false
-  middleware: [ "static", "gzip" ]
   uploads:
     forbid: [ ".php", ".exe", ".bat" ]
   static:
