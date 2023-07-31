@@ -18,6 +18,7 @@ If you don't use Symfony Flex:
 
 ## Usage
 
+- require the RoadRunner download utility: `composer require --dev spiral/roadrunner-cli`
 - get the RoadRunner binary: `vendor/bin/rr get --location bin/`
 - run RoadRunner with `bin/rr serve` or `bin/rr serve -c .rr.dev.yaml` (watch mode)
 - visit your app at http://localhost:8080

@@ -34,6 +34,7 @@
     },
     "suggest": {
         "nyholm/psr7": "For a super lightweight PSR-7/17 implementation",
+        "spiral/roadrunner-cli": "For easy installation of RoadRunner",
         "symfony/proxy-manager-bridge": "For doctrine re-connection implementation"
     },
     "require-dev": {
