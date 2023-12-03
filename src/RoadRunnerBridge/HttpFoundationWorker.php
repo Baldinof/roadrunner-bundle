@@ -95,6 +95,8 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
         $components = parse_url($request->uri);
 
+        $components["scheme"] = $request->headers["X-Forwarded-Proto"][0] ?? $components["scheme"] ?? null;
+
         if ($components === false) {
             throw new \Exception('Failed to parse RoadRunner request URI');
         }
@@ -121,7 +123,7 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
         $server['REQUEST_TIME'] = $this->timeInt();
         $server['REQUEST_TIME_FLOAT'] = $this->timeFloat();
-        $server['REMOTE_ADDR'] = $request->getRemoteAddr();
+        $server['REMOTE_ADDR'] = $request->headers["X-Forwarded-For"][0] ?? $request->getRemoteAddr();
         $server['REQUEST_METHOD'] = $request->method;
         $server['SERVER_PROTOCOL'] = $request->protocol;
 
