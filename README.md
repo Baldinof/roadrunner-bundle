@@ -112,6 +112,9 @@ baldinof_road_runner:
       max_jobs_dispersion: 0.2
 ```
 
+## StreamedResponse
+
+`$callback` should now return `\Generator` to be really streamed. Replace all `echo` (etc) with `yield`. Fallback simply loads all content to memory!
 
 ## Events
 
