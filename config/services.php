@@ -60,7 +60,10 @@ return static function (ContainerConfigurator $container) {
 
     // Bundle services
     $services->set(HttpFoundationWorkerInterface::class, HttpFoundationWorker::class)
-        ->args([service(HttpWorkerInterface::class)]);
+        ->args([
+            service(HttpWorkerInterface::class),
+            service(KernelRebootStrategyInterface::class),
+        ]);
 
     $services->set(WorkerRegistryInterface::class, WorkerRegistry::class)
         ->public();
