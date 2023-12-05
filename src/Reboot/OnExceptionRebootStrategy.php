@@ -33,7 +33,7 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
 
     public function onException(ExceptionEvent $event): void
     {
-        if ($event->getRequestType() !== HttpKernelInterface::MASTER_REQUEST) {
+        if ($event->getRequestType() !== HttpKernelInterface::MAIN_REQUEST) {
             return;
         }
 

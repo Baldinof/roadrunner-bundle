@@ -55,7 +55,7 @@ final class Runner implements HttpKernelInterface
     ) {
     }
 
-    public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = true): Response
+    public function handle(Request $request, $type = self::MAIN_REQUEST, $catch = true): Response
     {
         if ($this->middlewares->isEmpty()) {
             $gen = $this->handler->handle($request);

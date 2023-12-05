@@ -84,7 +84,7 @@ class OnExceptionRebootStrategyTest extends TestCase
 
     private function dispatchException(\Exception $e)
     {
-        $event = new ExceptionEvent($this->prophesize(KernelInterface::class)->reveal(), new Request(), KernelInterface::MASTER_REQUEST, $e);
+        $event = new ExceptionEvent($this->prophesize(KernelInterface::class)->reveal(), new Request(), KernelInterface::MAIN_REQUEST, $e);
         $this->dispatcher->dispatch($event, KernelEvents::EXCEPTION);
     }
 }

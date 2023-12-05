@@ -17,7 +17,7 @@ class CallableHttpKernel implements HttpKernelInterface
         $this->callable = $callable;
     }
 
-    public function handle(Request $request, int $type = self::MASTER_REQUEST, bool $catch = true): Response
+    public function handle(Request $request, int $type = self::MAIN_REQUEST, bool $catch = true): Response
     {
         return ($this->callable)($request);
     }
