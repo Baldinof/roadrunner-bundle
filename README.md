@@ -70,6 +70,7 @@ baldinof_road_runner:
     kernel_reboot:
       strategy: on_exception
       allowed_exceptions:
+        - Spiral\RoadRunner\Http\Exception\StreamStoppedException
         - Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
         - Symfony\Component\Serializer\Exception\ExceptionInterface
         - App\Exception\YourDomainException
