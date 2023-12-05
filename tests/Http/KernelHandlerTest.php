@@ -107,7 +107,7 @@ class KernelHandlerTest extends TestCase
         return new class($callback) extends CallableHttpKernel implements TerminableInterface {
             public $terminateCalled = false;
 
-            public function terminate(Request $request, Response $response)
+            public function terminate(Request $request, Response $response): void
             {
                 $this->terminateCalled = true;
             }
