@@ -115,7 +115,9 @@ baldinof_road_runner:
 
 ## StreamedResponse
 
-`$callback` should now return `\Generator` to be really streamed. Replace all `echo` (etc) with `yield`. Fallback simply loads all content to memory!
+Replace your `StreamedResponse`s with `Baldinof\RoadRunnerBundle\Http\Response\StreamedResponse`. The only difference is
+that the `$callback` should be a `\Generator`. If you don't, the Symfony's Streamed Response will be loaded completely to memory
+before it's sent! 
 
 ## Events
 

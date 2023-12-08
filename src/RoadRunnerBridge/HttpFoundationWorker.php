@@ -5,28 +5,34 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\RoadRunnerBridge;
 
 use Baldinof\RoadRunnerBundle\Helpers\StreamedJsonResponseHelper;
+use Baldinof\RoadRunnerBundle\Http\Response\StreamedResponse;
 use Spiral\RoadRunner\Http\Exception\StreamStoppedException;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Http\Request as RoadRunnerRequest;
 use Spiral\RoadRunner\WorkerInterface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpFoundation\StreamedJsonResponse;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 {
     private HttpWorkerInterface $httpWorker;
     private array $originalServer;
+    private \Closure $binaryFileResponseParameterExtractor;
 
     public function __construct(HttpWorkerInterface $httpWorker)
     {
         $this->httpWorker = $httpWorker;
         $this->originalServer = $_SERVER;
+
+        $this->binaryFileResponseParameterExtractor = \Closure::bind(static fn(BinaryFileResponse $binaryFileResponse) => [
+            $binaryFileResponse->maxlen,
+            $binaryFileResponse->offset,
+            $binaryFileResponse->chunkSize,
+            $binaryFileResponse->deleteFileAfterSend
+        ], null, BinaryFileResponse::class);
     }
 
     public function waitRequest(): ?SymfonyRequest
@@ -43,15 +49,19 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
     public function respond(SymfonyResponse $response): void
     {
         $content = match (true) {
-            $response instanceof StreamedJsonResponse => $this->createStreamedJsonResponseGenerator($response),
-            $response instanceof StreamedResponse => $this->createStreamedResponseGenerator($response),
+            $response instanceof StreamedJsonResponse => StreamedJsonResponseHelper::toGenerator($response),
+            $response instanceof StreamedResponse => $response->getCallback(),
             $response instanceof BinaryFileResponse => $this->createFileStreamGenerator($response),
             default => $this->createDefaultContentGetter($response),
         };
 
         $headers = $this->stringifyHeaders($response->headers->all());
 
-        $this->httpWorker->respond($response->getStatusCode(), $content(), $headers);
+        try {
+            $this->httpWorker->respond($response->getStatusCode(), $content, $headers);
+        } catch (StreamStoppedException){
+
+        }
     }
 
     public function getWorker(): WorkerInterface
@@ -186,134 +196,67 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
     /**
      * Basically a copy of BinaryFileResponse->sendContent()
      * @param BinaryFileResponse $response
-     * @return \Closure
+     * @return \Generator
      */
-    private function createFileStreamGenerator(BinaryFileResponse $response): \Closure
+    private function createFileStreamGenerator(BinaryFileResponse $response): \Generator
     {
-        return static function () use ($response) {
-            $ref = new \ReflectionClass($response);
-            $maxlen = $ref->getProperty("maxlen")->getValue($response);
-            $offset = $ref->getProperty("offset")->getValue($response);
-            $chunkSize = $ref->getProperty("chunkSize")->getValue($response);
-            $deleteFileAfterSend = $ref->getProperty("deleteFileAfterSend")->getValue($response);
+        $extractor = $this->binaryFileResponseParameterExtractor;
 
-            try {
-                if (!$response->isSuccessful()) {
-                    return;
+        [$maxlen, $offset, $chunkSize, $deleteFileAfterSend] = $extractor($response);
+
+        try {
+            if (!$response->isSuccessful()) {
+                return;
+            }
+
+            $file = fopen($response->getFile()->getPathname(), "r");
+
+            if ($maxlen === 0) {
+                return;
+            }
+
+            if ($offset !== 0) {
+                fseek($file, $offset);
+            }
+
+            $length = $maxlen;
+            while ($length && !feof($file)) {
+                $read = $length > $chunkSize || 0 > $length ? $chunkSize : $length;
+
+                if (false === $data = fread($file, $read)) {
+                    break;
                 }
 
-                $file = fopen($response->getFile()->getPathname(), "r");
-
-                ignore_user_abort(true);
-
-                if ($maxlen === 0) {
-                    return;
-                }
-
-                if ($offset !== 0) {
-                    fseek($file, $offset);
-                }
-
-                $length = $maxlen;
-                while ($length && !feof($file)) {
-                    $read = $length > $chunkSize || 0 > $length ? $chunkSize : $length;
-
-                    if (false === $data = fread($file, $read)) {
-                        break;
+                while ('' !== $data) {
+                    try {
+                        yield $data;
+                    } catch (StreamStoppedException) {
+                        break 2;
                     }
 
-                    while ('' !== $data) {
-                        try {
-                            yield $data;
-                        } catch (StreamStoppedException) {
-                            break 2;
-                        }
-
-                        if (0 < $length) {
-                            $length -= $read;
-                        }
-                        $data = substr($data, $read);
+                    if (0 < $length) {
+                        $length -= $read;
                     }
-                }
-
-                fclose($file);
-            } finally {
-                if ($deleteFileAfterSend && is_file($response->getFile()->getPathname())) {
-                    unlink($response->getFile()->getPathname());
+                    $data = substr($data, $read);
                 }
             }
-        };
+
+            fclose($file);
+        } finally {
+            if ($deleteFileAfterSend && is_file($response->getFile()->getPathname())) {
+                unlink($response->getFile()->getPathname());
+            }
+        }
     }
 
     /**
      * @param SymfonyResponse $response
-     * @return \Closure
+     * @return \Generator
      */
-    private function createDefaultContentGetter(SymfonyResponse $response): \Closure
+    private function createDefaultContentGetter(SymfonyResponse $response): \Generator
     {
-        return static function () use ($response) {
-            ob_start();
-            $response->sendContent();
-            return ob_get_clean();
-        };
-    }
-
-    /**
-     * StreamedResponse callback can now use `yield` to be really streamed
-     * @param StreamedResponse $response
-     * @return \Closure
-     */
-    private function createStreamedResponseGenerator(StreamedResponse $response): \Closure
-    {
-        return function () use ($response): \Generator {
-            $kernelCallback = $response->getCallback();
-
-            $kernelCallbackRef = new \ReflectionFunction($kernelCallback);
-            $closureVars = $kernelCallbackRef->getClosureUsedVariables();
-
-            $ref = new \ReflectionFunction($closureVars["callback"]);
-            if ($ref->isGenerator()) {
-                $request = $closureVars["request"];
-                assert($request instanceof Request);
-
-                $requestStack = $closureVars["requestStack"];
-                assert($requestStack instanceof RequestStack);
-
-                try {
-                    $requestStack->push($request);
-
-                    foreach ($closureVars["callback"]() as $output) {
-                        try {
-                            yield $output;
-                        } catch (StreamStoppedException) {
-                            break;
-                        }
-                    }
-                } finally {
-                    $requestStack->pop();
-                }
-
-                return;
-            }
-
-            yield $this->createDefaultContentGetter($response)();
-        };
-    }
-
-    /**
-     * @param StreamedJsonResponse $response
-     * @return \Closure
-     */
-    private function createStreamedJsonResponseGenerator(StreamedJsonResponse $response): \Closure
-    {
-        return static function () use ($response): \Generator {
-            foreach (StreamedJsonResponseHelper::toGenerator($response) as $item) {
-                try {
-                    yield $item;
-                } catch (StreamStoppedException) {
-                    break;
-                }
-            }
-        };
+        ob_start();
+        $response->sendContent();
+        yield ob_get_clean();
     }
 }

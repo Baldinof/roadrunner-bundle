@@ -8,13 +8,12 @@ use Symfony\Component\HttpFoundation\StreamedJsonResponse;
 // but adds `yield`ing, instead of `echo`s
 class StreamedJsonResponseHelper
 {
+    private static ?\Closure $streamedJsonResponseParameterExtractor = null;
+
     public static function toGenerator(StreamedJsonResponse $response): \Generator
     {
-        $ref = new \ReflectionClass($response);
-
-        $encodingOptions = $ref->getProperty("encodingOptions")->getValue($response);
-        $data = $ref->getProperty("data")->getValue($response);
-        $placeholder = $ref->getConstant("PLACEHOLDER");
+        $placeholder = "__symfony_json__";
+        [$data, $encodingOptions] = self::getStreamedJsonResponseParameterExtractor()($response);
 
         return self::stream($data, $encodingOptions, $placeholder);
     }
@@ -120,5 +119,13 @@ class StreamedJsonResponseHelper
         }
 
         yield '[' === $startTag ? ']' : '}';
+    }
+
+    private static function getStreamedJsonResponseParameterExtractor(): \Closure
+    {
+        return self::$streamedJsonResponseParameterExtractor ?? (self::$streamedJsonResponseParameterExtractor = \Closure::bind(static fn(StreamedJsonResponse $binaryFileResponse) => [
+            $binaryFileResponse->data,
+            $binaryFileResponse->encodingOptions,
+        ], null, StreamedJsonResponse::class));
     }
 }
