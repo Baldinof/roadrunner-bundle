@@ -10,12 +10,12 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class StreamedResponse extends Response
 {
-    protected ?\Closure $callback = null;
+    protected \Closure|null $callback = null;
     protected bool $streamed = false;
 
     private bool $headersSent = false;
 
-    public function __construct(\Generator $callback = null, int $status = 200, array $headers = [])
+    public function __construct(\Closure|\Generator $callback = null, int $status = 200, array $headers = [])
     {
         parent::__construct(null, $status, $headers);
 
@@ -24,14 +24,14 @@ class StreamedResponse extends Response
         }
     }
 
-    public function setCallback(\Generator $callback): static
+    public function setCallback(\Closure|\Generator $callback): static
     {
         $this->callback = $callback(...);
 
         return $this;
     }
 
-    public function getCallback(): ?\Generator
+    public function getCallback(): ?\Closure
     {
         if (!isset($this->callback)) {
             return null;
@@ -65,8 +65,13 @@ class StreamedResponse extends Response
             throw new \LogicException('The Response callback must be set.');
         }
 
-        foreach (($this->callback)() as $value) {
-            echo $value;
+        $callback = ($this->callback)();
+        if($callback instanceof \Generator) {
+            foreach ($callback as $value) {
+                echo $value;
+            }
+        } else {
+            echo $callback;
         }
 
         return $this;
