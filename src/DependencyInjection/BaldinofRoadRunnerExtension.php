@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\DependencyInjection;
 
+use Baldinof\RoadRunnerBundle\Cache\KvCacheAdapter;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\Integration\Blackfire\BlackfireMiddleware;
@@ -22,9 +23,12 @@ use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Sentry\SentryBundle\EventListener\TracingRequestListener;
 use Sentry\State\HubInterface;
+use Spiral\Goridge\RPC\RPC;
 use Spiral\RoadRunner\GRPC\ServiceInterface;
+use Spiral\RoadRunner\KeyValue\Factory;
 use Spiral\RoadRunner\Metrics\Collector;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
+use Symfony\Component\Cache\Adapter\AdapterInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -98,6 +102,10 @@ class BaldinofRoadRunnerExtension extends Extension
 
         if ($config['metrics']['enabled']) {
             $this->configureMetrics($config, $container);
+        }
+
+        if (!empty($config['kv']['storages'])) {
+            $this->configureKv($config, $container);
         }
 
         if (interface_exists(ServiceInterface::class)) {
@@ -174,14 +182,13 @@ class BaldinofRoadRunnerExtension extends Extension
 
             $beforeMiddlewares[] = DoctrineORMMiddleware::class;
         }
-
         $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
     }
 
     private function configureMetrics(array $config, ContainerBuilder $container): void
     {
         if (!interface_exists(MetricsInterface::class)) {
-            throw new LogicException('RoadRunner Metrics support cannot be enabled as the spiral/roadrunner-metrics is not installed. Try running "composer require spiral/roadrunner-metrics".');
+            throw new LogicException('RoadRunner Metrics support cannot be enabled as spiral/roadrunner-metrics is not installed. Try running "composer require spiral/roadrunner-metrics".');
         }
 
         $listenerDef = $container->register(DeclareMetricsListener::class)
@@ -196,6 +203,33 @@ class BaldinofRoadRunnerExtension extends Extension
             $container->setDefinition($id, $def);
 
             $listenerDef->addMethodCall('addCollector', [$name, $metric]);
+        }
+    }
+
+    private function configureKv(array $config, ContainerBuilder $container): void
+    {
+        if (!class_exists(Factory::class)) {
+            throw new LogicException('RoadRunner KV support cannot be enabled as spiral/roadrunner-kv is not installed. Try running "composer require spiral/roadrunner-kv".');
+        }
+
+        if (!class_exists(RPC::class)) {
+            throw new LogicException('RoadRunner KV support cannot be enabled as spiral/goridge is not installed. Try running "composer require spiral/goridge".');
+        }
+
+        if (!interface_exists(AdapterInterface::class)) {
+            throw new LogicException('RoadRunner KV support cannot be enabled as symfony/cache is not installed. Try running "composer require symfony/cache".');
+        }
+
+        $rpcDsn = $config['kv']['rpc_dsn'];
+        $storages = $config['kv']['storages'];
+
+        foreach ($storages as $storage) {
+            $container->register('cache.adapter.roadrunner.kv_'.$storage, KvCacheAdapter::class)
+                ->setFactory([KvCacheAdapter::class, 'createConnection'])
+                ->setArguments(['', [ // Symfony overrides the first argument with the DSN, so we pass an empty string
+                    'rpc_dsn' => $rpcDsn,
+                    'storage' => $storage,
+                ]]);
         }
     }
 }

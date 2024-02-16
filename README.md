@@ -217,6 +217,50 @@ class Calculator implements CalculatorInterface
 }
 ```
 
+## KV caching
+
+Roadrunner has a KV (Key-Value) plugin that can be used to cache data between requests. 
+
+To use it, refer to the configuration reference at https://roadrunner.dev/docs/kv-overview. 
+This requires the `spiral/roadrunner-kv`, `spiral/goridge` and `symfony/cache` composer dependencies. Basic configuration example:
+
+Example configuration:
+
+```yaml
+# config/packages/baldinof_road_runner.yaml
+baldinof_road_runner:
+  kv:
+    rpc_dsn: tcp://127.0.0.1:6001 # Default value
+    storages:
+      - example
+```
+
+And configure RoadRunner:
+
+```yaml
+# .rr.yaml
+rpc:
+  listen: tcp://127.0.0.1:6001
+
+kv:
+  example:
+    driver: memory
+    config: { }
+```
+
+An adapter service will now be created automatically for your storage with the name `cache.adapter.roadrunner.kv_<YOUR_STORAGE_NAME>`.
+
+Basic usage example:
+
+```yaml
+# config/packages/cache.yaml
+framework:
+  cache:
+    pools:
+      cache.example:
+        adapter: cache.adapter.roadrunner.kv_example
+```
+
 ## Usage with Docker
 
 ```Dockerfile
