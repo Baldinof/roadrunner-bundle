@@ -219,14 +219,8 @@ class BaldinofRoadRunnerBundleTest extends TestCase
             ],
             'framework' => [
                 'cache' => [
-                    'pools' => [
-                        'cache.foo' => [
-                            'adapter' => 'cache.adapter.roadrunner.kv_foo',
-                        ],
-                        'cache.bar' => [
-                            'adapter' => 'cache.adapter.roadrunner.kv_bar',
-                        ],
-                    ],
+                    'app' => 'cache.adapter.roadrunner.kv_foo',
+                    'system' => 'cache.adapter.roadrunner.kv_bar',
                 ],
             ],
         ]);
@@ -237,8 +231,8 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
         $c = $k->getContainer()->get('test.service_container');
 
-        $this->assertInstanceOf(KvCacheAdapter::class, $c->get('cache.foo'));
-        $this->assertInstanceOf(KvCacheAdapter::class, $c->get('cache.bar'));
+        $this->assertInstanceOf(KvCacheAdapter::class, $c->get('cache.app'));
+        $this->assertInstanceOf(KvCacheAdapter::class, $c->get('cache.system'));
     }
 
     /**
