@@ -75,7 +75,7 @@ final class DoctrineORMMiddleware implements MiddlewareInterface
                 continue; // Doctrine bundle will handle manager reset on next request
             }
 
-            if ($manager instanceof LazyObjectInterface) {
+            if (class_exists(LazyObjectInterface::class) && $manager instanceof LazyObjectInterface) {
                 continue; // Doctrine bundle will handle manager reset on next request
             }
 

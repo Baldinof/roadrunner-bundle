@@ -53,7 +53,8 @@
         "symfony/runtime": "^6.0 || ^7.0",
         "symfony/var-exporter": "^6.0 || ^7.0",
         "laminas/laminas-zendframework-bridge": "^1.4",
-        "spiral/roadrunner-grpc": "^3.0.0"
+        "spiral/roadrunner-grpc": "^3.0.0",
+        "spiral/roadrunner-kv": "^4.0"
     },
     "conflict": {
         "doctrine/doctrine-bundle": "<2.1.1",

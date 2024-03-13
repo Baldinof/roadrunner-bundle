@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Baldinof\RoadRunnerBundle;
 
 use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
+use Baldinof\RoadRunnerBundle\Cache\KvCacheAdapter;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
@@ -206,6 +207,32 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $this->assertCount(2, $strategies);
         $this->assertInstanceOf(OnExceptionRebootStrategy::class, $strategies[0]);
         $this->assertInstanceOf(MaxJobsRebootStrategy::class, $strategies[1]);
+    }
+
+    public function test_kv_can_be_configured()
+    {
+        $k = $this->getKernel([
+            'baldinof_road_runner' => [
+                'kv' => [
+                    'storages' => ['foo', 'bar'],
+                ],
+            ],
+            'framework' => [
+                'cache' => [
+                    'app' => 'cache.adapter.roadrunner.kv_foo',
+                    'system' => 'cache.adapter.roadrunner.kv_bar',
+                ],
+            ],
+        ]);
+
+        $_SERVER['RR_RPC'] = 'tcp://localhost:6001'; // Allow RPCFactory to work
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertInstanceOf(KvCacheAdapter::class, $c->get('cache.app'));
+        $this->assertInstanceOf(KvCacheAdapter::class, $c->get('cache.system'));
     }
 
     /**
