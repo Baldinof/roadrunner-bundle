@@ -223,7 +223,7 @@ class Calculator implements CalculatorInterface
 # Dockerfile
 FROM php:8.1-alpine
 
-RUN apk add --no-cache autoconf openssl-dev g++ make pcre-dev icu-dev zlib-dev libzip-dev && \
+RUN apk add --no-cache linux-headers autoconf openssl-dev g++ make pcre-dev icu-dev zlib-dev libzip-dev && \
     docker-php-ext-install bcmath intl opcache zip sockets && \
     apk del --purge autoconf g++ make
 
