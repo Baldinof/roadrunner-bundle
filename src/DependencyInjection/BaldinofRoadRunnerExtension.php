@@ -24,6 +24,7 @@ use Psr\Log\LoggerInterface;
 use Sentry\SentryBundle\EventListener\TracingRequestListener;
 use Sentry\State\HubInterface;
 use Spiral\Goridge\RPC\RPC;
+use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Spiral\RoadRunner\KeyValue\Factory;
 use Spiral\RoadRunner\Metrics\Collector;
@@ -220,14 +221,13 @@ class BaldinofRoadRunnerExtension extends Extension
             throw new LogicException('RoadRunner KV support cannot be enabled as symfony/cache is not installed. Try running "composer require symfony/cache".');
         }
 
-        $rpcDsn = $config['kv']['rpc_dsn'];
         $storages = $config['kv']['storages'];
 
         foreach ($storages as $storage) {
             $container->register('cache.adapter.roadrunner.kv_'.$storage, KvCacheAdapter::class)
                 ->setFactory([KvCacheAdapter::class, 'createConnection'])
                 ->setArguments(['', [ // Symfony overrides the first argument with the DSN, so we pass an empty string
-                    'rpc_dsn' => $rpcDsn,
+                    'rpc' => $container->getDefinition(RPCInterface::class),
                     'storage' => $storage,
                 ]]);
         }

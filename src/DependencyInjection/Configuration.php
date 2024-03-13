@@ -94,7 +94,6 @@ class Configuration implements ConfigurationInterface
                 ->arrayNode('kv')
                     ->addDefaultsIfNotSet()
                     ->children()
-                        ->scalarNode('rpc_dsn')->defaultValue('tcp://127.0.0.1:6001')->end()
                         ->arrayNode('storages')
                             ->defaultValue([])
                             ->scalarPrototype()->end()

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Baldinof\RoadRunnerBundle;
 
 use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
+use Baldinof\RoadRunnerBundle\Cache\KvCacheAdapter;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
@@ -22,6 +23,7 @@ use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Kernel;
@@ -208,18 +210,46 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $this->assertInstanceOf(MaxJobsRebootStrategy::class, $strategies[1]);
     }
 
+    public function test_kv_can_be_configured()
+    {
+        $k = $this->getKernel([
+            'baldinof_road_runner' => [
+                'kv' => [
+                    'storages' => ['foo', 'bar'],
+                ],
+            ],
+        ], [], function (ContainerBuilder $c) {
+            $c->register('kv_test')
+                ->setSynthetic(true)
+                ->setArguments([
+                    new Reference('cache.adapter.roadrunner.kv_foo'),
+                    new Reference('cache.adapter.roadrunner.kv_bar'),
+                ]);
+        });
+
+        $_SERVER['RR_RPC'] = 'tcp://localhost:6001'; // Allow RPCFactory to work
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertInstanceOf(KvCacheAdapter::class, $c->get('cache.adapter.roadrunner.kv_foo'));
+        $this->assertInstanceOf(KvCacheAdapter::class, $c->get('cache.adapter.roadrunner.kv_bar'));
+    }
+
     /**
      * @param BundleInterface[] $extraBundles
      */
-    public function getKernel(array $config = [], array $extraBundles = []): KernelInterface
+    public function getKernel(array $config = [], array $extraBundles = [], ?callable $configureContainerCallable = null): KernelInterface
     {
-        return new class('test', true, $config, $extraBundles) extends Kernel {
+        return new class('test', true, $config, $extraBundles, $configureContainerCallable) extends Kernel {
             use MicroKernelTrait;
 
             private $config;
             private $extraBundles;
+            private $configureContainerCallable;
 
-            public function __construct(string $env, bool $debug, array $config, array $extraBundles)
+            public function __construct(string $env, bool $debug, array $config, array $extraBundles, ?callable $configureContainerCallable)
             {
                 (new Filesystem())->remove(__DIR__.'/__cache');
 
@@ -227,6 +257,7 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
                 $this->config = $config;
                 $this->extraBundles = $extraBundles;
+                $this->configureContainerCallable = $configureContainerCallable;
             }
 
             public function getCacheDir(): string
@@ -261,6 +292,10 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
                 foreach ($this->config as $key => $config) {
                     $c->loadFromExtension($key, $config);
+                }
+
+                if ($this->configureContainerCallable) {
+                    ($this->configureContainerCallable)($c);
                 }
             }
         };

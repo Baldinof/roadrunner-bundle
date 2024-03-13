@@ -230,7 +230,6 @@ Example configuration:
 # config/packages/baldinof_road_runner.yaml
 baldinof_road_runner:
   kv:
-    rpc_dsn: tcp://127.0.0.1:6001 # Default value
     storages:
       - example
 ```
