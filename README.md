@@ -70,6 +70,7 @@ baldinof_road_runner:
     kernel_reboot:
       strategy: on_exception
       allowed_exceptions:
+        - Spiral\RoadRunner\Http\Exception\StreamStoppedException
         - Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
         - Symfony\Component\Serializer\Exception\ExceptionInterface
         - App\Exception\YourDomainException
@@ -112,6 +113,11 @@ baldinof_road_runner:
       max_jobs_dispersion: 0.2
 ```
 
+## StreamedResponse
+
+Replace your `StreamedResponse`s with `Baldinof\RoadRunnerBundle\Http\Response\StreamedResponse`. The only difference is
+that the `$callback` should be a `\Generator`. If you don't, the Symfony's Streamed Response will be loaded completely to memory
+before it's sent! 
 
 ## Events
 
