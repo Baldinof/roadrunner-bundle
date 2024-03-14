@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\RoadRunnerBridge;
 
+use Baldinof\RoadRunnerBundle\Http\StreamedResponse;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Http\Request as RoadRunnerRequest;
 use Spiral\RoadRunner\WorkerInterface;
@@ -11,7 +12,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse as SymfonyStreamedResponse;
 
 final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 {
@@ -42,8 +43,10 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
             if ($content === false) {
                 throw new \RuntimeException(sprintf("Cannot read file '%s'", $symfonyResponse->getFile()->getPathname())); // TODO: custom error
             }
-        } else {
-            if ($symfonyResponse instanceof StreamedResponse || $symfonyResponse instanceof BinaryFileResponse) {
+        } elseif ($symfonyResponse instanceof SymfonyStreamedResponse || $symfonyResponse instanceof BinaryFileResponse) {
+            if ($symfonyResponse instanceof StreamedResponse) {
+                $content = $symfonyResponse->getGenerator();
+            } else {
                 $content = '';
                 ob_start(function ($buffer) use (&$content) {
                     $content .= $buffer;
@@ -53,9 +56,9 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
                 $symfonyResponse->sendContent();
                 ob_end_clean();
-            } else {
-                $content = (string) $symfonyResponse->getContent();
             }
+        } else {
+            $content = (string) $symfonyResponse->getContent();
         }
 
         $headers = $this->stringifyHeaders($symfonyResponse->headers->all());
