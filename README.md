@@ -113,7 +113,7 @@ baldinof_road_runner:
 ```
 
 
-## Events
+## HTTP worker Events
 
 The following events are dispatched throughout the worker lifecycle:
 
@@ -177,11 +177,147 @@ class YouController
 }
 ```
 
+## Centrifuge.js (websocket)
+Bundle supports Centrifuge websocket plugin for RoadRunner 2 using Symfony's
+event system. Configuration reference can be found at https://roadrunner.dev/docs/plugins-centrifuge.
+By default, worker will answer with empty/default corresponding responses for each Centrifuge websocket request.
+Every request type can be found at `Baldinof\RoadRunnerBundle\Event\Centrifuge` namespace. Be aware that you are bypassing
+a lot of Symfony's security checks, remember, this is not a HttpWorker
+
+Example usage
+
+```yaml
+service:
+  centrifuge:
+    command: "./bin/centrifuge --config=centrifuge.json" # you need to download the bin/centrifuge, just follow reference configuration link from RoadRunner docs
+    process_num: 1
+    remain_after_exit: true
+    service_name_in_log: true
+    restart_sec: 1
+
+centrifuge:
+  proxy_address: "tcp://127.0.0.1:10001"
+  grpc_api_address: "tcp://127.0.0.1:10000"
+  pool:
+    reset_timeout: 10
+    num_workers: 1
+    max_jobs: 1
+
+# centrifuge requires rpc plugin
+rpc:
+  listen: tcp://127.0.0.1:6001
+```
+
+centrifuge.json (in project root)
+```json5
+{
+  "allowed_origins": [
+    "*"
+  ],
+  "publish": true,
+  "proxy_publish": true,
+  "proxy_subscribe": true,
+  "proxy_connect": true,
+  "allow_subscribe_for_client": true,
+  "address": "127.0.0.1",  // use  0.0.0.0 if you are running RR in docker
+  "grpc_api": true,
+  "grpc_api_address": "127.0.0.1",  // use  0.0.0.0 if you are running RR in docker
+  "grpc_api_port": 10000,
+  "port": 8081, // exposed centrifuge port
+  "proxy_connect_endpoint": "grpc://127.0.0.1:10001",
+  "proxy_connect_timeout": "10s",
+  "proxy_publish_endpoint": "grpc://127.0.0.1:10001",
+  "proxy_publish_timeout": "10s",
+  "proxy_subscribe_endpoint": "grpc://127.0.0.1:10001",
+  "proxy_subscribe_timeout": "10s",
+  "proxy_refresh_endpoint": "grpc://127.0.0.1:10001",
+  "proxy_refresh_timeout": "10s",
+  "proxy_rpc_endpoint": "grpc://127.0.0.1:10001",
+  "proxy_rpc_timeout": "10s"
+}
+```
+
+docker-compose.yaml
+```yaml
+services:
+  app:
+    ports:
+      - "8080:8080" # your RoadRunner port
+      - "8081:8081" # centrifuge port
+```
+
+ConnectListener.php
+```php
+<?php
+
+namespace App\EventListener\Centrifuge;
+
+use App\Entity\User;
+use App\Repository\UserRepository;
+use Baldinof\RoadRunnerBundle\Event\Centrifuge\ConnectEvent;
+use RoadRunner\Centrifugo\Payload\ConnectResponse;
+use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
+use Symfony\Component\HttpFoundation\Response;
+
+#[AsEventListener]
+readonly class ConnectListener
+{
+    public function __construct(private UserRepository $userRepository)
+    {
+    }
+
+    public function __invoke(ConnectEvent $event): void
+    {
+        $token = $event->getRequest()->getData()["token"] ?? null;
+        if ($token === null) {
+            $event->getRequest()->disconnect(Response::HTTP_FORBIDDEN, 'Missing user "token"');
+            $event->stopPropagation();
+            return;
+        }
+
+        $user = $this->userRepository->findOneBy(["token" => $token]);
+        if ($user === null) {
+            $event->getRequest()->disconnect(Response::HTTP_UNAUTHORIZED, 'Invalid user "token"');
+            $event->stopPropagation();
+            return;
+        }
+
+        $event->setResponse(new ConnectResponse(
+            user: $user->getId(),
+            channels: ["my_global_channel"],
+        ));
+    }
+}
+```
+
+publishing messages programmatically can be done by injecting `RoadRunner\Centrifugo\RPCCentrifugoApi`
+```php
+
+namespace App\Services;
+
+use RoadRunner\Centrifugo\RPCCentrifugoApi;
+
+readonly class MyService
+{
+    public function __construct(private RPCCentrifugoApi $centrifugoApi)
+    {
+    }
+
+    public function doSomething(): void
+    {
+        $this->centrifugoApi->publish("my_global_channel", json_encode([
+            "data" => "to_send",
+        ]));
+    }
+}
+```
+
+
 ## gRPC
 
 gRPC support was added by the roadrunner-grpc plugin for RoadRunner 2 (https://github.com/spiral/roadrunner-grpc).
 
-To configure Roadrunner for gRPC, refer to the configuration reference at https://roadrunner.dev/docs/beep-beep-grpc. Basic configuration example:
+To configure Roadrunner for gRPC, refer to the configuration reference at https://roadrunner.dev/docs/plugins-grpc/current. Basic configuration example:
 
 ```yaml
 server:
