@@ -9,19 +9,41 @@ use Spiral\RoadRunner\Http\Request as RoadRunnerRequest;
 use Spiral\RoadRunner\WorkerInterface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 {
     private HttpWorkerInterface $httpWorker;
     private array $originalServer;
+    private array $trustedHeaders;
 
-    public function __construct(HttpWorkerInterface $httpWorker)
+    public function __construct(
+        HttpWorkerInterface $httpWorker,
+        KernelInterface $kernel
+    )
     {
         $this->httpWorker = $httpWorker;
         $this->originalServer = $_SERVER;
+
+        $container = $kernel->getContainer();
+        if ($container->hasParameter('kernel.trusted_proxies') && $container->hasParameter('kernel.trusted_headers')) {
+            $trustedHeaders = $container->getParameter('kernel.trusted_headers');
+
+            $headerNames = [];
+
+            if ($trustedHeaders & Request::HEADER_X_FORWARDED_FOR) {
+                $headerNames[] = 'x-forwarded-for';
+            }
+            if ($trustedHeaders & Request::HEADER_X_FORWARDED_PROTO) {
+                $headerNames[] = 'x-forwarded-proto';
+            }
+
+            $this->trustedHeaders = $headerNames;
+        }
     }
 
     public function waitRequest(): ?SymfonyRequest
@@ -95,6 +117,12 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
         $components = parse_url($request->uri);
 
+        $scheme = $components["scheme"] ?? null;
+        if(isset($request->headers["X-Forwarded-Proto"][0]) && in_array("x-forwarded-proto", $this->trustedHeaders, true)) {
+            $scheme = $request->headers["X-Forwarded-Proto"][0];
+        }
+        $components["scheme"] = $scheme;
+
         if ($components === false) {
             throw new \Exception('Failed to parse RoadRunner request URI');
         }
@@ -121,7 +149,13 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
         $server['REQUEST_TIME'] = $this->timeInt();
         $server['REQUEST_TIME_FLOAT'] = $this->timeFloat();
-        $server['REMOTE_ADDR'] = $request->getRemoteAddr();
+
+        $remoteAddr = $request->getRemoteAddr();
+        if(isset($request->headers["X-Forwarded-For"][0]) && in_array("x-forwarded-for", $this->trustedHeaders, true)) {
+            $remoteAddr = $request->headers["X-Forwarded-For"][0];
+        }
+        $server['REMOTE_ADDR'] = $remoteAddr;
+
         $server['REQUEST_METHOD'] = $request->method;
         $server['SERVER_PROTOCOL'] = $request->protocol;
 
