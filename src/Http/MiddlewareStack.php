@@ -13,7 +13,7 @@ use function Baldinof\RoadRunnerBundle\consumes;
 /**
  * @internal
  */
-final class MiddlewareStack
+final class MiddlewareStack implements RequestHandlerInterface
 {
     public function __construct(
         private RequestHandlerInterface $kernelHandler,
