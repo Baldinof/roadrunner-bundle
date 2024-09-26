@@ -310,6 +310,17 @@ class BaldinofRoadRunnerExtension extends Extension
             return $workers[0] ?? null;
         };
 
+        $registerServiceArray = function (array $services) use ($container): array {
+            return array_map(function (string $id) use ($container): Reference {
+                if (!$container->hasDefinition($id)) {
+                    $container->register($id)
+                        ->setAutoconfigured(true)
+                        ->setAutowired(true);
+                }
+                return new Reference($id);
+            }, $services);
+        };
+
         $container->registerAttributeForAutoconfiguration(
             WorkflowInterface::class,
             /** @phpstan-ignore-next-line */
@@ -335,18 +346,8 @@ class BaldinofRoadRunnerExtension extends Extension
             }
         );
 
-        $converters = $config['data_converters'] ?? [];
-
-        foreach ($converters as $converter) {
-            if ($container->hasDefinition($converter)) {
-                continue;
-            }
-            $container->register($converter)
-                ->setAutoconfigured(true)
-                ->setAutowired(true);
-        }
         $container->register(DataConverter::class, DataConverter::class)
-            ->setArguments(array_map(fn($id): Reference => new Reference($id), $converters));
+            ->setArguments($registerServiceArray($config['data_converters'] ?? null));
         $container->setAlias('temporal.data_converter', DataConverter::class);
         $container->setAlias(DataConverterInterface::class, 'temporal.data_converter');
 
@@ -375,7 +376,7 @@ class BaldinofRoadRunnerExtension extends Extension
 
             $container->register("temporal.client.{$name}.interceptors", SimplePipelineProvider::class)
                 ->setArguments([
-                    array_map(static fn($id): Reference => new Reference($id), $options['interceptors'] ?? []),
+                    $registerServiceArray($options['interceptors'] ?? []),
                 ]);
 
             $container->register("temporal.client.{$name}.factory", ClientFactory::class)
@@ -416,7 +417,7 @@ class BaldinofRoadRunnerExtension extends Extension
         foreach ($config['workers'] as $name => $options) {
             $container->register("temporal.worker.{$name}.interceptors", SimplePipelineProvider::class)
                 ->setArguments([
-                    array_map(static fn($id): Reference => new Reference($id), $options['interceptors'] ?? []),
+                    $registerServiceArray($options['interceptors'] ?? []),
                 ]);
 
             $container->register("temporal.worker.{$name}.option", WorkerOptions::class)

@@ -74,7 +74,7 @@ final class TemporalWorker implements WorkerInterface
             if ($name === $workerName) {
                 continue;
             }
-            $worker->registerActivity($$activity::class, fn() => $activity);
+            $worker->registerActivity($activity::class, fn() => $activity);
         }
     }
 
