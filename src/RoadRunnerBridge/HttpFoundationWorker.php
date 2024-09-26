@@ -40,7 +40,7 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
         if ($symfonyResponse instanceof BinaryFileResponse && !$symfonyResponse->headers->has('Content-Range')) {
             $content = file_get_contents($symfonyResponse->getFile()->getPathname());
             if ($content === false) {
-                throw new \RuntimeException(sprintf("Cannot read file '%s'", $symfonyResponse->getFile()->getPathname())); // TODO: custom error
+                throw new \RuntimeException(\sprintf("Cannot read file '%s'", $symfonyResponse->getFile()->getPathname())); // TODO: custom error
             }
         } else {
             if ($symfonyResponse instanceof StreamedResponse || $symfonyResponse instanceof BinaryFileResponse) {

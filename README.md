@@ -93,7 +93,7 @@ baldinof_road_runner:
     kernel_reboot:
       strategy: max_jobs
       max_jobs: 1000 # maximum number of request
-      max_jobs_dispersion: 0.2 # dispersion 20% used to prevent simultaneous reboot of all active workers (kernel will rebooted between 800 and 1000 requests) 
+      max_jobs_dispersion: 0.2 # dispersion 20% used to prevent simultaneous reboot of all active workers (kernel will rebooted between 800 and 1000 requests)
 ```
 
 You can combine reboot strategies:
@@ -219,9 +219,9 @@ class Calculator implements CalculatorInterface
 
 ## KV caching
 
-Roadrunner has a KV (Key-Value) plugin that can be used to cache data between requests. 
+Roadrunner has a KV (Key-Value) plugin that can be used to cache data between requests.
 
-To use it, refer to the configuration reference at https://roadrunner.dev/docs/kv-overview. 
+To use it, refer to the configuration reference at https://roadrunner.dev/docs/kv-overview.
 This requires the `spiral/roadrunner-kv`, `spiral/goridge` and `symfony/cache` composer dependencies. Basic configuration example:
 
 Example configuration:
@@ -258,6 +258,141 @@ framework:
     pools:
       cache.example:
         adapter: cache.adapter.roadrunner.kv_example
+```
+
+## Temporal Integration
+
+Ability to serve temporal request from roadrunner and provide temporal client.
+
+To enable integration, please install `ext-grpc` and `temporal/sdk`
+
+```bash
+composer require temporal/sdk
+```
+
+Complete list of configuration
+
+```yaml
+baldinof_road_runner:
+    temporal:
+        data_converters:
+            - Temporal\DataConverter\NullConverter
+            - Temporal\DataConverter\BinaryConverter
+            - Temporal\DataConverter\ProtoJsonConverter
+            - Temporal\DataConverter\JsonConverter
+        default_client: default
+        clients:
+            default:
+                namespace: default
+                address: 'localhost:7233'
+                crt: <string>
+                client_key: <string>
+                client_pem: <sstring>
+                override_server_name: <string>
+                identity: <string>
+                interceptors: {  } # array of service id
+                query_reject_condition: <enum>
+        workers:
+            default:
+                queue: default
+                exception_interceptor: temporal.exception_interceptor
+                optons:
+                    max_concurrent_activity_execution_size: <int>
+                    worker_activities_per_second: <float>
+                    max_concurrent_local_activity_execution_size: <int>
+                    worker_local_activities_per_second: <int>
+                    task_queue_activities_per_second: <int>
+                    max_concurrent_activity_task_pollers: <int>
+                    max_concurrent_workflow_task_execution_size: <int>
+                    max_concurrent_workflow_task_pollers: <int>
+                    sticky_schedule_to_start_timeout: <int>
+                    worker_stop_timeout: <int>
+                    enable_session_worker: <bool>
+                    session_resource_id: <string>
+                    max_concurrent_session_execution_size: <int>
+                interceptors: {  } # array of service id
+```
+
+To register worflow and actvity you just need to tag actual class with `#[WorkflowInterface]` and `#[ActivityInterface]`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Temporal;
+
+use Temporal\Activity\ActivityOptions;
+use Temporal\Workflow;
+use Temporal\Workflow\WorkflowInterface;
+use Temporal\Workflow\WorkflowMethod;
+
+#[WorkflowInterface]
+class ExampleWorkflow
+{
+    /**
+     * @var ExampleActivity
+     */
+    private $exampleActivity;
+
+    public function __construct()
+    {
+        $this->exampleActivity = Workflow::newActivityStub(
+            ExampleActivity::class,
+            ActivityOptions::new()->withStartToCloseTimeout(2000)
+        );
+    }
+
+    #[WorkflowMethod]
+    public function greet(string $name): \Generator
+    {
+        return yield $this->exampleActivity->composeGreet($name);
+    }
+}
+```
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Temporal;
+
+use App\Service\MyService;
+use Temporal\Activity\ActivityInterface;
+use Temporal\Activity\ActivityMethod;
+
+#[ActivityInterface]
+class ExampleActivity
+{
+    public function __construct(private MyService $myService)
+    {
+    }
+
+    #[ActivityMethod]
+    public function composeGreet(string $name): string
+    {
+        return "Hello {$name}!";
+    }
+}
+```
+
+Any known dependency in `Activity` constructor will be injected automatically, otherwise you have to cosntruct by hand.
+
+To use temporal default temporal client that listed in config you can type `WorkflowClientInterface` in constructor
+
+```php
+final class Example
+{
+    public function __constructor(private readonly WorkflowClientInterface $workflowClient)
+    {}
+}
+```
+
+Or if you need other client you can retireve it via containter
+
+```php
+$container->get('temporal.client.{$name}')
 ```
 
 ## Usage with Docker

@@ -31,8 +31,9 @@ use Spiral\RoadRunner\Metrics\Metrics;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
-use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Temporal\Exception\ExceptionInterceptor;
+use Temporal\Workflow\WorkflowInterface;
 
 return static function (ContainerConfigurator $container) {
     $container->parameters()
@@ -124,5 +125,10 @@ return static function (ContainerConfigurator $container) {
                 Environment\Mode::MODE_GRPC,
                 service(InternalGrpcWorker::class),
             ]);
+    }
+
+    if (class_exists(WorkflowInterface::class)) {
+        $services->set('temporal.exception_interceptor', ExceptionInterceptor::class)
+            ->factory([ExceptionInterceptor::class, 'createDefault']);
     }
 };

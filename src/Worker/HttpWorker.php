@@ -40,7 +40,7 @@ final class HttpWorker implements WorkerInterface
     public function __construct(
         KernelInterface $kernel,
         LoggerInterface $logger,
-        HttpFoundationWorkerInterface $httpFoundationWorker
+        HttpFoundationWorkerInterface $httpFoundationWorker,
     ) {
         $this->kernel = $kernel;
         $this->logger = $logger;

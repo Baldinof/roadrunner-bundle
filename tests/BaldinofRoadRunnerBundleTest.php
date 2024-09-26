@@ -15,9 +15,12 @@ use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\MaxJobsRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
+use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
+use Baldinof\RoadRunnerBundle\Worker\WorkerRegistryInterface;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use PHPUnit\Framework\TestCase;
 use Sentry\SentryBundle\SentryBundle;
+use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
@@ -28,6 +31,7 @@ use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Routing\RouteCollectionBuilder;
+use Temporal\Client\WorkflowClientInterface;
 
 class BaldinofRoadRunnerBundleTest extends TestCase
 {
@@ -233,6 +237,18 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
         $this->assertInstanceOf(KvCacheAdapter::class, $c->get('cache.app'));
         $this->assertInstanceOf(KvCacheAdapter::class, $c->get('cache.system'));
+    }
+
+    public function test_temporal_can_be_configured()
+    {
+        $k = $this->getKernel([]);
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+
+        $registry = $c->get(WorkerRegistryInterface::class);
+        $this->assertInstanceOf(TemporalWorker::class, $registry->getWorker(Environment\Mode::MODE_TEMPORAL));
+        $this->assertInstanceOf(WorkflowClientInterface::class, $c->get(WorkflowClientInterface::class));
     }
 
     /**

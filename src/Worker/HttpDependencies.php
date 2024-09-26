@@ -21,7 +21,7 @@ final class HttpDependencies
     public function __construct(
         private MiddlewareStack $requestHandler,
         private KernelRebootStrategyInterface $kernelRebootStrategy,
-        private EventDispatcherInterface $eventDispatcher
+        private EventDispatcherInterface $eventDispatcher,
     ) {
     }
 

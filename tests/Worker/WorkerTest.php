@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 
-use AllowDynamicProperties;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
@@ -87,7 +86,7 @@ class WorkerTest extends TestCase
             }
         };
 
-        $kernelBootStrategyClass = new class() implements KernelRebootStrategyInterface {
+        $kernelBootStrategyClass = new class implements KernelRebootStrategyInterface {
             public function shouldReboot(): bool
             {
                 return WorkerTest::$rebootStrategyReturns;

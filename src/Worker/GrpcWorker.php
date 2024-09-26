@@ -9,8 +9,6 @@ use Psr\Log\LoggerInterface;
 use Spiral\RoadRunner\GRPC\Server;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 
-use function sprintf;
-
 /**
  * @internal
  */
@@ -20,7 +18,7 @@ final class GrpcWorker implements WorkerInterface
         private LoggerInterface $logger,
         private RoadRunnerWorker $roadRunnerWorker,
         private GrpcServiceProvider $grpcServiceProvider,
-        private Server $server
+        private Server $server,
     ) {
     }
 
@@ -28,7 +26,7 @@ final class GrpcWorker implements WorkerInterface
     {
         foreach ($this->grpcServiceProvider->getRegisteredServices() as $interface => $service) {
             $this->logger->debug(
-                sprintf(
+                \sprintf(
                     'Registering GRPC service for \'%s\' from \'%s\'',
                     $interface,
                     \get_class($service),

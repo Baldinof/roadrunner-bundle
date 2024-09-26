@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['8.1', '8.2']
+        php-versions: ['8.1', '8.2', '8.3']
         composer:
           - {name: "lowest", flags: " --prefer-dist --prefer-lowest"}
           - {name: "stable", flags: " --prefer-dist --prefer-stable"}
@@ -22,7 +22,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php-versions }}'
-          extensions: mbstring,intl,mongodb-mongodb/mongo-php-driver@master
+          extensions: mbstring,intl,grpc,mongodb-mongodb/mongo-php-driver@master
           tools: composer:v2
       - name: Install dependencies
         run: |
@@ -38,7 +38,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['8.1', '8.2']
+        php-versions: ['8.1', '8.2', '8.3']
         composer:
           - {name: "lowest", flags: " --prefer-dist --prefer-lowest"}
           - {name: "stable", flags: " --prefer-dist --prefer-stable"}

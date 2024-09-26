@@ -35,7 +35,8 @@
     "suggest": {
         "nyholm/psr7": "For a super lightweight PSR-7/17 implementation",
         "spiral/roadrunner-cli": "For easy installation of RoadRunner",
-        "symfony/proxy-manager-bridge": "For doctrine re-connection implementation"
+        "symfony/proxy-manager-bridge": "For doctrine re-connection implementation",
+        "ext-grpc": "Required when use temporal feature"
     },
     "require-dev": {
         "symfony/var-dumper": "^6.0 || ^7.0",
@@ -54,7 +55,8 @@
         "symfony/var-exporter": "^6.0 || ^7.0",
         "laminas/laminas-zendframework-bridge": "^1.4",
         "spiral/roadrunner-grpc": "^3.0.0",
-        "spiral/roadrunner-kv": "^4.0"
+        "spiral/roadrunner-kv": "^4.0",
+        "temporal/sdk": "^2.10"
     },
     "conflict": {
         "doctrine/doctrine-bundle": "<2.1.1",

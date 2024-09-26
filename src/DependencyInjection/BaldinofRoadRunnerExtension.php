@@ -19,18 +19,29 @@ use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\MaxJobsRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
+use Baldinof\RoadRunnerBundle\Temporal\Attributes\AssignToWorker;
+use Baldinof\RoadRunnerBundle\Temporal\ClientFactory;
+use Baldinof\RoadRunnerBundle\Temporal\ClientOptionsFactory;
+use Baldinof\RoadRunnerBundle\Temporal\ConnectionFactory;
+use Baldinof\RoadRunnerBundle\Temporal\WorkerFactory;
+use Baldinof\RoadRunnerBundle\Temporal\WorkerOptionsFactory;
+use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
+use Baldinof\RoadRunnerBundle\Worker\WorkerRegistryInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use FTP\Connection;
 use Psr\Log\LoggerInterface;
 use Sentry\SentryBundle\EventListener\TracingRequestListener;
 use Sentry\State\HubInterface;
 use Spiral\Goridge\RPC\RPC;
 use Spiral\Goridge\RPC\RPCInterface;
+use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Spiral\RoadRunner\KeyValue\Factory;
 use Spiral\RoadRunner\Metrics\Collector;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Component\Cache\Adapter\AdapterInterface;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
@@ -39,6 +50,16 @@ use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Temporal\Activity\ActivityInterface;
+use Temporal\Client\ClientOptions;
+use Temporal\Client\WorkflowClient;
+use Temporal\Client\WorkflowClientInterface;
+use Temporal\DataConverter\DataConverter;
+use Temporal\DataConverter\DataConverterInterface;
+use Temporal\Interceptor\SimplePipelineProvider;
+use Temporal\Worker\WorkerOptions;
+use Temporal\WorkerFactory as TemporalWorkerFactory;
+use Temporal\Workflow\WorkflowInterface;
 
 class BaldinofRoadRunnerExtension extends Extension
 {
@@ -52,7 +73,7 @@ class BaldinofRoadRunnerExtension extends Extension
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
-        $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../../config'));
+        $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
         $loader->load('services.php');
 
         if ($container->getParameter('kernel.debug')) {
@@ -113,6 +134,10 @@ class BaldinofRoadRunnerExtension extends Extension
             $container->registerForAutoconfiguration(ServiceInterface::class)
                 ->addTag('baldinof.roadrunner.grpc_service');
         }
+
+        if (interface_exists(WorkflowClientInterface::class) && class_exists(WorkflowInterface::class)) {
+            $this->configureTemporal($config, $container);
+        }
     }
 
     private function loadDebug(ContainerBuilder $container): void
@@ -157,7 +182,7 @@ class BaldinofRoadRunnerExtension extends Extension
                 ->register(SentryTracingRequestListenerDecorator::class)
                 ->setDecoratedService(TracingRequestListener::class, null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
                 ->setArguments([
-                    new Reference(SentryTracingRequestListenerDecorator::class.'.inner'),
+                    new Reference(SentryTracingRequestListenerDecorator::class . '.inner'),
                     new Reference(HubInterface::class),
                 ]);
 
@@ -224,12 +249,160 @@ class BaldinofRoadRunnerExtension extends Extension
         $storages = $config['kv']['storages'];
 
         foreach ($storages as $storage) {
-            $container->register('cache.adapter.roadrunner.kv_'.$storage, KvCacheAdapter::class)
+            $container->register('cache.adapter.roadrunner.kv_' . $storage, KvCacheAdapter::class)
                 ->setFactory([KvCacheAdapter::class, 'createConnection'])
-                ->setArguments(['', [ // Symfony overrides the first argument with the DSN, so we pass an empty string
-                    'rpc' => $container->getDefinition(RPCInterface::class),
-                    'storage' => $storage,
-                ]]);
+                ->setArguments([
+                    '',
+                    [ // Symfony overrides the first argument with the DSN, so we pass an empty string
+                        'rpc' => $container->getDefinition(RPCInterface::class),
+                        'storage' => $storage,
+                    ],
+                ]);
         }
+    }
+
+    private function configureTemporal(array $config, ContainerBuilder $container): void
+    {
+        $container->setParameter('temporal.config', $config['temporal']);
+        $config = $config['temporal'];
+
+        $workerAssignmentAttrExtractor = function (\ReflectionClass $class): ?string {
+            $workers = array_map(function (\ReflectionAttribute $attr): ?string {
+                return $attr->newInstance()->workerName;
+            }, $class->getAttributes(AssignToWorker::class));
+
+            return $workers[0] ?? null;
+        };
+
+        $registerServiceArray = function (array $services) use ($container): array {
+            return array_map(function (string $id) use ($container): Reference {
+                if (!$container->hasDefinition($id)) {
+                    $container->register($id)
+                        ->setAutoconfigured(true)
+                        ->setAutowired(true);
+                }
+                return new Reference($id);
+            }, $services);
+        };
+
+        $container->registerAttributeForAutoconfiguration(
+            WorkflowInterface::class,
+            /** @phpstan-ignore-next-line */
+            function (ChildDefinition $defintion, WorkflowInterface $attribute, \ReflectionClass $reflection) use ($workerAssignmentAttrExtractor): void {
+                $defintion->addTag(
+                    'temporal.workflows',
+                    ['worker_name' => $workerAssignmentAttrExtractor($reflection)]
+                );
+            }
+        );
+
+        $container->registerAttributeForAutoconfiguration(
+            ActivityInterface::class,
+            /** @phpstan-ignore-next-line */
+            function (ChildDefinition $defintion, ActivityInterface $attribute, \ReflectionClass $reflection) use ($workerAssignmentAttrExtractor): void {
+                $defintion->addTag(
+                    'temporal.activities',
+                    [
+                        'worker_name' => $workerAssignmentAttrExtractor($reflection),
+                        'prefix' => $attribute->prefix,
+                    ]
+                );
+            }
+        );
+
+        $container->register(DataConverter::class, DataConverter::class)
+            ->setArguments($registerServiceArray($config['data_converters'] ?? null));
+        $container->setAlias('temporal.data_converter', DataConverter::class);
+        $container->setAlias(DataConverterInterface::class, 'temporal.data_converter');
+
+        foreach ($config['clients'] as $name => $options) {
+            $container->register("temporal.client.{$name}.connection", Connection::class)
+                ->setFactory([ConnectionFactory::class, 'createFromArray'])
+                ->setArguments([
+                    '$options' => [
+                        'address' => $options['address'],
+                        'crt' => $options['client_key'] ?? null,
+                        'client_key' => $options['client_key'] ?? null,
+                        'client_pem' => $options['client_pem'] ?? null,
+                        'override_server_name' => $options['override_server_name'] ?? null,
+                    ],
+                ]);
+
+            $container->register("temporal.client.{$name}.option", ClientOptions::class)
+                ->setFactory([ClientOptionsFactory::class, 'createFromArray'])
+                ->setArguments([
+                    '$options' => [
+                        'namespace' => $options['namespace'],
+                        'identity' => $options['identity'] ?? null,
+                        'query_reject_condition' => $options['query_reject_condition'] ?? null,
+                    ],
+                ]);
+
+            $container->register("temporal.client.{$name}.interceptors", SimplePipelineProvider::class)
+                ->setArguments([
+                    $registerServiceArray($options['interceptors'] ?? []),
+                ]);
+
+            $container->register("temporal.client.{$name}.factory", ClientFactory::class)
+                ->setArguments([
+                    '$dataConverter' => new Reference('temporal.data_converter'),
+                    '$clientOptions' => new Reference("temporal.client.{$name}.option"),
+                    '$interceptors' => new Reference("temporal.client.{$name}.interceptors"),
+                    '$connection' => new Reference("temporal.client.{$name}.connection"),
+                ]);
+            $container->register("temporal.client.{$name}", WorkflowClient::class)
+                ->setFactory([new Reference("temporal.client.{$name}.factory"), '__invoke'])
+                ->setAutoconfigured(true)
+                ->setPublic(true)
+                ->setAutowired(true);
+        }
+
+        if (!$container->hasDefinition("temporal.client.{$config['default_client']}")) {
+            throw new \InvalidArgumentException(\sprintf('%s not found in service container', "temporal.client.{$config['default_client']}"));
+        }
+        $container->setAlias(WorkflowClientInterface::class, "temporal.client.{$config['default_client']}");
+
+        $container->register(WorkerFactory::class, WorkerFactory::class)
+            ->setArguments([new Reference(DataConverterInterface::class)])
+            ->setAutoconfigured(true)
+            ->setAutowired(true);
+
+        $container->register(TemporalWorkerFactory::class)
+            ->setFactory([
+                new Reference(WorkerFactory::class),
+                '__invoke',
+            ]);
+
+        $temporalWorker = $container->register(TemporalWorker::class, TemporalWorker::class)
+            ->setArguments([
+                new Reference(TemporalWorkerFactory::class),
+            ]);
+
+        foreach ($config['workers'] as $name => $options) {
+            $container->register("temporal.worker.{$name}.interceptors", SimplePipelineProvider::class)
+                ->setArguments([
+                    $registerServiceArray($options['interceptors'] ?? []),
+                ]);
+
+            $container->register("temporal.worker.{$name}.option", WorkerOptions::class)
+                ->setFactory([WorkerOptionsFactory::class, 'createFromArray'])
+                ->setArguments([
+                    '$options' => $options['options'] ?? [],
+                ]);
+
+            $temporalWorker->addMethodCall('addWorker', [
+                $name,
+                $options['queue'],
+                new Reference("temporal.worker.{$name}.interceptors"),
+                new Reference($options['exception_interceptor']),
+                new Reference("temporal.worker.{$name}.option"),
+            ]);
+        }
+
+        $workerRegistry = $container->findDefinition(WorkerRegistryInterface::class);
+        $workerRegistry->addMethodCall('registerWorker', [
+            Environment\Mode::MODE_TEMPORAL,
+            new Reference(TemporalWorker::class),
+        ]);
     }
 }

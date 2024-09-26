@@ -8,6 +8,11 @@ use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
+use Temporal\Api\Enums\V1\QueryRejectCondition;
+use Temporal\DataConverter\BinaryConverter;
+use Temporal\DataConverter\JsonConverter;
+use Temporal\DataConverter\NullConverter;
+use Temporal\DataConverter\ProtoJsonConverter;
 
 class Configuration implements ConfigurationInterface
 {
@@ -29,7 +34,7 @@ class Configuration implements ConfigurationInterface
                     ->addDefaultsIfNotSet()
                     ->children()
                         ->arrayNode('strategy')
-                            ->info(sprintf(
+                            ->info(\sprintf(
                                 'Possible values are "%s", "%s", "%s" or any service that implements "%s"/',
                                 self::KERNEL_REBOOT_STRATEGY_ALWAYS,
                                 self::KERNEL_REBOOT_STRATEGY_ON_EXCEPTION,
@@ -97,6 +102,102 @@ class Configuration implements ConfigurationInterface
                         ->arrayNode('storages')
                             ->defaultValue([])
                             ->scalarPrototype()->end()
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('temporal')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->arrayNode('data_converters')
+                            ->defaultValue([
+                                NullConverter::class,
+                                BinaryConverter::class,
+                                ProtoJsonConverter::class,
+                                JsonConverter::class,
+                            ])->scalarPrototype()->end()
+                        ->end()
+                        ->scalarNode('default_client')->defaultValue('default')->isRequired()->end()
+                        ->arrayNode('clients')
+                            ->defaultValue([
+                                'default' => [
+                                    'namespace' => 'default',
+                                    'address' => 'localhost:7233',
+                                ],
+                            ])
+                            ->useAttributeAsKey('name')
+                            ->arrayPrototype()
+                                ->addDefaultsIfNotSet()
+                                ->children()
+                                    ->scalarNode('address')->defaultValue('localhost:7233')->cannotBeEmpty()->end()
+                                    ->scalarNode('namespace')->defaultValue('default')->cannotBeEmpty()->end()
+                                    ->scalarNode('crt')->end()
+                                    ->scalarNode('client_key')->end()
+                                    ->scalarNode('client_pem')->end()
+                                    ->scalarNode('override_server_name')->end()
+                                    ->scalarNode('identity')->end()
+                                    ->arrayNode('interceptors')
+                                            ->defaultValue([])
+                                            ->scalarPrototype()->end()
+                                    ->end()
+                                    ->enumNode('query_reject_condition')
+                                        ->values([
+                                            QueryRejectCondition::QUERY_REJECT_CONDITION_UNSPECIFIED,
+                                            QueryRejectCondition::QUERY_REJECT_CONDITION_NONE,
+                                            QueryRejectCondition::QUERY_REJECT_CONDITION_NOT_OPEN,
+                                            QueryRejectCondition::QUERY_REJECT_CONDITION_NOT_COMPLETED_CLEANLY,
+                                        ])
+                                        ->validate()
+                                            ->ifNotInArray([
+                                                QueryRejectCondition::QUERY_REJECT_CONDITION_UNSPECIFIED,
+                                                QueryRejectCondition::QUERY_REJECT_CONDITION_NONE,
+                                                QueryRejectCondition::QUERY_REJECT_CONDITION_NOT_OPEN,
+                                                QueryRejectCondition::QUERY_REJECT_CONDITION_NOT_COMPLETED_CLEANLY,
+                                            ])
+                                            ->thenInvalid(\sprintf('"queryRejectionCondition" value is not in the enum: %s', QueryRejectCondition::class))
+                                        ->end()
+                                    ->end()
+                                ->end()
+                            ->end()
+                        ->end()
+                        ->arrayNode('workers')
+                            ->defaultValue([
+                                'default' => [
+                                    'queue' => 'default',
+                                    'exception_interceptor' => 'temporal.exception_interceptor',
+                                    'optons' => [],
+                                    'interceptors' => [],
+                                ],
+                            ])
+                            ->useAttributeAsKey('name')
+                            ->arrayPrototype()
+                                ->addDefaultsIfNotSet()
+                                ->children()
+                                    ->scalarNode('queue')->defaultValue('default')->end()
+                                    ->scalarNode('exception_interceptor')->defaultValue('temporal.exception_interceptor')->end()
+                                    ->arrayNode('options')
+                                        ->addDefaultsIfNotSet()
+                                        ->children()
+                                            ->integerNode('max_concurrent_activity_execution_size')->defaultValue(1)->end()
+                                            ->floatNode('worker_activities_per_second')->defaultValue(1)->end()
+                                            ->integerNode('max_concurrent_local_activity_execution_size')->defaultValue(0)->end()
+                                            ->floatNode('worker_local_activities_per_second')->defaultValue(1)->end()
+                                            ->floatNode('task_queue_activities_per_second')->defaultValue(1)->end()
+                                            ->integerNode('max_concurrent_activity_task_pollers')->defaultValue(5)->end()
+                                            ->integerNode('max_concurrent_workflow_task_execution_size')->defaultValue(0)->end()
+                                            ->integerNode('max_concurrent_workflow_task_pollers')->defaultValue(1)->end()
+                                            ->integerNode('sticky_schedule_to_start_timeout')->defaultValue(5)->end()
+                                            ->integerNode('worker_stop_timeout')->defaultValue(5)->end()
+                                            ->booleanNode('enable_session_worker')->defaultFalse()->end()
+                                            ->scalarNode('session_resource_id')->defaultNull()->end()
+                                            ->integerNode('max_concurrent_session_execution_size')->defaultValue(0)->end()
+                                        ->end()
+                                    ->end()
+                                    ->arrayNode('interceptors')
+                                        ->defaultValue([])
+                                        ->scalarPrototype()->end()
+                                    ->end()
+                                ->end()
+                            ->end()
                         ->end()
                     ->end()
                 ->end()

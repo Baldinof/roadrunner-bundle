@@ -34,9 +34,6 @@ final class DoctrineORMMiddleware implements MiddlewareInterface
         $this->eventDispatcher = $eventDispatcher;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function process(Request $request, HttpKernelInterface $next): \Iterator
     {
         $connectionServices = $this->managerRegistry->getConnectionNames();
