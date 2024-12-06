@@ -29,7 +29,7 @@ final class HttpWorker implements WorkerInterface
     private HttpFoundationWorkerInterface $httpFoundationWorker;
 
     private array $trustedProxies = [];
-    private int $trustedHeaders = 0;
+    private int $trustedHeaderSet = 0;
     private bool $shouldRedeclareTrustedProxies = false;
 
     /**
@@ -52,12 +52,28 @@ final class HttpWorker implements WorkerInterface
         $dependencies = $container->get(HttpDependencies::class);
         $this->dependencies = $dependencies;
 
-        if ($container->hasParameter('kernel.trusted_proxies') && $container->hasParameter('kernel.trusted_headers')) {
-            $trustedProxies = $container->getParameter('kernel.trusted_proxies');
+        if ($container->hasParameter('kernel.trusted_proxies') && $container->hasParameter('kernel.trusted_headers') && $trustedProxies = $container->getParameter('kernel.trusted_proxies')) {
             $trustedHeaders = $container->getParameter('kernel.trusted_headers');
 
-            if (!\is_int($trustedHeaders)) {
-                throw new \InvalidArgumentException('Parameter "kernel.trusted_headers" must be an integer');
+            if (\is_string($trustedHeaders)) {
+                $trustedHeaders = array_map('trim', explode(',', $trustedHeaders));
+            }
+
+            if (\is_array($trustedHeaders)) {
+                $trustedHeaderSet = 0;
+
+                foreach ($trustedHeaders as $header) {
+                    if (!\defined($const = Request::class.'::HEADER_'.strtr(strtoupper($header), '-', '_'))) {
+                        throw new \InvalidArgumentException(sprintf('The trusted header "%s" is not supported.', $header));
+                    }
+                    $trustedHeaderSet |= \constant($const);
+                }
+            } else {
+                $trustedHeaderSet = $trustedHeaders ?? (Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO);
+            }
+
+            if (!\is_int($trustedHeaderSet)) {
+                throw new \UnexpectedValueException(sprintf('Unexpected type "%s" of trusted header', \gettype($trustedHeaderSet)));
             }
 
             if (!\is_string($trustedProxies) && !\is_array($trustedProxies)) {
@@ -65,7 +81,7 @@ final class HttpWorker implements WorkerInterface
             }
 
             $this->trustedProxies = \is_array($trustedProxies) ? $trustedProxies : array_map('trim', explode(',', $trustedProxies));
-            $this->trustedHeaders = $trustedHeaders;
+            $this->trustedHeaderSet = $trustedHeaderSet;
         }
 
         $this->shouldRedeclareTrustedProxies = \in_array('REMOTE_ADDR', $this->trustedProxies, true);
@@ -92,7 +108,7 @@ final class HttpWorker implements WorkerInterface
 
         while ($request = $this->httpFoundationWorker->waitRequest()) {
             if ($this->shouldRedeclareTrustedProxies) {
-                Request::setTrustedProxies($this->trustedProxies, $this->trustedHeaders);
+                Request::setTrustedProxies($this->trustedProxies, $this->trustedHeaderSet);
             }
 
             $sent = false;
