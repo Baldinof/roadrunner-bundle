@@ -108,6 +108,7 @@ final class HttpWorker implements WorkerInterface
 
         while ($request = $this->httpFoundationWorker->waitRequest()) {
             if ($this->shouldRedeclareTrustedProxies) {
+                \assert(0 <= $this->trustedHeaderSet && 64 > $this->trustedHeaderSet);
                 Request::setTrustedProxies($this->trustedProxies, $this->trustedHeaderSet);
             }
 
