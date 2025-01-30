@@ -19,8 +19,6 @@ final class InvocationHandler implements RequestHandlerInterface
 
     public function handle(GrpcRequest $request): \Iterator
     {
-        $grpcResponse = $this->invoker->invoke($request->getService(), $request->getMethod(), $request->getContext(), $request->getInput());
-
-        yield $grpcResponse;
+        yield $this->invoker->invoke($request->getService(), $request->getMethod(), $request->getContext(), $request->getInput());
     }
 }

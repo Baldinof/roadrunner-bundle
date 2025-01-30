@@ -17,6 +17,7 @@ use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 final class GrpcInvoker implements InvokerInterface
 {
@@ -70,6 +71,10 @@ final class GrpcInvoker implements InvokerInterface
 
             $this->dependencies = $deps;
             $this->dependencies->getEventDispatcher()->dispatch(new WorkerKernelRebootedEvent());
+        } elseif ($this->kernel->getContainer()->has('services_resetter')) {
+            /** @var ResetInterface $resetter */
+            $resetter = $this->kernel->getContainer()->get('services_resetter');
+            $resetter->reset();
         }
 
         $this->dependencies->getKernelRebootStrategy()->clear();
