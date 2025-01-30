@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\Integration\Doctrine;
 
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
-use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
+use Baldinof\RoadRunnerBundle\Grpc\MiddlewareInterface as GrpcMiddlewareInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface as HttpMiddlewareInterface;
+use Baldinof\RoadRunnerBundle\RoadRunnerBridge\GrpcRequest;
+use Baldinof\RoadRunnerBundle\RoadRunnerBridge\GrpcRequestInvokerInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException; // for dbal 2.x
 use Doctrine\DBAL\Exception;
@@ -19,7 +22,7 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\VarExporter\LazyObjectInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
-final class DoctrineORMMiddleware implements MiddlewareInterface
+final class DoctrineORMMiddleware implements HttpMiddlewareInterface, GrpcMiddlewareInterface
 {
     private ManagerRegistry $managerRegistry;
     private ContainerInterface $container;
@@ -39,6 +42,24 @@ final class DoctrineORMMiddleware implements MiddlewareInterface
      */
     public function process(Request $request, HttpKernelInterface $next): \Iterator
     {
+        $this->preRequest();
+
+        yield $next->handle($request);
+
+        $this->postResponse();
+    }
+
+    public function processInvocation(GrpcRequest $invocation, GrpcRequestInvokerInterface $next): \Iterator
+    {
+        $this->preRequest();
+
+        yield $next->invoke($invocation);
+
+        $this->postResponse();
+    }
+
+    private function preRequest(): void
+    {
         $connectionServices = $this->managerRegistry->getConnectionNames();
 
         foreach ($connectionServices as $connectionServiceName) {
@@ -50,17 +71,23 @@ final class DoctrineORMMiddleware implements MiddlewareInterface
 
             \assert($connection instanceof Connection);
 
-            if ($connection->isConnected() && false === $this->ping($connection)) {
+            if ($connection->isConnected() && false === $this->ping(
+                $connection
+            )) {
                 $connection->close();
 
-                $this->logger->debug('Doctrine connection was not re-usable, it has been closed', [
-                    'connection_name' => $connectionServiceName,
-                ]);
+                $this->logger->debug(
+                    'Doctrine connection was not re-usable, it has been closed',
+                    [
+                        'connection_name' => $connectionServiceName,
+                    ]
+                );
             }
         }
+    }
 
-        yield $next->handle($request);
-
+    private function postResponse(): void
+    {
         $managerNames = $this->managerRegistry->getManagerNames();
 
         foreach ($managerNames as $managerName) {

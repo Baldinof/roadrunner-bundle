@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Integration\Blackfire;
 
-use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface as HttpMiddlewareInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
-final class BlackfireMiddleware implements MiddlewareInterface
+final class BlackfireMiddleware implements HttpMiddlewareInterface
 {
     public function process(Request $request, HttpKernelInterface $next): \Generator
     {
