@@ -48,8 +48,6 @@ final class GrpcInvoker implements InvokerInterface
         /** @var string $response */
         $response = $gen->current();
 
-        // TODO: other stuff?
-
         return $response;
     }
 
