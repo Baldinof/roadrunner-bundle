@@ -71,17 +71,12 @@ final class DoctrineORMMiddleware implements MiddlewareInterface, InterceptorInt
 
             \assert($connection instanceof Connection);
 
-            if ($connection->isConnected() && false === $this->ping(
-                $connection
-            )) {
+            if ($connection->isConnected() && false === $this->ping($connection)) {
                 $connection->close();
 
-                $this->logger->debug(
-                    'Doctrine connection was not re-usable, it has been closed',
-                    [
+                $this->logger->debug('Doctrine connection was not re-usable, it has been closed', [
                         'connection_name' => $connectionServiceName,
-                    ]
-                );
+                ]);
             }
         }
     }
