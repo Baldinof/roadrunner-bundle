@@ -98,6 +98,9 @@ class BaldinofRoadRunnerExtension extends Extension
         }
 
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
+        if (interface_exists(ServiceInterface::class)) {
+            $container->setParameter('baldinof_road_runner.interceptors', $config['interceptors']);
+        }
 
         $this->loadIntegrations($container, $config);
 
@@ -128,9 +131,14 @@ class BaldinofRoadRunnerExtension extends Extension
     {
         $beforeMiddlewares = [];
         $lastMiddlewares = [];
+        $beforeInterceptors = [];
+        $afterInterceptors = [];
 
         if (!$config['default_integrations']) {
             $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
+            if (interface_exists(ServiceInterface::class)) {
+                $container->setParameter('baldinof_road_runner.interceptors.default', ['before' => $beforeInterceptors, 'after' => $afterInterceptors]);
+            }
 
             return;
         }
@@ -162,6 +170,7 @@ class BaldinofRoadRunnerExtension extends Extension
                 ]);
 
             $beforeMiddlewares[] = SentryMiddleware::class;
+            $beforeInterceptors[] = SentryMiddleware::class;
         }
 
         if (isset($bundles['DoctrineMongoDBBundle'])) {
@@ -182,8 +191,12 @@ class BaldinofRoadRunnerExtension extends Extension
             ;
 
             $beforeMiddlewares[] = DoctrineORMMiddleware::class;
+            $beforeInterceptors[] = DoctrineORMMiddleware::class;
         }
         $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
+        if (interface_exists(ServiceInterface::class)) {
+            $container->setParameter('baldinof_road_runner.interceptors.default', ['before' => $beforeInterceptors, 'after' => $afterInterceptors]);
+        }
     }
 
     private function configureMetrics(array $config, ContainerBuilder $container): void

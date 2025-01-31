@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
+use Baldinof\RoadRunnerBundle\Grpc\GrpcRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
-use Baldinof\RoadRunnerBundle\Grpc\InvocationHandler;
-use Baldinof\RoadRunnerBundle\Grpc\MiddlewareStack as GrpcMiddlewareStack;
-use Baldinof\RoadRunnerBundle\Grpc\RequestHandlerInterface as GrpcRequestHandlerInterface;
+use Baldinof\RoadRunnerBundle\Grpc\InterceptorStack;
+use Baldinof\RoadRunnerBundle\Grpc\InvocationHandlerGrpc;
 use Baldinof\RoadRunnerBundle\Helpers\RPCFactory;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
-use Baldinof\RoadRunnerBundle\Http\MiddlewareStack as HttpMiddlewareStack;
-use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface as HttpRequestHandlerInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
+use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
@@ -87,7 +87,7 @@ return static function (ContainerConfigurator $container) {
     $services->set(HttpDependencies::class)
         ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
         ->args([
-            service(HttpMiddlewareStack::class),
+            service(MiddlewareStack::class),
             service(KernelRebootStrategyInterface::class),
             service(EventDispatcherInterface::class),
         ]);
@@ -97,10 +97,10 @@ return static function (ContainerConfigurator $container) {
             service('kernel'),
         ]);
 
-    $services->set(HttpMiddlewareStack::class)
+    $services->set(MiddlewareStack::class)
         ->args([service(KernelHandler::class)]);
 
-    $services->alias(HttpRequestHandlerInterface::class, HttpMiddlewareStack::class);
+    $services->alias(RequestHandlerInterface::class, MiddlewareStack::class);
 
     if (interface_exists(GrpcServiceInterface::class)) {
         $services->set(GrpcServiceProvider::class);
@@ -109,20 +109,20 @@ return static function (ContainerConfigurator $container) {
         $services->set(GrpcDependencies::class)
             ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
             ->args([
-                service(GrpcMiddlewareStack::class),
+                service(InterceptorStack::class),
                 service(KernelRebootStrategyInterface::class),
                 service(EventDispatcherInterface::class),
             ]);
 
-        $services->set(InvocationHandler::class)
+        $services->set(InvocationHandlerGrpc::class)
             ->args([
                 service(GrpcInvoker::class),
             ]);
 
-        $services->set(GrpcMiddlewareStack::class)
-            ->args([service(InvocationHandler::class)]);
+        $services->set(InterceptorStack::class)
+            ->args([service(InvocationHandlerGrpc::class)]);
 
-        $services->alias(GrpcRequestHandlerInterface::class, GrpcMiddlewareStack::class);
+        $services->alias(GrpcRequestHandlerInterface::class, InterceptorStack::class);
 
         $services->set(InternalGrpcInvoker::class)
             ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])

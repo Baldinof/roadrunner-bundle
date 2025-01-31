@@ -10,7 +10,7 @@ use Spiral\RoadRunner\GRPC\InvokerInterface;
 /**
  * @internal
  */
-final class InvocationHandler implements RequestHandlerInterface
+final class InvocationHandlerGrpc implements GrpcRequestHandlerInterface
 {
     public function __construct(
         private readonly InvokerInterface $invoker,

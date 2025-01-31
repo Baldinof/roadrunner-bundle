@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass;
 
-use Baldinof\RoadRunnerBundle\Grpc\MiddlewareInterface as GrpcMiddlewareInterface;
-use Baldinof\RoadRunnerBundle\Grpc\MiddlewareStack as GrpcMiddlewareStack;
-use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface as HttpMiddlewareInterface;
-use Baldinof\RoadRunnerBundle\Http\MiddlewareStack as HttpMiddlewareStack;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
@@ -18,14 +16,14 @@ class MiddlewareCompilerPass implements CompilerPassInterface
 {
     public function process(ContainerBuilder $container): void
     {
-        $hasHttp = $container->hasDefinition(HttpMiddlewareStack::class);
-        $hasGrpc = $container->hasDefinition(GrpcMiddlewareStack::class);
-        if (!($hasHttp || $hasGrpc)) {
+        if (!$container->hasDefinition(MiddlewareStack::class)) {
             return;
         }
 
+        $stack = $container->getDefinition(MiddlewareStack::class);
+
         /** @var string[] */
-        $confMiddlewares = $container->getParameter('baldinof_road_runner.middlewares');
+        $middlewares = $container->getParameter('baldinof_road_runner.middlewares');
         /** @var array{before: string[], after: string[]} */
         $defaultMiddlewares = $container->getParameter('baldinof_road_runner.middlewares.default');
 
@@ -33,8 +31,8 @@ class MiddlewareCompilerPass implements CompilerPassInterface
 
         $beforeMiddlewares = array_diff($defaultMiddlewares['before'], $middlewaresToRemove);
         $afterMiddlewares = array_diff($defaultMiddlewares['after'], $middlewaresToRemove);
-        $middlewares = array_merge($beforeMiddlewares, $confMiddlewares, $afterMiddlewares);
-        foreach ($middlewares as $m) {
+
+        foreach (array_merge($beforeMiddlewares, $middlewares, $afterMiddlewares) as $m) {
             if (!$container->has($m)) {
                 throw new LogicException("No service found for middleware '$m'.");
             }
@@ -45,45 +43,11 @@ class MiddlewareCompilerPass implements CompilerPassInterface
             if (null === $class) {
                 throw new InvalidArgumentException("Missing class definition for service '$m'.");
             }
-            $isHttp = $hasHttp && is_a($class, HttpMiddlewareInterface::class, true);
-            $isGrpc = $hasGrpc && is_a($class, GrpcMiddlewareInterface::class, true);
-            if (!$isHttp && !$isGrpc) {
-                throw new InvalidArgumentException(sprintf("Service '%s' should implements either '%s' or '%s'.", $m, HttpMiddlewareInterface::class, GrpcMiddlewareInterface::class));
-            }
-            if ($isHttp) {
-                $httpMiddlewares[] = $m;
-            }
-            if ($isGrpc) {
-                $grpcMiddlewares[] = $m;
-            }
-        }
 
-        if ($hasHttp) {
-            $this->processHttp($container, $httpMiddlewares ?? []);
-        }
-        if ($hasGrpc) {
-            $this->processGrpc($container, $grpcMiddlewares ?? []);
-        }
-    }
+            if (!is_a($class, MiddlewareInterface::class, true) && !is_a($class, MiddlewareInterface::class, true)) {
+                throw new InvalidArgumentException(sprintf("Service '%s' should implements '%s'.", $m, MiddlewareInterface::class));
+            }
 
-    /**
-     * @param string[] $middlewares
-     */
-    private function processHttp(ContainerBuilder $container, array $middlewares): void
-    {
-        $stack = $container->getDefinition(HttpMiddlewareStack::class);
-        foreach ($middlewares as $m) {
-            $stack->addMethodCall('pipe', [new Reference($m)]);
-        }
-    }
-
-    /**
-     * @param string[] $middlewares
-     */
-    private function processGrpc(ContainerBuilder $container, array $middlewares): void
-    {
-        $stack = $container->getDefinition(GrpcMiddlewareStack::class);
-        foreach ($middlewares as $m) {
             $stack->addMethodCall('pipe', [new Reference($m)]);
         }
     }

@@ -12,31 +12,31 @@ use function Baldinof\RoadRunnerBundle\consumes;
 /**
  * @internal
  */
-final class MiddlewareStack implements RequestHandlerInterface
+final class InterceptorStack implements GrpcRequestHandlerInterface
 {
     public function __construct(
-        private RequestHandlerInterface $handler,
+        private GrpcRequestHandlerInterface $handler,
         /**
-         * @var \SplStack<MiddlewareInterface>
+         * @var \SplStack<InterceptorInterface>
          */
-        private \SplStack $middlewares = new \SplStack(),
+        private \SplStack $interceptors = new \SplStack(),
     ) {
     }
 
-    public function handle(GrpcRequest $invocation): \Iterator
+    public function handle(GrpcRequest $request): \Iterator
     {
-        $middlewares = clone $this->middlewares;
+        $interceptors = clone $this->interceptors;
 
-        $runner = new Runner($middlewares, $this->handler);
+        $runner = new Runner($interceptors, $this->handler);
 
-        yield $runner->invoke($invocation);
+        yield $runner->invoke($request);
 
         $runner->close();
     }
 
-    public function pipe(MiddlewareInterface $middleware): void
+    public function pipe(InterceptorInterface $interceptor): void
     {
-        $this->middlewares->push($middleware);
+        $this->interceptors->push($interceptor);
     }
 }
 
@@ -46,9 +46,9 @@ final class MiddlewareStack implements RequestHandlerInterface
 final class Runner implements GrpcRequestInvokerInterface
 {
     public function __construct(
-        /** @var \SplStack<MiddlewareInterface> */
-        private \SplStack $middlewares,
-        private RequestHandlerInterface $handler,
+        /** @var \SplStack<InterceptorInterface> */
+        private \SplStack $interceptors,
+        private GrpcRequestHandlerInterface $handler,
         /** @var \SplStack<\Iterator<string>> */
         private \SplStack $iterators = new \SplStack(),
     ) {
@@ -56,18 +56,18 @@ final class Runner implements GrpcRequestInvokerInterface
 
     public function invoke(GrpcRequest $request): string
     {
-        if ($this->middlewares->isEmpty()) {
+        if ($this->interceptors->isEmpty()) {
             $gen = $this->handler->handle($request);
 
             return $this->getResponse($gen, \get_class($this->handler).'::invoke()');
         }
 
-        /** @var MiddlewareInterface $middleware */
-        $middleware = $this->middlewares->shift();
+        /** @var InterceptorInterface $interceptor */
+        $interceptor = $this->interceptors->shift();
 
-        $gen = $middleware->processInvocation($request, $this);
+        $gen = $interceptor->intercept($request, $this);
 
-        return $this->getResponse($gen, \get_class($middleware).'::process()');
+        return $this->getResponse($gen, \get_class($interceptor).'::intercept()');
     }
 
     public function close(): void

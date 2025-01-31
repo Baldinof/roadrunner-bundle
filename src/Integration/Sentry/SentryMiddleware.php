@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Integration\Sentry;
 
-use Baldinof\RoadRunnerBundle\Grpc\MiddlewareInterface as GrpcMiddlewareInterface;
-use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface as HttpMiddlewareInterface;
+use Baldinof\RoadRunnerBundle\Grpc\InterceptorInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\GrpcRequest;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\GrpcRequestInvokerInterface;
 use GuzzleHttp\Promise\PromiseInterface;
@@ -16,7 +16,7 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 /**
  * Clear scope and flush transport after each request.
  */
-final class SentryMiddleware implements HttpMiddlewareInterface, GrpcMiddlewareInterface
+final class SentryMiddleware implements MiddlewareInterface, InterceptorInterface
 {
     public function __construct(private HubInterface $hub)
     {
@@ -38,7 +38,7 @@ final class SentryMiddleware implements HttpMiddlewareInterface, GrpcMiddlewareI
         }
     }
 
-    public function processInvocation(GrpcRequest $invocation, GrpcRequestInvokerInterface $next): \Iterator
+    public function intercept(GrpcRequest $invocation, GrpcRequestInvokerInterface $next): \Iterator
     {
         $this->hub->pushScope();
 

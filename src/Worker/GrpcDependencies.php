@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Worker;
 
-use Baldinof\RoadRunnerBundle\Grpc\MiddlewareStack;
+use Baldinof\RoadRunnerBundle\Grpc\InterceptorStack;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
@@ -19,13 +19,13 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 final class GrpcDependencies
 {
     public function __construct(
-        private MiddlewareStack $requestHandler,
+        private InterceptorStack $requestHandler,
         private KernelRebootStrategyInterface $kernelRebootStrategy,
         private EventDispatcherInterface $eventDispatcher
     ) {
     }
 
-    public function getRequestHandler(): MiddlewareStack
+    public function getRequestHandler(): InterceptorStack
     {
         return $this->requestHandler;
     }

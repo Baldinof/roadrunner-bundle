@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\Integration\Doctrine;
 
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
-use Baldinof\RoadRunnerBundle\Grpc\MiddlewareInterface as GrpcMiddlewareInterface;
-use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface as HttpMiddlewareInterface;
+use Baldinof\RoadRunnerBundle\Grpc\InterceptorInterface;
+use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\GrpcRequest;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\GrpcRequestInvokerInterface;
 use Doctrine\DBAL\Connection;
@@ -22,7 +22,7 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\VarExporter\LazyObjectInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
-final class DoctrineORMMiddleware implements HttpMiddlewareInterface, GrpcMiddlewareInterface
+final class DoctrineORMMiddleware implements MiddlewareInterface, InterceptorInterface
 {
     private ManagerRegistry $managerRegistry;
     private ContainerInterface $container;
@@ -49,7 +49,7 @@ final class DoctrineORMMiddleware implements HttpMiddlewareInterface, GrpcMiddle
         $this->postResponse();
     }
 
-    public function processInvocation(GrpcRequest $invocation, GrpcRequestInvokerInterface $next): \Iterator
+    public function intercept(GrpcRequest $invocation, GrpcRequestInvokerInterface $next): \Iterator
     {
         $this->preRequest();
 
