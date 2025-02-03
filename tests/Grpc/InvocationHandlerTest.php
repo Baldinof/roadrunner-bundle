@@ -25,12 +25,7 @@ class InvocationHandlerTest extends TestCase
         });
         $handler = $this->createHandler($invoker);
 
-        $gen = $handler->handle(new GrpcRequest(
-            new FakeGrpcService(),
-            Method::parse((new \ReflectionClass(FakeGrpcService::class))->getMethod('fake')),
-            new Context([]),
-            ''
-        ));
+        $gen = $handler->handle($this->request());
         $response = $gen->current();
 
         $this->assertIsString($response);
@@ -40,6 +35,16 @@ class InvocationHandlerTest extends TestCase
         consumes($gen);
 
         $this->assertTrue($invoker->terminateCalled);
+    }
+
+    private function request(): GrpcRequest
+    {
+        return new GrpcRequest(
+            new FakeGrpcService(),
+            Method::parse((new \ReflectionClass(FakeGrpcService::class))->getMethod('fake')),
+            new Context([]),
+            ''
+        );
     }
 
     private function createHandler(InvokerInterface $invoker): InvocationHandler
