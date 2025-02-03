@@ -9,7 +9,7 @@ use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
- * A simple container class holding services needed by the Http Worker.
+ * A simple container class holding services needed by the Grpc Invoker.
  *
  * It's used to ease worker dependencies retrieval when the kernel
  * has been rebooted.

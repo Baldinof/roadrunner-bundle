@@ -19,6 +19,9 @@ use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
+/**
+ * @internal
+ */
 final class GrpcInvoker implements InvokerInterface
 {
     private GrpcDependencies $dependencies;
