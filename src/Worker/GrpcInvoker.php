@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Worker;
 
+use Baldinof\RoadRunnerBundle\Event\GrpcTerminateEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\GrpcRequest;
+use Baldinof\RoadRunnerBundle\RoadRunnerBridge\GrpcTerminableInterface;
 use Psr\Log\LoggerInterface;
 use Spiral\RoadRunner\GRPC\ContextInterface;
 use Spiral\RoadRunner\GRPC\InvokerInterface;
@@ -24,7 +26,7 @@ use function Baldinof\RoadRunnerBundle\consumes;
 /**
  * @internal
  */
-final class GrpcInvoker implements InvokerInterface
+final class GrpcInvoker implements InvokerInterface, GrpcTerminableInterface
 {
     private GrpcDependencies $dependencies;
 
@@ -90,6 +92,11 @@ final class GrpcInvoker implements InvokerInterface
         }
 
         $this->dependencies->getKernelRebootStrategy()->clear();
+    }
+
+    public function terminate(GrpcRequest $request, string $response): void
+    {
+        $this->dependencies->getEventDispatcher()->dispatch(new GrpcTerminateEvent($request, $response));
     }
 
     public function onServerStop(): void

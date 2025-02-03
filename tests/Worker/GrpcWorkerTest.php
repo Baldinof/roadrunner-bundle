@@ -15,21 +15,19 @@ use Baldinof\RoadRunnerBundle\RoadRunnerBridge\GrpcRequest;
 use Baldinof\RoadRunnerBundle\Worker\GrpcDependencies;
 use Baldinof\RoadRunnerBundle\Worker\GrpcInvoker;
 use Baldinof\RoadRunnerBundle\Worker\GrpcWorker;
-use Google\Protobuf\Internal\Message as ProtoMessage;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Psr\Log\NullLogger;
-use Spiral\RoadRunner\GRPC\ContextInterface;
 use Spiral\RoadRunner\GRPC\Internal\Json;
-use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Spiral\RoadRunner\Payload;
 use Spiral\RoadRunner\WorkerInterface as RoadrunnerWorker;
 use Symfony\Component\DependencyInjection\Container;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
+use Tests\Baldinof\RoadRunnerBundle\Grpc\FakeGrpcService;
 
 #[\AllowDynamicProperties]
 class GrpcWorkerTest extends TestCase
@@ -239,23 +237,4 @@ class GrpcWorkerTest extends TestCase
         $this->kernel->reboot(null)->shouldHaveBeenCalled();
         $this->assertTrue($rebootedEventFired);
     }
-}
-
-class FakeGrpcService implements ServiceInterface
-{
-    // GRPC specific service name.
-    public const NAME = 'fake.Fake';
-
-    public function fake(ContextInterface $ctx, FakeGrpcRequest $in): FakeGrpcResponse
-    {
-        return new FakeGrpcResponse();
-    }
-}
-
-class FakeGrpcRequest extends ProtoMessage
-{
-}
-
-class FakeGrpcResponse extends ProtoMessage
-{
 }
