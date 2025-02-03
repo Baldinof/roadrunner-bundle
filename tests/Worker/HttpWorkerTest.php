@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\Worker;
 
-use AllowDynamicProperties;
 use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerKernelRebootedEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
@@ -29,7 +28,7 @@ use Symfony\Component\HttpKernel\RebootableInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 
 #[\AllowDynamicProperties]
-class WorkerTest extends TestCase
+class HttpWorkerTest extends TestCase
 {
     use ProphecyTrait;
 
@@ -90,12 +89,12 @@ class WorkerTest extends TestCase
         $kernelBootStrategyClass = new class() implements KernelRebootStrategyInterface {
             public function shouldReboot(): bool
             {
-                return WorkerTest::$rebootStrategyReturns;
+                return HttpWorkerTest::$rebootStrategyReturns;
             }
 
             public function clear(): void
             {
-                WorkerTest::$rebootStrategyReturns = false;
+                HttpWorkerTest::$rebootStrategyReturns = false;
             }
         };
 
@@ -240,12 +239,12 @@ class WorkerTest extends TestCase
     public function test_it_reboot_the_kernel_according_to_the_strategy()
     {
         $this->responder = function () use (&$terminated) {
-            yield new Response(200, [], 'hello');
+            yield new Response('hello', 200, []);
 
             $terminated = true;
         };
 
-        $this->httpFoundationWorker->respond(Argument::any()); // Allow resond() calls
+        $this->httpFoundationWorker->respond(Argument::any()); // Allow respond() calls
 
         $this->requests->push(Request::create('http://example.org/'));
 

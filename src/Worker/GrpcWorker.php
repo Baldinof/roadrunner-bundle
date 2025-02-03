@@ -8,7 +8,7 @@ use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
 use Psr\Log\LoggerInterface;
 use Spiral\RoadRunner\GRPC\Exception\InvokeException;
 use Spiral\RoadRunner\GRPC\Server;
-use Spiral\RoadRunner\Worker as RoadRunnerWorker;
+use Spiral\RoadRunner\WorkerInterface as RoadrunnerWorker;
 
 use function sprintf;
 

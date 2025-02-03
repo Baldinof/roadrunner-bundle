@@ -8,7 +8,7 @@ use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
 use Baldinof\RoadRunnerBundle\Grpc\InterceptorStack;
-use Baldinof\RoadRunnerBundle\Grpc\InvocationHandlerGrpc;
+use Baldinof\RoadRunnerBundle\Grpc\InvocationHandler;
 use Baldinof\RoadRunnerBundle\Helpers\RPCFactory;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
@@ -114,13 +114,13 @@ return static function (ContainerConfigurator $container) {
                 service(EventDispatcherInterface::class),
             ]);
 
-        $services->set(InvocationHandlerGrpc::class)
+        $services->set(InvocationHandler::class)
             ->args([
                 service(GrpcInvoker::class),
             ]);
 
         $services->set(InterceptorStack::class)
-            ->args([service(InvocationHandlerGrpc::class)]);
+            ->args([service(InvocationHandler::class)]);
 
         $services->alias(GrpcRequestHandlerInterface::class, InterceptorStack::class);
 

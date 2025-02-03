@@ -19,12 +19,16 @@ use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
+use function Baldinof\RoadRunnerBundle\consumes;
+
 /**
  * @internal
  */
 final class GrpcInvoker implements InvokerInterface
 {
     private GrpcDependencies $dependencies;
+
+    private ?\Iterator $gen;
 
     public function __construct(
         private KernelInterface $kernel,
@@ -50,6 +54,8 @@ final class GrpcInvoker implements InvokerInterface
 
         /** @var string $response */
         $response = $gen->current();
+        // To be terminated :)
+        $this->gen = $gen;
 
         return $response;
     }
@@ -65,6 +71,11 @@ final class GrpcInvoker implements InvokerInterface
 
     public function invokeFinalize(): void
     {
+        if (isset($this->gen)) {
+            consumes($this->gen);
+            $this->gen = null;
+        }
+
         if ($this->kernel instanceof RebootableInterface && $this->dependencies->getKernelRebootStrategy()->shouldReboot()) {
             $this->kernel->reboot(null);
             /** @var GrpcDependencies */
