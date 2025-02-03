@@ -29,6 +29,9 @@ final class HttpWorker implements WorkerInterface
     private HttpFoundationWorkerInterface $httpFoundationWorker;
 
     private array $trustedProxies = [];
+    /**
+     * @var int-mask-of<Request::HEADER_*>
+     */
     private int $trustedHeaderSet = 0;
     private bool $shouldRedeclareTrustedProxies = false;
 
@@ -76,6 +79,10 @@ final class HttpWorker implements WorkerInterface
                 throw new \UnexpectedValueException(sprintf('Unexpected type "%s" of trusted header', \gettype($trustedHeaderSet)));
             }
 
+            if (0 > $trustedHeaderSet || 64 <= $trustedHeaderSet) {
+                throw new \UnexpectedValueException(sprintf('Unexpected value "%s" of trusted header. Must be an int mask of %s::HEADER_*', $trustedHeaderSet, Request::class));
+            }
+
             if (!\is_string($trustedProxies) && !\is_array($trustedProxies)) {
                 throw new \InvalidArgumentException('Parameter "kernel.trusted_proxies" must be a string or an array');
             }
@@ -108,7 +115,6 @@ final class HttpWorker implements WorkerInterface
 
         while ($request = $this->httpFoundationWorker->waitRequest()) {
             if ($this->shouldRedeclareTrustedProxies) {
-                \assert(0 <= $this->trustedHeaderSet && 64 > $this->trustedHeaderSet);
                 Request::setTrustedProxies($this->trustedProxies, $this->trustedHeaderSet);
             }
 
