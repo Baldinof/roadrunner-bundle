@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
+use Baldinof\RoadRunnerBundle\Grpc\GrpcRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
+use Baldinof\RoadRunnerBundle\Grpc\InterceptorStack;
+use Baldinof\RoadRunnerBundle\Grpc\InvocationHandler;
 use Baldinof\RoadRunnerBundle\Helpers\RPCFactory;
 use Baldinof\RoadRunnerBundle\Http\KernelHandler;
 use Baldinof\RoadRunnerBundle\Http\MiddlewareStack;
@@ -13,6 +16,8 @@ use Baldinof\RoadRunnerBundle\Http\RequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
+use Baldinof\RoadRunnerBundle\Worker\GrpcDependencies;
+use Baldinof\RoadRunnerBundle\Worker\GrpcInvoker as InternalGrpcInvoker;
 use Baldinof\RoadRunnerBundle\Worker\GrpcWorker as InternalGrpcWorker;
 use Baldinof\RoadRunnerBundle\Worker\HttpDependencies;
 use Baldinof\RoadRunnerBundle\Worker\HttpWorker as InternalHttpWorker;
@@ -23,7 +28,6 @@ use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\EnvironmentInterface;
 use Spiral\RoadRunner\GRPC\Invoker as GrpcInvoker;
-use Spiral\RoadRunner\GRPC\Server as GrpcServer;
 use Spiral\RoadRunner\GRPC\ServiceInterface as GrpcServiceInterface;
 use Spiral\RoadRunner\Http\HttpWorker;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
@@ -31,7 +35,6 @@ use Spiral\RoadRunner\Metrics\Metrics;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
-use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 return static function (ContainerConfigurator $container) {
@@ -103,9 +106,30 @@ return static function (ContainerConfigurator $container) {
         $services->set(GrpcServiceProvider::class);
         $services->set(GrpcInvoker::class);
 
-        $services->set(GrpcServer::class)
+        $services->set(GrpcDependencies::class)
+            ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
+            ->args([
+                service(InterceptorStack::class),
+                service(KernelRebootStrategyInterface::class),
+                service(EventDispatcherInterface::class),
+            ]);
+
+        $services->set(InvocationHandler::class)
             ->args([
                 service(GrpcInvoker::class),
+            ]);
+
+        $services->set(InterceptorStack::class)
+            ->args([service(InvocationHandler::class)]);
+
+        $services->alias(GrpcRequestHandlerInterface::class, InterceptorStack::class);
+
+        $services->set(InternalGrpcInvoker::class)
+            ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+            ->args([
+                service('kernel'),
+                service(LoggerInterface::class),
+                service(RoadRunnerWorkerInterface::class),
             ]);
 
         $services->set(InternalGrpcWorker::class)
@@ -115,7 +139,7 @@ return static function (ContainerConfigurator $container) {
                 service(LoggerInterface::class),
                 service(RoadRunnerWorkerInterface::class),
                 service(GrpcServiceProvider::class),
-                service(GrpcServer::class),
+                service(InternalGrpcInvoker::class),
             ]);
 
         $services

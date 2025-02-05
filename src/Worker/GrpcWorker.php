@@ -6,8 +6,9 @@ namespace Baldinof\RoadRunnerBundle\Worker;
 
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
 use Psr\Log\LoggerInterface;
+use Spiral\RoadRunner\GRPC\Exception\InvokeException;
 use Spiral\RoadRunner\GRPC\Server;
-use Spiral\RoadRunner\Worker as RoadRunnerWorker;
+use Spiral\RoadRunner\WorkerInterface as RoadrunnerWorker;
 
 use function sprintf;
 
@@ -16,12 +17,15 @@ use function sprintf;
  */
 final class GrpcWorker implements WorkerInterface
 {
+    private Server $server;
+
     public function __construct(
         private LoggerInterface $logger,
         private RoadRunnerWorker $roadRunnerWorker,
         private GrpcServiceProvider $grpcServiceProvider,
-        private Server $server
+        private GrpcInvoker $invoker,
     ) {
+        $this->server = new Server($this->invoker);
     }
 
     public function start(): void
@@ -38,6 +42,19 @@ final class GrpcWorker implements WorkerInterface
             $this->server->registerService($interface, $service);
         }
 
-        $this->server->serve($this->roadRunnerWorker);
+        $this->invoker->onServerStart();
+        $this->server->serve($this->roadRunnerWorker, [$this, 'finalizeInvocation']);
+        $this->invoker->onServerStop();
+    }
+
+    public function finalizeInvocation(?\Throwable $e = null): void
+    {
+        try {
+            if (null !== $e && !$e instanceof InvokeException) {
+                $this->invoker->invokeThrowable($e);
+            }
+        } finally {
+            $this->invoker->invokeFinalize();
+        }
     }
 }

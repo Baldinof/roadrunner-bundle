@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle;
 
 use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\GrpcServiceCompilerPass;
+use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\InterceptorCompilerPass;
 use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\MiddlewareCompilerPass;
 use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\RemoveConfigureVarDumperListenerPass;
 use Spiral\RoadRunner\GRPC\ServiceInterface;
@@ -21,6 +22,7 @@ final class BaldinofRoadRunnerBundle extends Bundle
         $container->addCompilerPass(new MiddlewareCompilerPass());
         if (interface_exists(ServiceInterface::class)) {
             $container->addCompilerPass(new GrpcServiceCompilerPass());
+            $container->addCompilerPass(new InterceptorCompilerPass());
         }
     }
 }
