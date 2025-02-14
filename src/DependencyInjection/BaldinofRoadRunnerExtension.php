@@ -242,7 +242,8 @@ class BaldinofRoadRunnerExtension extends Extension
                 ->setArguments(['', [ // Symfony overrides the first argument with the DSN, so we pass an empty string
                     'rpc' => $container->getDefinition(RPCInterface::class),
                     'storage' => $storage,
-                ]]);
+                ]])
+                ->setLazy(true);
         }
     }
 }

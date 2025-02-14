@@ -11,7 +11,7 @@ use Symfony\Component\Cache\Adapter\Psr16Adapter;
 /**
  * @internal
  */
-final class KvCacheAdapter extends Psr16Adapter
+class KvCacheAdapter extends Psr16Adapter
 {
     public static function createConnection(#[\SensitiveParameter] string $dsn, array $options = []): self
     {
