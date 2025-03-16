@@ -85,13 +85,13 @@ class KernelHandlerTest extends TestCase
         ];
 
         yield 'only user' => [
-            'headers' => ['Authorization' => sprintf('Basic %s', base64_encode('the-user'))],
+            'headers' => ['Authorization' => \sprintf('Basic %s', base64_encode('the-user'))],
             'expectedUser' => 'the-user',
             'expectedPassword' => null,
         ];
 
         yield 'user and password' => [
-            'headers' => ['Authorization' => sprintf('Basic %s', base64_encode('the-user:the-password'))],
+            'headers' => ['Authorization' => \sprintf('Basic %s', base64_encode('the-user:the-password'))],
             'expectedUser' => 'the-user',
             'expectedPassword' => 'the-password',
         ];

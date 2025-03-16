@@ -29,7 +29,7 @@ class InterceptorStackTest extends TestCase
 
     public function test_it_calls_interceptors_in_expected_order()
     {
-        $stack = new InterceptorStack(new class() implements GrpcRequestHandlerInterface {
+        $stack = new InterceptorStack(new class implements GrpcRequestHandlerInterface {
             public function handle(GrpcRequest $request): \Iterator
             {
                 InterceptorStackTest::$out .= "Main handler\n";
@@ -83,7 +83,7 @@ class InterceptorStackTest extends TestCase
         $handler = $this->handler($response = 'Hello');
 
         $stack = new InterceptorStack($handler);
-        $stack->pipe(new class() implements InterceptorInterface {
+        $stack->pipe(new class implements InterceptorInterface {
             public function intercept(GrpcRequest $invocation, GrpcRequestInvokerInterface $next): \Iterator
             {
                 $response = $next->invoke($invocation);

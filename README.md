@@ -264,7 +264,7 @@ framework:
 
 ```Dockerfile
 # Dockerfile
-FROM php:8.1-alpine
+FROM php:8.3-alpine
 
 RUN apk add --no-cache linux-headers autoconf openssl-dev g++ make pcre-dev icu-dev zlib-dev libzip-dev && \
     docker-php-ext-install bcmath intl opcache zip sockets && \

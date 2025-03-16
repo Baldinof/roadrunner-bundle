@@ -101,10 +101,10 @@ final class SentryMiddlewareTest extends TestCase
 
     private function getTransportFactoryMock(): TransportFactoryInterface
     {
-        return new class() implements TransportFactoryInterface {
+        return new class implements TransportFactoryInterface {
             public function create(Options $options): TransportInterface
             {
-                return new class() implements TransportInterface {
+                return new class implements TransportInterface {
                     public function send(Event $event): PromiseInterface
                     {
                         SentryMiddlewareTest::$collectedEvents->push($event);
@@ -125,7 +125,7 @@ final class SentryMiddlewareTest extends TestCase
 
     private function getV4TransportMock(): TransportInterface
     {
-        return new class() implements TransportInterface {
+        return new class implements TransportInterface {
             public function send(Event $event): Result
             {
                 SentryMiddlewareTest::$collectedEvents->push($event);

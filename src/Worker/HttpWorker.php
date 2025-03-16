@@ -43,7 +43,7 @@ final class HttpWorker implements WorkerInterface
     public function __construct(
         KernelInterface $kernel,
         LoggerInterface $logger,
-        HttpFoundationWorkerInterface $httpFoundationWorker
+        HttpFoundationWorkerInterface $httpFoundationWorker,
     ) {
         $this->kernel = $kernel;
         $this->logger = $logger;
@@ -67,7 +67,7 @@ final class HttpWorker implements WorkerInterface
 
                 foreach ($trustedHeaders as $header) {
                     if (!\defined($const = Request::class.'::HEADER_'.strtr(strtoupper($header), '-', '_'))) {
-                        throw new \InvalidArgumentException(sprintf('The trusted header "%s" is not supported.', $header));
+                        throw new \InvalidArgumentException(\sprintf('The trusted header "%s" is not supported.', $header));
                     }
                     $trustedHeaderSet |= \constant($const);
                 }
@@ -76,11 +76,11 @@ final class HttpWorker implements WorkerInterface
             }
 
             if (!\is_int($trustedHeaderSet)) {
-                throw new \UnexpectedValueException(sprintf('Unexpected type "%s" of trusted header', \gettype($trustedHeaderSet)));
+                throw new \UnexpectedValueException(\sprintf('Unexpected type "%s" of trusted header', \gettype($trustedHeaderSet)));
             }
 
             if (0 > $trustedHeaderSet || 64 <= $trustedHeaderSet) {
-                throw new \UnexpectedValueException(sprintf('Unexpected value "%s" of trusted header. Must be an int mask of %s::HEADER_*', $trustedHeaderSet, Request::class));
+                throw new \UnexpectedValueException(\sprintf('Unexpected value "%s" of trusted header. Must be an int mask of %s::HEADER_*', $trustedHeaderSet, Request::class));
             }
 
             if (!\is_string($trustedProxies) && !\is_array($trustedProxies)) {

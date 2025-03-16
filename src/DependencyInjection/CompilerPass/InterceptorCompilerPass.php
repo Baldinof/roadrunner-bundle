@@ -45,7 +45,7 @@ class InterceptorCompilerPass implements CompilerPassInterface
             }
 
             if (!is_a($class, InterceptorInterface::class, true) && !is_a($class, InterceptorInterface::class, true)) {
-                throw new InvalidArgumentException(sprintf("Service '%s' should implements '%s'.", $i, InterceptorInterface::class));
+                throw new InvalidArgumentException(\sprintf("Service '%s' should implements '%s'.", $i, InterceptorInterface::class));
             }
 
             $stack->addMethodCall('pipe', [new Reference($i)]);

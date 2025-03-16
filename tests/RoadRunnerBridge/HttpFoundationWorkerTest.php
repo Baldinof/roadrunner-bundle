@@ -149,7 +149,7 @@ class HttpFoundationWorkerTest extends TestCase
     /**
      * @dataProvider provideResponses
      *
-     * @param Response|(\Closure(): Response)    $sfResponse
+     * @param Response|(\Closure(): Response) $sfResponse
      * @param \Closure<RoadRunnerResponse>: void $expectations
      */
     public function test_it_convert_symfony_response_to_roadrunner($sfResponse, \Closure $expectations)
@@ -236,7 +236,7 @@ class HttpFoundationWorkerTest extends TestCase
         yield 'non string headers' => [
             new Response('', 200, [
                 'Foo' => 1234,
-                'Bar' => new class() {
+                'Bar' => new class {
                     public function __toString(): string
                     {
                         return 'bar';

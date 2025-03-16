@@ -29,7 +29,7 @@ class Configuration implements ConfigurationInterface
                     ->addDefaultsIfNotSet()
                     ->children()
                         ->arrayNode('strategy')
-                            ->info(sprintf(
+                            ->info(\sprintf(
                                 'Possible values are "%s", "%s", "%s" or any service that implements "%s"/',
                                 self::KERNEL_REBOOT_STRATEGY_ALWAYS,
                                 self::KERNEL_REBOOT_STRATEGY_ON_EXCEPTION,

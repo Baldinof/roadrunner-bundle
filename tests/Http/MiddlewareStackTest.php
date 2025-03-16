@@ -28,7 +28,7 @@ class MiddlewareStackTest extends TestCase
 
     public function test_it_calls_middlewares_in_expected_order()
     {
-        $stack = new MiddlewareStack(new class() implements RequestHandlerInterface {
+        $stack = new MiddlewareStack(new class implements RequestHandlerInterface {
             public function handle(Request $request): \Iterator
             {
                 MiddlewareStackTest::$out .= "Main handler\n";
@@ -82,7 +82,7 @@ class MiddlewareStackTest extends TestCase
         $handler = $this->handler($response = new Response());
 
         $stack = new MiddlewareStack($handler);
-        $stack->pipe(new class() implements MiddlewareInterface {
+        $stack->pipe(new class implements MiddlewareInterface {
             public function process(Request $request, HttpKernelInterface $handler): \Iterator
             {
                 $response = $handler->handle($request);
@@ -99,7 +99,7 @@ class MiddlewareStackTest extends TestCase
 
     private function middleware(string $name): MiddlewareInterface
     {
-        $m = new class() implements MiddlewareInterface {
+        $m = new class implements MiddlewareInterface {
             public $name;
 
             public function process(Request $request, HttpKernelInterface $next): \Iterator
