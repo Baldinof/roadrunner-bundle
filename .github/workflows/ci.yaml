@@ -5,14 +5,22 @@ on:
     - cron:  '0 0 * * *'
 jobs:
   test:
-    name: PHPUnit (PHP ${{ matrix.php-versions }}) (${{ matrix.composer }} dependencies)
-    runs-on: ${{ matrix.operating-system }}
+    name: PHPUnit (PHP ${{ matrix.php-versions }}) (SF ${{ matrix.sf-version }}) (${{ matrix.composer }} dependencies)
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
+        sf-version: ["*"]
         php-versions: ['8.1', '8.2', '8.3', '8.4']
-        composer: ["lowest", "highest"]
+        composer: [ "lowest", "highest" ]
+        include:
+          - sf-version: "5.4.*"
+            php-versions: '8.3'
+            composer: 'highest'
+          - sf-version: "6.4.*"
+            php-versions: '8.3'
+            composer: 'highest'
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,11 +29,13 @@ jobs:
         with:
           php-version: '${{ matrix.php-versions }}'
           extensions: mbstring,intl,mongodb
-          tools: composer:v2
+          tools: composer:v2,flex
       - name: Install dependencies
         uses: ramsey/composer-install@v3
         with:
           dependency-versions: ${{ matrix.composer }}
+        env:
+          SYMFONY_REQUIRE: ${{ matrix.sf-version }}
       - name: PHPUnit
         run: composer test
 
@@ -35,7 +45,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest]
         php-versions: ['8.1', '8.2', '8.3', '8.4']
         composer: ["lowest", "highest"]
     steps:
