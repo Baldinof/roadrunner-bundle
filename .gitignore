@@ -3,3 +3,5 @@
 /.phpunit.result.cache
 /.php-cs-fixer.cache
 /tools/vendor
+/tools/composer.lock
+composer.lock
