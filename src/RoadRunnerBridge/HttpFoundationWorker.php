@@ -96,7 +96,7 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
         $components = parse_url($request->uri);
 
         if ($components === false) {
-            throw new \Exception('Failed to parse RoadRunner request URI');
+            throw new \Exception('Failed to parse RoadRunner request URI: '.$request->uri);
         }
 
         if (isset($components['host'])) {
