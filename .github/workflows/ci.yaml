@@ -5,19 +5,17 @@ on:
     - cron:  '0 0 * * *'
 jobs:
   test:
-    name: PHPUnit (PHP ${{ matrix.php-versions }}) (${{ matrix.composer.name }} dependencies)
+    name: PHPUnit (PHP ${{ matrix.php-versions }}) (${{ matrix.composer }} dependencies)
     runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
         php-versions: ['8.1', '8.2']
-        composer:
-          - {name: "lowest", flags: " --prefer-dist --prefer-lowest"}
-          - {name: "stable", flags: " --prefer-dist --prefer-stable"}
+        composer: ["lowest", "highest"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -25,26 +23,28 @@ jobs:
           extensions: mbstring,intl,mongodb
           tools: composer:v2
       - name: Install dependencies
-        run: |
-          composer update ${{ matrix.composer.flags }}
-          cd tools && composer install
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: ${{ matrix.composer }}
+      - name: Install tools
+        uses: ramsey/composer-install@v3
+        with:
+          working-directory: tools
       - name: PHPUnit
         run: composer test
 
   static-analysis:
-    name: Static analysis (PHP ${{ matrix.php-versions }}) (${{ matrix.composer.name }} dependencies)
+    name: Static analysis (PHP ${{ matrix.php-versions }}) (${{ matrix.composer }} dependencies)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
         php-versions: ['8.1', '8.2']
-        composer:
-          - {name: "lowest", flags: " --prefer-dist --prefer-lowest"}
-          - {name: "stable", flags: " --prefer-dist --prefer-stable"}
+        composer: ["lowest", "highest"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -52,9 +52,13 @@ jobs:
           extensions: mbstring,intl,mongodb
           tools: composer:v2
       - name: Install dependencies
-        run: |
-          composer update ${{ matrix.composer.flags }}
-          cd tools && composer install
+        uses: ramsey/composer-install@v3
+        with:
+          dependency-versions: ${{ matrix.composer }}
+      - name: Install tools
+        uses: ramsey/composer-install@v3
+        with:
+          working-directory: tools
       - name: PHPStan
         run: composer phpstan
 
@@ -63,25 +67,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
           extensions: mbstring,intl,mongodb
           tools: composer:v2
-      - name: Get composer cache directory
-        id: composercache
-        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
-      - name: Cache dependencies
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.composercache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
-          restore-keys: ${{ runner.os }}-composer-
       - name: Install dependencies
-        run: |
-          composer update ${{ matrix.composer.flags }}
-          cd tools && composer install
+        uses: ramsey/composer-install@v3
+        with:
+          working-directory: tools
       - name: PHP CS Fixer
         run: composer cs:lint
