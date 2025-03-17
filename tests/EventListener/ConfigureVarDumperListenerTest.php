@@ -19,7 +19,7 @@ class ConfigureVarDumperListenerTest extends TestCase
 
     public function test_it_replaces_VarDumper_handler()
     {
-        $dumperCloner = new class() implements DataDumperInterface {
+        $dumperCloner = new class implements DataDumperInterface {
             public function dump(Data $data)
             {
                 ConfigureVarDumperListenerTest::$dumped = $data;

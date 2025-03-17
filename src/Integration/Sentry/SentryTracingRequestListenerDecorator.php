@@ -14,7 +14,7 @@ final class SentryTracingRequestListenerDecorator
 {
     public function __construct(
         private TracingRequestListener $innerListener,
-        private HubInterface $hub
+        private HubInterface $hub,
     ) {
     }
 

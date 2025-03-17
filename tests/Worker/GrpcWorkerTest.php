@@ -75,7 +75,7 @@ class GrpcWorkerTest extends TestCase
             }
         };
 
-        $kernelBootStrategyClass = new class() implements KernelRebootStrategyInterface {
+        $kernelBootStrategyClass = new class implements KernelRebootStrategyInterface {
             public function shouldReboot(): bool
             {
                 return GrpcWorkerTest::$rebootStrategyReturns;

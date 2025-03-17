@@ -30,9 +30,6 @@ final class KernelHandler implements RequestHandlerInterface
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function handle(Request $request): \Iterator
     {
         ($this->startTimeReset)();

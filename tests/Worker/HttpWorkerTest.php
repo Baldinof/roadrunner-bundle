@@ -86,7 +86,7 @@ class HttpWorkerTest extends TestCase
             }
         };
 
-        $kernelBootStrategyClass = new class() implements KernelRebootStrategyInterface {
+        $kernelBootStrategyClass = new class implements KernelRebootStrategyInterface {
             public function shouldReboot(): bool
             {
                 return HttpWorkerTest::$rebootStrategyReturns;

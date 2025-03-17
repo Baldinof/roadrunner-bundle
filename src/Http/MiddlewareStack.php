@@ -85,7 +85,7 @@ final class Runner implements HttpKernelInterface
         $resp = $iterator->current();
 
         if (!($resp instanceof Response)) {
-            throw new \UnexpectedValueException(sprintf("'%s' first yield should be a '%s' object, '%s' given", $caller, Response::class, \is_object($resp) ? \get_class($resp) : \gettype($resp)));
+            throw new \UnexpectedValueException(\sprintf("'%s' first yield should be a '%s' object, '%s' given", $caller, Response::class, \is_object($resp) ? \get_class($resp) : \gettype($resp)));
         }
 
         return $resp;

@@ -45,7 +45,7 @@ class MiddlewareCompilerPass implements CompilerPassInterface
             }
 
             if (!is_a($class, MiddlewareInterface::class, true) && !is_a($class, MiddlewareInterface::class, true)) {
-                throw new InvalidArgumentException(sprintf("Service '%s' should implements '%s'.", $m, MiddlewareInterface::class));
+                throw new InvalidArgumentException(\sprintf("Service '%s' should implements '%s'.", $m, MiddlewareInterface::class));
             }
 
             $stack->addMethodCall('pipe', [new Reference($m)]);

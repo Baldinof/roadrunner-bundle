@@ -18,7 +18,7 @@ final class DoctrineODMListener implements EventSubscriberInterface
     private ?ManagerRegistry $registry = null;
 
     public function __construct(
-        private ContainerInterface $container
+        private ContainerInterface $container,
     ) {
     }
 
