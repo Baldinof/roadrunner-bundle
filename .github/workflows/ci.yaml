@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['8.1', '8.2']
+        php-versions: ['8.1', '8.2', '8.3']
         composer: ["lowest", "highest"]
     steps:
       - name: Checkout
@@ -26,10 +26,6 @@ jobs:
         uses: ramsey/composer-install@v3
         with:
           dependency-versions: ${{ matrix.composer }}
-      - name: Install tools
-        uses: ramsey/composer-install@v3
-        with:
-          working-directory: tools
       - name: PHPUnit
         run: composer test
 
@@ -40,7 +36,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['8.1', '8.2']
+        php-versions: ['8.1', '8.2', '8.3']
         composer: ["lowest", "highest"]
     steps:
       - name: Checkout
