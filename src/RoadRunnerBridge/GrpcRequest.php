@@ -14,7 +14,7 @@ final class GrpcRequest
         private ServiceInterface $service,
         private Method $method,
         private ContextInterface $context,
-        private ?string $input
+        private ?string $input,
     ) {
     }
 

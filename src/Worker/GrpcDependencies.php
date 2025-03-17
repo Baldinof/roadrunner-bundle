@@ -21,7 +21,7 @@ final class GrpcDependencies
     public function __construct(
         private InterceptorStack $requestHandler,
         private KernelRebootStrategyInterface $kernelRebootStrategy,
-        private EventDispatcherInterface $eventDispatcher
+        private EventDispatcherInterface $eventDispatcher,
     ) {
     }
 

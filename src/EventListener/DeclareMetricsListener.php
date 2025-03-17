@@ -40,7 +40,7 @@ final class DeclareMetricsListener implements EventSubscriberInterface
             CollectorType::Histogram->value => Collector::histogram(...$definition['buckets'] ?? []),
             CollectorType::Counter->value => Collector::counter(),
             CollectorType::Gauge->value => Collector::gauge(),
-            default => throw new \InvalidArgumentException(sprintf('Metric type should be "gauge", "counter" or "histogram". "%s" given', $definition['type'])),
+            default => throw new \InvalidArgumentException(\sprintf('Metric type should be "gauge", "counter" or "histogram". "%s" given', $definition['type'])),
         };
 
         $help = $definition['help'] ?? '';

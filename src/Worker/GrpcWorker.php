@@ -10,8 +10,6 @@ use Spiral\RoadRunner\GRPC\Exception\InvokeException;
 use Spiral\RoadRunner\GRPC\Server;
 use Spiral\RoadRunner\WorkerInterface as RoadrunnerWorker;
 
-use function sprintf;
-
 /**
  * @internal
  */
@@ -21,7 +19,7 @@ final class GrpcWorker implements WorkerInterface
 
     public function __construct(
         private LoggerInterface $logger,
-        private RoadRunnerWorker $roadRunnerWorker,
+        private RoadrunnerWorker $roadRunnerWorker,
         private GrpcServiceProvider $grpcServiceProvider,
         private GrpcInvoker $invoker,
     ) {
@@ -32,7 +30,7 @@ final class GrpcWorker implements WorkerInterface
     {
         foreach ($this->grpcServiceProvider->getRegisteredServices() as $interface => $service) {
             $this->logger->debug(
-                sprintf(
+                \sprintf(
                     'Registering GRPC service for \'%s\' from \'%s\'',
                     $interface,
                     \get_class($service),

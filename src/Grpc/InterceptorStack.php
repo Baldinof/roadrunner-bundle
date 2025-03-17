@@ -84,7 +84,7 @@ final class Runner implements GrpcRequestInvokerInterface
         $resp = $iterator->current();
 
         if (!\is_string($resp)) {
-            throw new \UnexpectedValueException(sprintf("'%s' first yield should be a string, '%s' given", $caller, \is_object($resp) ? \get_class($resp) : \gettype($resp)));
+            throw new \UnexpectedValueException(\sprintf("'%s' first yield should be a string, '%s' given", $caller, \is_object($resp) ? \get_class($resp) : \gettype($resp)));
         }
 
         return $resp;

@@ -37,9 +37,6 @@ final class DoctrineORMMiddleware implements MiddlewareInterface, InterceptorInt
         $this->eventDispatcher = $eventDispatcher;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function process(Request $request, HttpKernelInterface $next): \Iterator
     {
         $this->preRequest();
@@ -75,7 +72,7 @@ final class DoctrineORMMiddleware implements MiddlewareInterface, InterceptorInt
                 $connection->close();
 
                 $this->logger->debug('Doctrine connection was not re-usable, it has been closed', [
-                        'connection_name' => $connectionServiceName,
+                    'connection_name' => $connectionServiceName,
                 ]);
             }
         }
