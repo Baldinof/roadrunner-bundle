@@ -174,7 +174,7 @@ class Configuration implements ConfigurationInterface
                                 'default' => [
                                     'queue' => 'default',
                                     'exception_interceptor' => 'temporal.exception_interceptor',
-                                    'optons' => [],
+                                    'options' => [],
                                     'interceptors' => [],
                                 ],
                             ])
