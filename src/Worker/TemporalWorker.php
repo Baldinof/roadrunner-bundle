@@ -32,7 +32,7 @@ final class TemporalWorker implements WorkerInterface
         ExceptionInterceptorInterface $exceptionInterceptors,
         WorkerOptions $workerOptions,
     ): void {
-        /** @phpstan-ignore-next-line */
+        /* @phpstan-ignore-next-line */
         $this->workers[$name] = $this->workerFactory->newWorker(
             $queue,
             $workerOptions,
@@ -43,8 +43,6 @@ final class TemporalWorker implements WorkerInterface
 
     /**
      * @param class-string $workflowClass
-     * @param ?string $workerName
-     * @return void
      */
     public function registerWorkflow(string $workflowClass, ?string $workerName = null): void
     {
@@ -65,7 +63,7 @@ final class TemporalWorker implements WorkerInterface
     public function registerActivity(object $activity, ?string $workerName = null): void
     {
         if (\array_key_exists((string) $workerName, $this->workers)) {
-            $this->workers[$workerName]->registerActivity($activity::class, fn() => $activity);
+            $this->workers[$workerName]->registerActivity($activity::class, fn () => $activity);
 
             return;
         }
@@ -74,7 +72,7 @@ final class TemporalWorker implements WorkerInterface
             if ($name === $workerName) {
                 continue;
             }
-            $worker->registerActivity($activity::class, fn() => $activity);
+            $worker->registerActivity($activity::class, fn () => $activity);
         }
     }
 

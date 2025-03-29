@@ -33,6 +33,7 @@ final class Connection
 
     /**
      * @param non-empty-string $address
+     *
      * @return Connection
      */
     public function withAddress(string $address): static
@@ -46,6 +47,7 @@ final class Connection
 
     /**
      * @param ?non-empty-string $crt
+     *
      * @return Connection
      */
     public function withCrt(?string $crt = null): static
@@ -57,8 +59,9 @@ final class Connection
         return $self;
     }
 
-     /**
+    /**
      * @param ?non-empty-string $clientKey
+     *
      * @return Connection
      */
     public function withClientKey(?string $clientKey = null): static
@@ -70,8 +73,9 @@ final class Connection
         return $self;
     }
 
-     /**
+    /**
      * @param ?non-empty-string $clientPem
+     *
      * @return Connection
      */
     public function withClientPem(?string $clientPem = null): static
@@ -83,8 +87,9 @@ final class Connection
         return $self;
     }
 
-     /**
+    /**
      * @param ?non-empty-string $overrideServerName
+     *
      * @return Connection
      */
     public function withOverrideServerName(?string $overrideServerName = null): static
