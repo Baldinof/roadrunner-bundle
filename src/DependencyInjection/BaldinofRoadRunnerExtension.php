@@ -23,15 +23,17 @@ use Baldinof\RoadRunnerBundle\Reboot\MaxJobsRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\MemoryRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Baldinof\RoadRunnerBundle\Temporal\Attributes\AssignToWorker;
-use Baldinof\RoadRunnerBundle\Temporal\ClientFactory;
 use Baldinof\RoadRunnerBundle\Temporal\ClientOptionsFactory;
+use Baldinof\RoadRunnerBundle\Temporal\Connection;
 use Baldinof\RoadRunnerBundle\Temporal\ConnectionFactory;
+use Baldinof\RoadRunnerBundle\Temporal\ScheduleClientFactory;
+use Baldinof\RoadRunnerBundle\Temporal\ServiceClientFactory;
 use Baldinof\RoadRunnerBundle\Temporal\WorkerFactory;
 use Baldinof\RoadRunnerBundle\Temporal\WorkerOptionsFactory;
+use Baldinof\RoadRunnerBundle\Temporal\WorkflowClientFactory;
 use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerRegistryInterface;
 use Doctrine\Persistence\ManagerRegistry;
-use FTP\Connection;
 use Psr\Log\LoggerInterface;
 use Sentry\SentryBundle\EventListener\TracingRequestListener;
 use Sentry\State\HubInterface;
@@ -55,6 +57,9 @@ use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Temporal\Activity\ActivityInterface;
 use Temporal\Client\ClientOptions;
+use Temporal\Client\GRPC\ServiceClientInterface;
+use Temporal\Client\ScheduleClient;
+use Temporal\Client\ScheduleClientInterface;
 use Temporal\Client\WorkflowClient;
 use Temporal\Client\WorkflowClientInterface;
 use Temporal\DataConverter\DataConverter;
@@ -76,7 +81,7 @@ class BaldinofRoadRunnerExtension extends Extension
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
-        $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../../config'));
+        $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../../config'));
         $loader->load('services.php');
 
         if ($container->getParameter('kernel.debug')) {
@@ -212,7 +217,7 @@ class BaldinofRoadRunnerExtension extends Extension
                 ->register(SentryTracingRequestListenerDecorator::class)
                 ->setDecoratedService(TracingRequestListener::class, null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
                 ->setArguments([
-                    new Reference(SentryTracingRequestListenerDecorator::class . '.inner'),
+                    new Reference(SentryTracingRequestListenerDecorator::class.'.inner'),
                     new Reference(HubInterface::class),
                 ]);
 
@@ -285,7 +290,7 @@ class BaldinofRoadRunnerExtension extends Extension
         $storages = $config['kv']['storages'];
 
         foreach ($storages as $storage) {
-            $container->register('cache.adapter.roadrunner.kv_' . $storage, KvCacheAdapter::class)
+            $container->register('cache.adapter.roadrunner.kv_'.$storage, KvCacheAdapter::class)
                 ->setFactory([KvCacheAdapter::class, 'createConnection'])
                 ->setArguments([
                     '',
@@ -317,6 +322,7 @@ class BaldinofRoadRunnerExtension extends Extension
                         ->setAutoconfigured(true)
                         ->setAutowired(true);
                 }
+
                 return new Reference($id);
             }, $services);
         };
@@ -364,6 +370,17 @@ class BaldinofRoadRunnerExtension extends Extension
                     ],
                 ]);
 
+            $container->register("temporal.client.{$name}.service_client.factory", ServiceClientFactory::class)
+                ->setArguments([
+                    '$connection' => new Reference("temporal.client.{$name}.connection"),
+                ]);
+
+            $container->register("temporal.client.{$name}.service_client", ServiceClientInterface::class)
+                ->setFactory([new Reference("temporal.client.{$name}.service_client.factory"), '__invoke'])
+                ->setAutoconfigured(true)
+                ->setPublic(true)
+                ->setAutowired(true);
+
             $container->register("temporal.client.{$name}.option", ClientOptions::class)
                 ->setFactory([ClientOptionsFactory::class, 'createFromArray'])
                 ->setArguments([
@@ -379,15 +396,29 @@ class BaldinofRoadRunnerExtension extends Extension
                     $registerServiceArray($options['interceptors'] ?? []),
                 ]);
 
-            $container->register("temporal.client.{$name}.factory", ClientFactory::class)
+            $container->register("temporal.client.{$name}.factory", WorkflowClientFactory::class)
                 ->setArguments([
+                    '$serviceClient' => new Reference("temporal.client.{$name}.service_client"),
                     '$dataConverter' => new Reference('temporal.data_converter'),
                     '$clientOptions' => new Reference("temporal.client.{$name}.option"),
                     '$interceptors' => new Reference("temporal.client.{$name}.interceptors"),
-                    '$connection' => new Reference("temporal.client.{$name}.connection"),
                 ]);
+
             $container->register("temporal.client.{$name}", WorkflowClient::class)
                 ->setFactory([new Reference("temporal.client.{$name}.factory"), '__invoke'])
+                ->setAutoconfigured(true)
+                ->setPublic(true)
+                ->setAutowired(true);
+
+            $container->register("temporal.client.{$name}.schedule.factory", ScheduleClientFactory::class)
+                ->setArguments([
+                    '$serviceClient' => new Reference("temporal.client.{$name}.service_client"),
+                    '$dataConverter' => new Reference('temporal.data_converter'),
+                    '$clientOptions' => new Reference("temporal.client.{$name}.option"),
+                ]);
+
+            $container->register("temporal.client.{$name}.schedule", ScheduleClient::class)
+                ->setFactory([new Reference("temporal.client.{$name}.schedule.factory"), '__invoke'])
                 ->setAutoconfigured(true)
                 ->setPublic(true)
                 ->setAutowired(true);
@@ -396,7 +427,9 @@ class BaldinofRoadRunnerExtension extends Extension
         if (!$container->hasDefinition("temporal.client.{$config['default_client']}")) {
             throw new \InvalidArgumentException(\sprintf('%s not found in service container', "temporal.client.{$config['default_client']}"));
         }
+
         $container->setAlias(WorkflowClientInterface::class, "temporal.client.{$config['default_client']}");
+        $container->setAlias(ScheduleClientInterface::class, "temporal.client.{$config['default_client']}.schedule");
 
         $container->register(WorkerFactory::class, WorkerFactory::class)
             ->setArguments([new Reference(DataConverterInterface::class)])
