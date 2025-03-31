@@ -52,10 +52,7 @@ final class TemporalWorker implements WorkerInterface
             return;
         }
 
-        foreach ($this->workers as $name => $worker) {
-            if ($name === $workerName) {
-                continue;
-            }
+        foreach ($this->workers as $worker) {
             $worker->registerWorkflowTypes($workflowClass);
         }
     }
@@ -68,10 +65,7 @@ final class TemporalWorker implements WorkerInterface
             return;
         }
 
-        foreach ($this->workers as $name => $worker) {
-            if ($name === $workerName) {
-                continue;
-            }
+        foreach ($this->workers as $worker) {
             $worker->registerActivity($activity::class, fn () => $activity);
         }
     }

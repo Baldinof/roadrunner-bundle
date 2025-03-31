@@ -18,7 +18,7 @@ final class TemporalCompilerPass implements CompilerPassInterface
 
         $definition = $container->findDefinition(TemporalWorker::class);
         $this->registerWorkflows($container, $definition, $config);
-        $this->registerActivitties($container, $definition, $config);
+        $this->registerActivities($container, $definition, $config);
     }
 
     private function registerWorkflows(ContainerBuilder $container, Definition $temporalWorkerDefinition, array $config): void
@@ -33,7 +33,7 @@ final class TemporalCompilerPass implements CompilerPassInterface
         }
     }
 
-    private function registerActivitties(ContainerBuilder $container, Definition $temporalWorkerDefinition, array $config): void
+    private function registerActivities(ContainerBuilder $container, Definition $temporalWorkerDefinition, array $config): void
     {
         /**
          * @var array<string, array>
