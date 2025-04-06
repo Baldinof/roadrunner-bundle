@@ -308,7 +308,8 @@ baldinof_road_runner:
             default:
                 queue: default
                 exception_interceptor: temporal.exception_interceptor
-                optons:
+                default_interceptors: true
+                options:
                     max_concurrent_activity_execution_size: <int>
                     worker_activities_per_second: <float>
                     max_concurrent_local_activity_execution_size: <int>
@@ -325,7 +326,7 @@ baldinof_road_runner:
                 interceptors: {  } # array of service id
 ```
 
-To register worflow and actvity you just need to tag actual class with `#[WorkflowInterface]` and `#[ActivityInterface]`
+To register a workflow and activity, you just need to tag actual class with `#[WorkflowInterface]` and `#[ActivityInterface]`
 
 ```php
 <?php
@@ -389,7 +390,7 @@ class ExampleActivity
 }
 ```
 
-Any known dependency in `Activity` constructor will be injected automatically, otherwise you have to cosntruct by hand.
+Dependencies defined in the Activity constructor will be automatically resolved from the dependency injection container.
 
 To use temporal default temporal client that listed in config you can type `WorkflowClientInterface` in constructor
 
@@ -401,11 +402,8 @@ final class Example
 }
 ```
 
-Or if you need other client you can retireve it via containter
+Additional clients are registered under the service id `temporal.client.$name`.
 
-```php
-$container->get('temporal.client.{$name}')
-```
 
 ## Usage with Docker
 

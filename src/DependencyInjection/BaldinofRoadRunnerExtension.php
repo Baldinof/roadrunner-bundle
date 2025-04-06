@@ -26,20 +26,18 @@ use Baldinof\RoadRunnerBundle\Temporal\Attributes\AssignToWorker;
 use Baldinof\RoadRunnerBundle\Temporal\ClientOptionsFactory;
 use Baldinof\RoadRunnerBundle\Temporal\Connection;
 use Baldinof\RoadRunnerBundle\Temporal\ConnectionFactory;
+use Baldinof\RoadRunnerBundle\Temporal\Interceptors\DoctrineORMInterceptor;
+use Baldinof\RoadRunnerBundle\Temporal\Interceptors\RebootKernelInterceptor;
 use Baldinof\RoadRunnerBundle\Temporal\ScheduleClientFactory;
 use Baldinof\RoadRunnerBundle\Temporal\ServiceClientFactory;
 use Baldinof\RoadRunnerBundle\Temporal\WorkerFactory;
-use Baldinof\RoadRunnerBundle\Temporal\WorkerOptionsFactory;
 use Baldinof\RoadRunnerBundle\Temporal\WorkflowClientFactory;
-use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
-use Baldinof\RoadRunnerBundle\Worker\WorkerRegistryInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Sentry\SentryBundle\EventListener\TracingRequestListener;
 use Sentry\State\HubInterface;
 use Spiral\Goridge\RPC\RPC;
 use Spiral\Goridge\RPC\RPCInterface;
-use Spiral\RoadRunner\Environment;
 use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Spiral\RoadRunner\KeyValue\Factory;
 use Spiral\RoadRunner\Metrics\Collector;
@@ -54,6 +52,7 @@ use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Temporal\Activity\ActivityInterface;
 use Temporal\Client\ClientOptions;
@@ -65,9 +64,10 @@ use Temporal\Client\WorkflowClientInterface;
 use Temporal\DataConverter\DataConverter;
 use Temporal\DataConverter\DataConverterInterface;
 use Temporal\Interceptor\SimplePipelineProvider;
-use Temporal\Worker\WorkerOptions;
 use Temporal\WorkerFactory as TemporalWorkerFactory;
 use Temporal\Workflow\WorkflowInterface;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 class BaldinofRoadRunnerExtension extends Extension
 {
@@ -304,8 +304,12 @@ class BaldinofRoadRunnerExtension extends Extension
 
     private function configureTemporal(array $config, ContainerBuilder $container): void
     {
+        /** @var array */
+        $bundles = $container->getParameter('kernel.bundles');
+
         $container->setParameter('temporal.config', $config['temporal']);
         $config = $config['temporal'];
+        $defaultInterceptors = [];
 
         $workerAssignmentAttrExtractor = function (\ReflectionClass $class): ?string {
             $workers = array_map(function (\ReflectionAttribute $attr): ?string {
@@ -330,8 +334,8 @@ class BaldinofRoadRunnerExtension extends Extension
         $container->registerAttributeForAutoconfiguration(
             WorkflowInterface::class,
             /** @phpstan-ignore-next-line */
-            function (ChildDefinition $defintion, WorkflowInterface $attribute, \ReflectionClass $reflection) use ($workerAssignmentAttrExtractor): void {
-                $defintion->addTag(
+            function (ChildDefinition $definition, WorkflowInterface $attribute, \ReflectionClass $reflection) use ($workerAssignmentAttrExtractor): void {
+                $definition->addTag(
                     'temporal.workflows',
                     ['worker_name' => $workerAssignmentAttrExtractor($reflection)]
                 );
@@ -341,8 +345,8 @@ class BaldinofRoadRunnerExtension extends Extension
         $container->registerAttributeForAutoconfiguration(
             ActivityInterface::class,
             /** @phpstan-ignore-next-line */
-            function (ChildDefinition $defintion, ActivityInterface $attribute, \ReflectionClass $reflection) use ($workerAssignmentAttrExtractor): void {
-                $defintion->addTag(
+            function (ChildDefinition $definition, ActivityInterface $attribute, \ReflectionClass $reflection) use ($workerAssignmentAttrExtractor): void {
+                $definition->addTag(
                     'temporal.activities',
                     [
                         'worker_name' => $workerAssignmentAttrExtractor($reflection),
@@ -354,8 +358,33 @@ class BaldinofRoadRunnerExtension extends Extension
 
         $container->register(DataConverter::class, DataConverter::class)
             ->setArguments($registerServiceArray($config['data_converters'] ?? null));
+
         $container->setAlias('temporal.data_converter', DataConverter::class);
         $container->setAlias(DataConverterInterface::class, 'temporal.data_converter');
+
+        $container
+            ->register(RebootKernelInterceptor::class)
+            ->addArgument(new Reference(KernelInterface::class))
+            ->addArgument(new Reference(LoggerInterface::class))
+            ->addTag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+        ;
+
+        $defaultInterceptors[] = RebootKernelInterceptor::class;
+
+        if (isset($bundles['DoctrineBundle'])) {
+            $container
+                ->register(DoctrineORMInterceptor::class)
+                ->addArgument(new Reference(ManagerRegistry::class))
+                ->addArgument(new Reference('service_container'))
+                ->addArgument(new Reference(EventDispatcherInterface::class))
+                ->addArgument(new Reference(LoggerInterface::class))
+                ->addTag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+            ;
+
+            $defaultInterceptors[] = DoctrineORMInterceptor::class;
+        }
+
+        $container->setParameter('temporal.default_interceptors', $defaultInterceptors);
 
         foreach ($config['clients'] as $name => $options) {
             $container->register("temporal.client.{$name}.connection", Connection::class)
@@ -378,7 +407,6 @@ class BaldinofRoadRunnerExtension extends Extension
             $container->register("temporal.client.{$name}.service_client", ServiceClientInterface::class)
                 ->setFactory([new Reference("temporal.client.{$name}.service_client.factory"), '__invoke'])
                 ->setAutoconfigured(true)
-                ->setPublic(true)
                 ->setAutowired(true);
 
             $container->register("temporal.client.{$name}.option", ClientOptions::class)
@@ -392,9 +420,7 @@ class BaldinofRoadRunnerExtension extends Extension
                 ]);
 
             $container->register("temporal.client.{$name}.interceptors", SimplePipelineProvider::class)
-                ->setArguments([
-                    $registerServiceArray($options['interceptors'] ?? []),
-                ]);
+                ->addArgument(array_map(service(...), $options['interceptors'] ?? []));
 
             $container->register("temporal.client.{$name}.factory", WorkflowClientFactory::class)
                 ->setArguments([
@@ -407,7 +433,6 @@ class BaldinofRoadRunnerExtension extends Extension
             $container->register("temporal.client.{$name}", WorkflowClient::class)
                 ->setFactory([new Reference("temporal.client.{$name}.factory"), '__invoke'])
                 ->setAutoconfigured(true)
-                ->setPublic(true)
                 ->setAutowired(true);
 
             $container->register("temporal.client.{$name}.schedule.factory", ScheduleClientFactory::class)
@@ -420,7 +445,6 @@ class BaldinofRoadRunnerExtension extends Extension
             $container->register("temporal.client.{$name}.schedule", ScheduleClient::class)
                 ->setFactory([new Reference("temporal.client.{$name}.schedule.factory"), '__invoke'])
                 ->setAutoconfigured(true)
-                ->setPublic(true)
                 ->setAutowired(true);
         }
 
@@ -441,37 +465,5 @@ class BaldinofRoadRunnerExtension extends Extension
                 new Reference(WorkerFactory::class),
                 '__invoke',
             ]);
-
-        $temporalWorker = $container->register(TemporalWorker::class, TemporalWorker::class)
-            ->setArguments([
-                new Reference(TemporalWorkerFactory::class),
-            ]);
-
-        foreach ($config['workers'] as $name => $options) {
-            $container->register("temporal.worker.{$name}.interceptors", SimplePipelineProvider::class)
-                ->setArguments([
-                    $registerServiceArray($options['interceptors'] ?? []),
-                ]);
-
-            $container->register("temporal.worker.{$name}.option", WorkerOptions::class)
-                ->setFactory([WorkerOptionsFactory::class, 'createFromArray'])
-                ->setArguments([
-                    '$options' => $options['options'] ?? [],
-                ]);
-
-            $temporalWorker->addMethodCall('addWorker', [
-                $name,
-                $options['queue'],
-                new Reference("temporal.worker.{$name}.interceptors"),
-                new Reference($options['exception_interceptor']),
-                new Reference("temporal.worker.{$name}.option"),
-            ]);
-        }
-
-        $workerRegistry = $container->findDefinition(WorkerRegistryInterface::class);
-        $workerRegistry->addMethodCall('registerWorker', [
-            Environment\Mode::MODE_TEMPORAL,
-            new Reference(TemporalWorker::class),
-        ]);
     }
 }

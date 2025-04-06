@@ -10,7 +10,7 @@ use Temporal\Client\WorkflowClient;
 use Temporal\Client\WorkflowClientInterface;
 use Temporal\DataConverter\DataConverter;
 use Temporal\DataConverter\DataConverterInterface;
-use Temporal\Interceptor\SimplePipelineProvider;
+use Temporal\Interceptor\PipelineProvider;
 
 final class WorkflowClientFactory
 {
@@ -20,13 +20,13 @@ final class WorkflowClientFactory
 
     private ClientOptions $clientOptions;
 
-    private SimplePipelineProvider $interceptors;
+    private PipelineProvider $interceptors;
 
     public function __construct(
         ServiceClientInterface $serviceClient,
         DataConverter $dataConverter,
         ClientOptions $clientOptions,
-        SimplePipelineProvider $interceptors,
+        PipelineProvider $interceptors,
     ) {
         $this->serviceClient = $serviceClient;
         $this->dataConverter = $dataConverter;

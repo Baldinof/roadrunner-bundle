@@ -175,6 +175,7 @@ class Configuration implements ConfigurationInterface
                                     'queue' => 'default',
                                     'exception_interceptor' => 'temporal.exception_interceptor',
                                     'options' => [],
+                                    'default_interceptors' => true,
                                     'interceptors' => [],
                                 ],
                             ])
@@ -202,6 +203,7 @@ class Configuration implements ConfigurationInterface
                                             ->integerNode('max_concurrent_session_execution_size')->defaultValue(0)->end()
                                         ->end()
                                     ->end()
+                                    ->booleanNode('default_interceptors')->defaultTrue()->end()
                                     ->arrayNode('interceptors')
                                         ->defaultValue([])
                                         ->scalarPrototype()->end()
