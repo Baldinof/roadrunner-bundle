@@ -19,7 +19,7 @@ class Runner implements RunnerInterface
 
     public function run(): int
     {
-        $_SERVER['APP_RUNTIME_MODE'] = \sprintf('web=%d&worker=1', $this->mode == Mode::MODE_HTTP ? 1 : 0);
+        $_SERVER['APP_RUNTIME_MODE'] = \sprintf('web=%d&worker=1', $this->mode === Mode::MODE_HTTP ? 1 : 0);
         
         $this->kernel->boot();
 
