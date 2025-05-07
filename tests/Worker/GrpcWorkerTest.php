@@ -237,4 +237,37 @@ class GrpcWorkerTest extends TestCase
         $this->kernel->reboot(null)->shouldHaveBeenCalled();
         $this->assertTrue($rebootedEventFired);
     }
+
+    public function test_it_resets_services_before_reboot(): void
+    {
+        $this->responder = function () use (&$terminated) {
+            yield 'hello';
+
+            $terminated = true;
+        };
+
+        $this->roadrunnerWorker->respond(Argument::any()); // Allow respond() calls
+
+        $this->requests->push(new Payload('', Json::encode([
+            'service' => FakeGrpcService::NAME,
+            'method' => 'fake',
+            'context' => [],
+        ])));
+
+        $resetter = $this->prophesize(\Symfony\Contracts\Service\ResetInterface::class);
+        $resetter->reset()->shouldBeCalledOnce();
+        $this->container->set('services_resetter', $resetter->reveal());
+
+        self::$rebootStrategyReturns = true;
+
+        $rebootedEventFired = false;
+        $this->eventDispatcher->addListener(WorkerKernelRebootedEvent::class, function () use (&$rebootedEventFired) {
+            $rebootedEventFired = true;
+        });
+
+        $this->worker->start();
+
+        $this->kernel->reboot(null)->shouldHaveBeenCalled();
+        $this->assertTrue($rebootedEventFired);
+    }
 }

@@ -79,16 +79,18 @@ final class GrpcInvoker implements InvokerInterface, GrpcTerminableInterface
         }
 
         if ($this->kernel instanceof RebootableInterface && $this->dependencies->getKernelRebootStrategy()->shouldReboot()) {
+            if ($this->kernel->getContainer()->has('services_resetter')) {
+                /** @var ResetInterface $resetter */
+                $resetter = $this->kernel->getContainer()->get('services_resetter');
+                $resetter->reset();
+            }
+
             $this->kernel->reboot(null);
             /** @var GrpcDependencies */
             $deps = $this->kernel->getContainer()->get(GrpcDependencies::class);
 
             $this->dependencies = $deps;
             $this->dependencies->getEventDispatcher()->dispatch(new WorkerKernelRebootedEvent());
-        } elseif ($this->kernel->getContainer()->has('services_resetter')) {
-            /** @var ResetInterface $resetter */
-            $resetter = $this->kernel->getContainer()->get('services_resetter');
-            $resetter->reset();
         }
 
         $this->dependencies->getKernelRebootStrategy()->clear();
