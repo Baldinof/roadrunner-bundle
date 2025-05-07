@@ -146,9 +146,20 @@ final class HttpWorker implements WorkerInterface
             } finally {
                 if ($this->kernel instanceof RebootableInterface && $this->dependencies->getKernelRebootStrategy()->shouldReboot()) {
                     if ($this->kernel->getContainer()->has('services_resetter')) {
-                        /** @var ResetInterface $resetter */
-                        $resetter = $this->kernel->getContainer()->get('services_resetter');
-                        $resetter->reset();
+                        try {
+                            /** @var ResetInterface $resetter */
+                            $resetter = $this->kernel->getContainer()->get('services_resetter');
+                            $resetter->reset();
+                        } catch (\Throwable $e) {
+                            $this->logger->error(
+                                \sprintf(
+                                    'An error occurred when resetting services: %s',
+                                    $e->getMessage()
+                                ),
+                                ['throwable' => $e]
+                            );
+                            throw $e;
+                        }
                     }
 
                     $this->kernel->reboot(null);
