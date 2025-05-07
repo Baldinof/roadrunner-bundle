@@ -159,8 +159,6 @@ final class HttpWorker implements WorkerInterface
                             ),
                             ['exception' => $e]
                         );
-
-                        throw $e;
                     }
 
                     $this->kernel->reboot(null);
