@@ -268,7 +268,7 @@ class HttpWorkerTest extends TestCase
         $this->assertTrue($rebootedEventFired);
     }
 
-    public function test_it_resets_services_after_reboot(): void
+    public function test_it_resets_services_before_reboot(): void
     {
         $this->responder = function () use (&$terminated) {
             yield new Response('hello', 200, []);
