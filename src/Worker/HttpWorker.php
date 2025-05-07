@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 use function Baldinof\RoadRunnerBundle\consumes;
 
@@ -144,6 +145,12 @@ final class HttpWorker implements WorkerInterface
                 break;
             } finally {
                 if ($this->kernel instanceof RebootableInterface && $this->dependencies->getKernelRebootStrategy()->shouldReboot()) {
+                    if ($this->kernel->getContainer()->has('services_resetter')) {
+                        /** @var ResetInterface $resetter */
+                        $resetter = $this->kernel->getContainer()->get('services_resetter');
+                        $resetter->reset();
+                    }
+
                     $this->kernel->reboot(null);
                     /** @var HttpDependencies */
                     $deps = $this->kernel->getContainer()->get(HttpDependencies::class);
