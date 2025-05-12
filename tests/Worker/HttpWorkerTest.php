@@ -267,4 +267,25 @@ class HttpWorkerTest extends TestCase
         $this->kernel->reboot(null)->shouldHaveBeenCalled();
         $this->assertTrue($rebootedEventFired);
     }
+
+    public function test_it_resets_services_before_reboot(): void
+    {
+        $this->responder = function () use (&$terminated) {
+            yield new Response('hello', 200, []);
+
+            $terminated = true;
+        };
+
+        $this->httpFoundationWorker->respond(Argument::any()); // Allow respond() calls
+
+        $this->requests->push(Request::create('http://example.org/'));
+
+        $resetter = $this->prophesize(\Symfony\Contracts\Service\ResetInterface::class);
+        $resetter->reset()->shouldBeCalledOnce();
+        $this->container->set('services_resetter', $resetter->reveal());
+
+        self::$rebootStrategyReturns = true;
+        $this->worker->start();
+        $this->kernel->reboot(null)->shouldHaveBeenCalled();
+    }
 }
