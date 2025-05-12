@@ -73,7 +73,7 @@ class Configuration implements ConfigurationInterface
                             ->arrayPrototype()
                                 ->children()
                                     ->enumNode('type')
-                                        ->values(['counter', 'histogram', 'gauge'])
+                                        ->values(['counter', 'histogram', 'gauge', 'summary'])
                                         ->isRequired()
                                     ->end()
                                     ->scalarNode('help')->defaultNull()->end()

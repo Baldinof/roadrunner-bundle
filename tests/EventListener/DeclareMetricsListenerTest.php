@@ -21,6 +21,7 @@ class DeclareMetricsListenerTest extends TestCase
         $gauge = Collector::gauge()->withLabels('hello');
         $counter = Collector::counter()->withNamespace('foo')->withHelp('count something');
         $histogram = Collector::histogram(0.1, 0.5, 1)->withSubsystem('bar');
+        $summary = Collector::summary();
 
         $listener = new DeclareMetricsListener($metrics->reveal());
         $listener->addCollector('gauge', [
@@ -38,9 +39,15 @@ class DeclareMetricsListenerTest extends TestCase
             'subsystem' => 'bar',
         ]);
 
+        $listener->addCollector('summary', [
+            'type' => 'summary',
+        ]);
+
         $metrics->declare('gauge', $gauge)->shouldBeCalled();
         $metrics->declare('counter', $counter)->shouldBeCalled();
         $metrics->declare('histo', $histogram)->shouldBeCalled();
+        $metrics->declare('histo', $histogram)->shouldBeCalled();
+        $metrics->declare('summary', $summary)->shouldBeCalled();
 
         $listener->declareMetrics(new WorkerStartEvent());
     }
