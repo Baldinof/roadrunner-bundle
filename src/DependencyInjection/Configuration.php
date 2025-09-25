@@ -16,6 +16,7 @@ class Configuration implements ConfigurationInterface
     public const KERNEL_REBOOT_STRATEGY_ALWAYS = 'always';
     public const KERNEL_REBOOT_STRATEGY_ON_EXCEPTION = 'on_exception';
     public const KERNEL_REBOOT_STRATEGY_MAX_JOBS = 'max_jobs';
+    public const KERNEL_REBOOT_STRATEGY_MEMORY = 'memory';
 
     public function getConfigTreeBuilder(): TreeBuilder
     {
@@ -30,10 +31,11 @@ class Configuration implements ConfigurationInterface
                     ->children()
                         ->arrayNode('strategy')
                             ->info(\sprintf(
-                                'Possible values are "%s", "%s", "%s" or any service that implements "%s"/',
+                                'Possible values are "%s", "%s", "%s", "%s" or any service that implements "%s"/',
                                 self::KERNEL_REBOOT_STRATEGY_ALWAYS,
                                 self::KERNEL_REBOOT_STRATEGY_ON_EXCEPTION,
                                 self::KERNEL_REBOOT_STRATEGY_MAX_JOBS,
+                                self::KERNEL_REBOOT_STRATEGY_MEMORY,
                                 KernelRebootStrategyInterface::class
                             ))
                             ->defaultValue([self::KERNEL_REBOOT_STRATEGY_ON_EXCEPTION])
@@ -52,6 +54,10 @@ class Configuration implements ConfigurationInterface
                         ->scalarNode('max_jobs_dispersion')
                             ->info('Only used when `reboot_kernel.strategy: max_jobs`. Dispersion persent')
                             ->defaultValue(0.2)
+                        ->end()
+                        ->scalarNode('memory_threshold_mb')
+                            ->info('Only used when `reboot_kernel.strategy: memory`. Memory threshold in megabytes')
+                            ->defaultValue(128)
                         ->end()
                     ->end()
                 ->end()

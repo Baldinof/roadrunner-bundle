@@ -93,7 +93,17 @@ baldinof_road_runner:
     kernel_reboot:
       strategy: max_jobs
       max_jobs: 1000 # maximum number of request
-      max_jobs_dispersion: 0.2 # dispersion 20% used to prevent simultaneous reboot of all active workers (kernel will rebooted between 800 and 1000 requests) 
+      max_jobs_dispersion: 0.2 # dispersion 20% used to prevent simultaneous reboot of all active workers (kernel will rebooted between 800 and 1000 requests)
+```
+
+If you want to reboot the worker when memory usage exceeds a certain threshold to prevent memory exhaustion you can use `memory` reboot strategy:
+
+```yaml
+# config/packages/baldinof_road_runner.yaml
+baldinof_road_runner:
+    kernel_reboot:
+      strategy: memory
+      memory_threshold_mb: 256 # memory threshold in megabytes (default: 128MB)
 ```
 
 You can combine reboot strategies:
@@ -103,13 +113,14 @@ You can combine reboot strategies:
 # config/packages/baldinof_road_runner.yaml
 baldinof_road_runner:
     kernel_reboot:
-      strategy: [on_exception, max_jobs]
+      strategy: [on_exception, max_jobs, memory]
       allowed_exceptions:
         - Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
         - Symfony\Component\Serializer\Exception\ExceptionInterface
         - App\Exception\YourDomainException
       max_jobs: 1000
       max_jobs_dispersion: 0.2
+      memory_threshold_mb: 256
 ```
 
 
