@@ -18,6 +18,7 @@ use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\MaxJobsRebootStrategy;
+use Baldinof\RoadRunnerBundle\Reboot\MemoryRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
@@ -76,6 +77,10 @@ class BaldinofRoadRunnerExtension extends Extension
                 $strategyService = (new Definition(MaxJobsRebootStrategy::class))
                     ->addArgument($config['kernel_reboot']['max_jobs'])
                     ->addArgument($config['kernel_reboot']['max_jobs_dispersion'])
+                    ->setAutoconfigured(true);
+            } elseif ($strategy === Configuration::KERNEL_REBOOT_STRATEGY_MEMORY) {
+                $strategyService = (new Definition(MemoryRebootStrategy::class))
+                    ->addArgument($config['kernel_reboot']['memory_threshold_mb'])
                     ->setAutoconfigured(true);
             } else {
                 $strategyService = new Reference($strategy);
