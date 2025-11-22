@@ -68,7 +68,7 @@
     },
     "scripts": {
         "test": "vendor/bin/phpunit --testdox --colors=always",
-        "phpstan": "tools/vendor/bin/phpstan analyse --no-progress --ansi",
+        "phpstan": "tools/vendor/bin/phpstan analyse --no-progress --ansi --memory-limit=-1",
         "cs:lint": "tools/vendor/bin/php-cs-fixer fix --dry-run --diff --ansi --allow-risky=yes",
         "cs:fix": "tools/vendor/bin/php-cs-fixer fix --ansi --allow-risky=yes",
         "ci": [

@@ -52,7 +52,7 @@ final class HttpWorker implements WorkerInterface
 
         $container = $kernel->getContainer();
 
-        /** @var HttpDependencies */
+        /** @var HttpDependencies $dependencies */
         $dependencies = $container->get(HttpDependencies::class);
         $this->dependencies = $dependencies;
 
@@ -70,7 +70,10 @@ final class HttpWorker implements WorkerInterface
                     if (!\defined($const = Request::class.'::HEADER_'.strtr(strtoupper($header), '-', '_'))) {
                         throw new \InvalidArgumentException(\sprintf('The trusted header "%s" is not supported.', $header));
                     }
-                    $trustedHeaderSet |= \constant($const);
+                    $value = \constant($const);
+                    if (\is_int($value)) {
+                        $trustedHeaderSet |= $value;
+                    }
                 }
             } else {
                 $trustedHeaderSet = $trustedHeaders ?? (Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO);
@@ -162,7 +165,7 @@ final class HttpWorker implements WorkerInterface
                     }
 
                     $this->kernel->reboot(null);
-                    /** @var HttpDependencies */
+                    /** @var HttpDependencies $deps */
                     $deps = $this->kernel->getContainer()->get(HttpDependencies::class);
 
                     $this->dependencies = $deps;
