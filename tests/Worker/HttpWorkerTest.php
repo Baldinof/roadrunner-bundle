@@ -61,7 +61,6 @@ class HttpWorkerTest extends TestCase
             ->willImplement(RebootableInterface::class);
 
         $this->kernel->isDebug()->willReturn($this->isDebug);
-        $this->kernel->boot()->willReturn(null);
         $this->kernel->getContainer()->willReturn($c = new Container());
 
         $handler = function ($request) {

@@ -22,6 +22,12 @@ jobs:
           - sf-version: "6.4.*"
             php-versions: '8.3'
             composer: 'highest'
+          - sf-version: "7.4.*"
+            php-versions: '8.3'
+            composer: 'highest'
+          - sf-version: "8.0.*"
+            php-versions: '8.4'
+            composer: 'highest'
 
     steps:
       - name: Checkout

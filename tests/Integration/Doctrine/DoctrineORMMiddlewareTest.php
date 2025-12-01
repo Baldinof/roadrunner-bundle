@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
+use Doctrine\DBAL\Query\QueryException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\TestCase;
@@ -73,7 +74,10 @@ class DoctrineORMMiddlewareTest extends TestCase
         $this->connectionMock->expects($this->never())->method('isConnected');
         $this->connectionMock->expects($this->never())->method('executeQuery');
         $this->connectionMock->expects($this->never())->method('close');
-        $this->connectionMock->expects($this->never())->method('connect');
+        if (class_exists(DBALException::class)) {
+            // For DBAL 2.x
+            $this->connectionMock->expects($this->never())->method('connect');
+        }
 
         consumes($this->middleware->process($this->request, $this->handler));
     }
@@ -83,14 +87,19 @@ class DoctrineORMMiddlewareTest extends TestCase
         $this->connectionMock->method('isConnected')->willReturn(false);
         $this->connectionMock->expects($this->never())->method('executeQuery');
         $this->connectionMock->expects($this->never())->method('close');
-        $this->connectionMock->expects($this->never())->method('connect');
+        if (class_exists(DBALException::class)) {
+            // For DBAL 2.x
+            $this->connectionMock->expects($this->never())->method('connect');
+        }
 
         consumes($this->middleware->process($this->request, $this->handler));
     }
 
     public function test_it_closes_not_pingable_connection(): void
     {
-        if (class_exists(Exception::class)) {
+        if (class_exists(QueryException::class)) {
+            $this->connectionMock->expects($this->once())->method('executeQuery')->will($this->throwException(new QueryException()));
+        } elseif (class_exists(Exception::class)) {
             $this->connectionMock->expects($this->once())->method('executeQuery')->will($this->throwException(new Exception()));
         } else {
             // For DBAL 2.x
@@ -98,7 +107,10 @@ class DoctrineORMMiddlewareTest extends TestCase
         }
         $this->connectionMock->method('isConnected')->willReturn(true);
         $this->connectionMock->expects($this->once())->method('close');
-        $this->connectionMock->expects($this->never())->method('connect');
+        if (class_exists(DBALException::class)) {
+            // For DBAL 2.x
+            $this->connectionMock->expects($this->never())->method('connect');
+        }
 
         consumes($this->middleware->process($this->request, $this->handler));
     }
@@ -108,7 +120,10 @@ class DoctrineORMMiddlewareTest extends TestCase
         $this->connectionMock->expects($this->once())->method('executeQuery');
         $this->connectionMock->method('isConnected')->willReturn(true);
         $this->connectionMock->expects($this->never())->method('close');
-        $this->connectionMock->expects($this->never())->method('connect');
+        if (class_exists(DBALException::class)) {
+            // For DBAL 2.x
+            $this->connectionMock->expects($this->never())->method('connect');
+        }
 
         consumes($this->middleware->process($this->request, $this->handler));
     }
