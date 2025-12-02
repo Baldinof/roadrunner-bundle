@@ -92,7 +92,6 @@ class GrpcWorkerTest extends TestCase
         $this->kernel = $this->prophesize(KernelInterface::class)
             ->willImplement(RebootableInterface::class);
         $this->kernel->isDebug()->willReturn($this->isDebug);
-        $this->kernel->boot()->willReturn(null);
         $this->kernel->getContainer()->willReturn($c = new Container());
 
         $this->container = $c;
