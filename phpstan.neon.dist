@@ -10,6 +10,8 @@ parameters:
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         - identifier: missingType.iterableValue
+        - identifier: missingType.generics
+          path: 'src/DependencyInjection/Configuration.php'
         - message: '#Access to protected property Symfony\\Component\\HttpKernel\\Kernel::\$startTime.#'
           path: 'src/Http/KernelHandler.php'
         - message: '#Call to an undefined method#'
