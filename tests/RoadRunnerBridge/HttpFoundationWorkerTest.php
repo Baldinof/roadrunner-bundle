@@ -219,12 +219,20 @@ class HttpFoundationWorkerTest extends TestCase
             },
         ];
 
-        yield 'streamed generator response' => [
+        yield 'streamed generator response (callback)' => [
             new StreamedGeneratorResponse((function () {
                 yield 'hello';
                 yield ' ';
                 yield 'world';
             })()),
+            function (RoadRunnerResponse $response) {
+                $this->assertSame(200, $response->status);
+                $this->assertSame(['hello', ' ', 'world'], $response->content);
+            },
+        ];
+
+        yield 'streamed generator response (iterable)' => [
+            new StreamedGeneratorResponse(['hello', ' ', 'world']),
             function (RoadRunnerResponse $response) {
                 $this->assertSame(200, $response->status);
                 $this->assertSame(['hello', ' ', 'world'], $response->content);
