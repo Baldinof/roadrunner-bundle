@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\RoadRunnerBridge;
 
+use Baldinof\RoadRunnerBundle\Http\StreamedGeneratorResponse;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Http\Request as RoadRunnerRequest;
 use Spiral\RoadRunner\WorkerInterface;
@@ -35,32 +36,35 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
         return $this->toSymfonyRequest($rrRequest);
     }
 
-    public function respond(SymfonyResponse $symfonyResponse): void
+    public function respond(SymfonyResponse $response): void
     {
-        if ($symfonyResponse instanceof BinaryFileResponse && !$symfonyResponse->headers->has('Content-Range')) {
-            $content = file_get_contents($symfonyResponse->getFile()->getPathname());
+        if ($response instanceof BinaryFileResponse && !$response->headers->has('Content-Range')) {
+            $content = file_get_contents($response->getFile()->getPathname());
             if ($content === false) {
-                throw new \RuntimeException(\sprintf("Cannot read file '%s'", $symfonyResponse->getFile()->getPathname())); // TODO: custom error
+                throw new \RuntimeException(\sprintf("Cannot read file '%s'", $response->getFile()->getPathname())); // TODO: custom error
             }
+        } elseif ($response instanceof StreamedGeneratorResponse) {
+            $callback = $response->getCallback();
+            if (!$callback || (!($content = $callback()) instanceof \Generator)) {
+                throw new \RuntimeException('StreamedGeneratorResponse callback must return a Generator');
+            }
+        } elseif ($response instanceof StreamedResponse || $response instanceof BinaryFileResponse) {
+            $content = '';
+            ob_start(function ($buffer) use (&$content) {
+                $content .= $buffer;
+
+                return '';
+            });
+
+            $response->sendContent();
+            ob_end_clean();
         } else {
-            if ($symfonyResponse instanceof StreamedResponse || $symfonyResponse instanceof BinaryFileResponse) {
-                $content = '';
-                ob_start(function ($buffer) use (&$content) {
-                    $content .= $buffer;
-
-                    return '';
-                });
-
-                $symfonyResponse->sendContent();
-                ob_end_clean();
-            } else {
-                $content = (string) $symfonyResponse->getContent();
-            }
+            $content = (string) $response->getContent();
         }
 
-        $headers = $this->stringifyHeaders($symfonyResponse->headers->all());
+        $headers = $this->stringifyHeaders($response->headers->all());
 
-        $this->httpWorker->respond($symfonyResponse->getStatusCode(), $content, $headers);
+        $this->httpWorker->respond($response->getStatusCode(), $content, $headers);
     }
 
     public function getWorker(): WorkerInterface

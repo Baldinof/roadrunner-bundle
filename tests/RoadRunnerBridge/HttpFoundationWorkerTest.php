@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Baldinof\RoadRunnerBundle\RoadRunnerBridge;
 
+use Baldinof\RoadRunnerBundle\Http\StreamedGeneratorResponse;
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
@@ -218,6 +219,18 @@ class HttpFoundationWorkerTest extends TestCase
             },
         ];
 
+        yield 'streamed generator response' => [
+            new StreamedGeneratorResponse((function () {
+                yield 'hello';
+                yield ' ';
+                yield 'world';
+            })()),
+            function (RoadRunnerResponse $response) {
+                $this->assertSame(200, $response->status);
+                $this->assertSame(['hello', ' ', 'world'], $response->content);
+            },
+        ];
+
         yield 'cookies' => [
             function () {
                 $response = new Response();
@@ -313,13 +326,13 @@ class HttpFoundationWorkerTest extends TestCase
 final class RoadRunnerResponse
 {
     public int $status;
-    public string $content;
+    public string|array $content;
     public array $headers;
 
-    public function __construct(int $status, string $content, array $headers)
+    public function __construct(int $status, string|\Generator $content, array $headers)
     {
         $this->status = $status;
-        $this->content = $content;
+        $this->content = $content instanceof \Generator ? iterator_to_array($content) : $content;
         $this->headers = $headers;
     }
 }
