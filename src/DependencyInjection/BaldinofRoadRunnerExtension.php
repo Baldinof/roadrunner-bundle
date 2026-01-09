@@ -14,6 +14,8 @@ use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryListener;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListenerDecorator;
 use Baldinof\RoadRunnerBundle\Integration\Symfony\ConfigureVarDumperListener;
+use Baldinof\RoadRunnerBundle\Integration\Xdebug\XdebugProxy;
+use Baldinof\RoadRunnerBundle\Integration\Xdebug\XdebugTriggerMiddleware;
 use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
@@ -148,6 +150,21 @@ class BaldinofRoadRunnerExtension extends Extension
             return;
         }
 
+        // ext-xdebug might not be there when building the container, so let's not test for the extension to be loaded.
+        if ($container->getParameter('kernel.debug')) {
+            $container
+                ->register(XdebugProxy::class)
+                ->setAutoconfigured(true);
+            $container
+                ->register(XdebugTriggerMiddleware::class)
+                ->addArgument(new Reference(XdebugProxy::class))
+                ->setAutoconfigured(true);
+
+            // Xdebug should always be the first middleware/interceptor to be executed
+            $beforeMiddlewares[] = XdebugTriggerMiddleware::class;
+            $beforeInterceptors[] = XdebugTriggerMiddleware::class;
+        }
+
         /** @var array */
         $bundles = $container->getParameter('kernel.bundles');
 
@@ -198,6 +215,7 @@ class BaldinofRoadRunnerExtension extends Extension
             $beforeMiddlewares[] = DoctrineORMMiddleware::class;
             $beforeInterceptors[] = DoctrineORMMiddleware::class;
         }
+
         $container->setParameter('baldinof_road_runner.middlewares.default', ['before' => $beforeMiddlewares, 'after' => $lastMiddlewares]);
         if (interface_exists(ServiceInterface::class)) {
             $container->setParameter('baldinof_road_runner.interceptors.default', ['before' => $beforeInterceptors, 'after' => $afterInterceptors]);

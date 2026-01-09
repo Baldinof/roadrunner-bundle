@@ -10,6 +10,8 @@ use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListenerDecorator;
+use Baldinof\RoadRunnerBundle\Integration\Xdebug\XdebugProxy;
+use Baldinof\RoadRunnerBundle\Integration\Xdebug\XdebugTriggerMiddleware;
 use Baldinof\RoadRunnerBundle\Reboot\AlwaysRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
@@ -165,6 +167,34 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $this->assertTrue($c->has(DoctrineORMMiddleware::class));
     }
 
+    public function test_it_loads_xdebug_middleware()
+    {
+        $k = $this->getKernel();
+
+        $k->boot();
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertTrue($c->has(XdebugProxy::class));
+        $this->assertTrue($c->has(XdebugTriggerMiddleware::class));
+
+        // Ensure it's always the first middleware to be called
+        $middlewares = $k->getContainer()->getParameter('baldinof_road_runner.middlewares.default');
+        $this->assertEquals(XdebugTriggerMiddleware::class, $middlewares['before'][0]);
+        $interceptors = $k->getContainer()->getParameter('baldinof_road_runner.interceptors.default');
+        $this->assertEquals(XdebugTriggerMiddleware::class, $interceptors['before'][0]);
+    }
+
+    public function test_it_skips_xdebug_middleware()
+    {
+        $k = $this->getKernel(debug: false);
+
+        $k->boot();
+        $c = $k->getContainer()->get('test.service_container');
+
+        $this->assertFalse($c->has(XdebugProxy::class));
+        $this->assertFalse($c->has(XdebugTriggerMiddleware::class));
+    }
+
     public function test_it_supports_single_strategy()
     {
         $k = $this->getKernel([
@@ -238,9 +268,9 @@ class BaldinofRoadRunnerBundleTest extends TestCase
     /**
      * @param BundleInterface[] $extraBundles
      */
-    public function getKernel(array $config = [], array $extraBundles = []): KernelInterface
+    public function getKernel(array $config = [], array $extraBundles = [], bool $debug = true): KernelInterface
     {
-        return new class('test', true, $config, $extraBundles) extends Kernel {
+        return new class('test', $debug, $config, $extraBundles) extends Kernel {
             use MicroKernelTrait;
 
             private $config;
