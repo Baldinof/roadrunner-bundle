@@ -35,15 +35,15 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
         return $this->toSymfonyRequest($rrRequest);
     }
 
-    public function respond(SymfonyResponse $symfonyResponse): void
+    public function respond(SymfonyResponse $response): void
     {
-        if ($symfonyResponse instanceof BinaryFileResponse && !$symfonyResponse->headers->has('Content-Range')) {
-            $content = file_get_contents($symfonyResponse->getFile()->getPathname());
+        if ($response instanceof BinaryFileResponse && !$response->headers->has('Content-Range')) {
+            $content = file_get_contents($response->getFile()->getPathname());
             if ($content === false) {
-                throw new \RuntimeException(\sprintf("Cannot read file '%s'", $symfonyResponse->getFile()->getPathname())); // TODO: custom error
+                throw new \RuntimeException(\sprintf("Cannot read file '%s'", $response->getFile()->getPathname())); // TODO: custom error
             }
         } else {
-            if ($symfonyResponse instanceof StreamedResponse || $symfonyResponse instanceof BinaryFileResponse) {
+            if ($response instanceof StreamedResponse || $response instanceof BinaryFileResponse) {
                 $content = '';
                 ob_start(function ($buffer) use (&$content) {
                     $content .= $buffer;
@@ -51,16 +51,16 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
                     return '';
                 });
 
-                $symfonyResponse->sendContent();
+                $response->sendContent();
                 ob_end_clean();
             } else {
-                $content = (string) $symfonyResponse->getContent();
+                $content = (string) $response->getContent();
             }
         }
 
-        $headers = $this->stringifyHeaders($symfonyResponse->headers->all());
+        $headers = $this->stringifyHeaders($response->headers->all());
 
-        $this->httpWorker->respond($symfonyResponse->getStatusCode(), $content, $headers);
+        $this->httpWorker->respond($response->getStatusCode(), $content, $headers);
     }
 
     public function getWorker(): WorkerInterface
