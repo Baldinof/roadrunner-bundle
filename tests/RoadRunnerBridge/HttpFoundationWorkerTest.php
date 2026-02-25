@@ -315,12 +315,14 @@ final class RoadRunnerResponse
     public int $status;
     public string $content;
     public array $headers;
+    public bool $endOfStream;
 
-    public function __construct(int $status, string $content, array $headers)
+    public function __construct(int $status, string $content, array $headers, bool $endOfStream)
     {
         $this->status = $status;
         $this->content = $content;
         $this->headers = $headers;
+        $this->endOfStream = $endOfStream;
     }
 }
 
@@ -337,9 +339,9 @@ class MockWorker implements HttpWorkerInterface
         return $req;
     }
 
-    public function respond(int $status, string|\Generator $body, array $headers = []): void
+    public function respond(int $status, string|\Generator $body, array $headers = [], bool $endOfStream = true): void
     {
-        $this->responded = new RoadRunnerResponse($status, $body, $headers);
+        $this->responded = new RoadRunnerResponse($status, $body, $headers, $endOfStream);
     }
 
     public function getWorker(): WorkerInterface
