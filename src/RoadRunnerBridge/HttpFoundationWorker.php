@@ -4,23 +4,24 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\RoadRunnerBridge;
 
+use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker\HttpFoundationResponder;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Http\Request as RoadRunnerRequest;
 use Spiral\RoadRunner\WorkerInterface;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 {
     private HttpWorkerInterface $httpWorker;
+    private HttpFoundationResponder $responder;
     private array $originalServer;
 
-    public function __construct(HttpWorkerInterface $httpWorker)
+    public function __construct(HttpWorkerInterface $httpWorker, HttpFoundationResponder $responder)
     {
         $this->httpWorker = $httpWorker;
+        $this->responder = $responder;
         $this->originalServer = $_SERVER;
     }
 
@@ -37,30 +38,11 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
     public function respond(SymfonyResponse $response): void
     {
-        if ($response instanceof BinaryFileResponse && !$response->headers->has('Content-Range')) {
-            $content = file_get_contents($response->getFile()->getPathname());
-            if ($content === false) {
-                throw new \RuntimeException(\sprintf("Cannot read file '%s'", $response->getFile()->getPathname())); // TODO: custom error
-            }
-        } else {
-            if ($response instanceof StreamedResponse || $response instanceof BinaryFileResponse) {
-                $content = '';
-                ob_start(function ($buffer) use (&$content) {
-                    $content .= $buffer;
-
-                    return '';
-                });
-
-                $response->sendContent();
-                ob_end_clean();
-            } else {
-                $content = (string) $response->getContent();
-            }
+        if (!$this->responder->supports($response)) {
+            throw new \RuntimeException('Unsupported response.');
         }
 
-        $headers = $this->stringifyHeaders($response->headers->all());
-
-        $this->httpWorker->respond($response->getStatusCode(), $content, $headers);
+        $this->responder->respond($this->httpWorker, $response);
     }
 
     public function getWorker(): WorkerInterface
@@ -178,17 +160,5 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
     private function timeFloat(): float
     {
         return microtime(true);
-    }
-
-    /**
-     * @param array<string, array<int, string|null>>|array<int, string|null> $headers
-     *
-     * @return array<int|string, string[]>
-     */
-    private function stringifyHeaders(array $headers): array
-    {
-        return array_map(static function ($headerValues) {
-            return array_map(static fn ($val) => (string) $val, (array) $headerValues);
-        }, $headers);
     }
 }
