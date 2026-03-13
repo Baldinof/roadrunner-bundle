@@ -35,6 +35,10 @@ use Spiral\RoadRunner\Metrics\Metrics;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\EventStreamResponse;
+use Symfony\Component\HttpFoundation\StreamedJsonResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 return static function (ContainerConfigurator $container) {
@@ -62,8 +66,42 @@ return static function (ContainerConfigurator $container) {
         ->args([service(RPCInterface::class)]);
 
     // Bundle services
+    $container->parameters()->set('baldinof_road_runner.http_foundation_streamed_responder.chunk_size', 1024 * 16); // 16 Kb by default for streamed responses
+
+    $services->set('baldinof_road_runner.http_foundation_streamed_responder', HttpFoundationWorker\ChunkedResponder::class)
+        ->args([
+            [StreamedResponse::class, StreamedJsonResponse::class],
+            param('baldinof_road_runner.http_foundation_streamed_responder.chunk_size'),
+        ])
+        ->tag('baldinof_road_runner.http_foundation_responder');
+
+    $services->set('baldinof_road_runner.http_foundation_event_streamed_responder', HttpFoundationWorker\ChunkedResponder::class)
+        ->args([
+            [EventStreamResponse::class],
+            1,
+        ])
+        ->tag('baldinof_road_runner.http_foundation_responder');
+
+    $services->set('baldinof_road_runner.http_foundation_binary_file_responder', HttpFoundationWorker\ChunkedResponder::class)
+        ->args([
+            [BinaryFileResponse::class],
+            1,
+        ])
+        ->tag('baldinof_road_runner.http_foundation_responder');
+
+    $services->set('baldinof_road_runner.http_foundation_fallback_responder', HttpFoundationWorker\BufferedResponder::class)
+        ->tag('baldinof_road_runner.http_foundation_responder', ['priority' => -1024]);
+
+    $services->set(HttpFoundationWorker\HttpFoundationResponder::class, HttpFoundationWorker\ChainResponder::class)
+        ->args([
+            tagged_iterator('baldinof_road_runner.http_foundation_responder'),
+        ]);
+
     $services->set(HttpFoundationWorkerInterface::class, HttpFoundationWorker::class)
-        ->args([service(HttpWorkerInterface::class)]);
+        ->args([
+            service(HttpWorkerInterface::class),
+            service(HttpFoundationWorker\HttpFoundationResponder::class),
+        ]);
 
     $services->set(WorkerRegistryInterface::class, WorkerRegistry::class)
         ->public();
