@@ -51,9 +51,10 @@ final class TemporalWorker implements WorkerInterface
      */
     public function registerWorkflow(string $workflowClass, ?string $workerName = null): void
     {
-        if (!is_null($workerName)) {
+        if (!\is_null($workerName)) {
             if (\array_key_exists($workerName, $this->workers)) {
                 $this->workers[$workerName]->registerWorkflowTypes($workflowClass);
+
                 return;
             }
             throw new \InvalidArgumentException("Worker '$workerName' is not configured.");
@@ -68,9 +69,10 @@ final class TemporalWorker implements WorkerInterface
     {
         $factory = fn () => $this->getDependencies()->getActivity($class);
 
-        if (!is_null($workerName)) {
+        if (!\is_null($workerName)) {
             if (\array_key_exists($workerName, $this->workers)) {
                 $this->workers[$workerName]->registerActivity($class, $factory);
+
                 return;
             }
             throw new \InvalidArgumentException("Worker '$workerName' is not configured.");

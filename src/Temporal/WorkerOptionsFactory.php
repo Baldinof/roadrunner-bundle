@@ -41,7 +41,6 @@ final class WorkerOptionsFactory
             ->withSessionResourceId($options['session_resource_id'])
             ->withMaxConcurrentSessionExecutionSize($options['max_concurrent_session_execution_size']);
 
-
         if ($options['sticky_schedule_to_start_timeout'] > 0) {
             $workerOptions = $workerOptions->withStickyScheduleToStartTimeout($options['sticky_schedule_to_start_timeout']);
         }

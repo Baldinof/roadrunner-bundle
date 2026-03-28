@@ -39,6 +39,7 @@ final class TemporalDependencies
     {
         /** @var object $activity */
         $activity = $this->activities->get($class);
+
         return $activity;
     }
 }

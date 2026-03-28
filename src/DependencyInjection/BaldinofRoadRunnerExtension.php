@@ -27,9 +27,9 @@ use Baldinof\RoadRunnerBundle\Temporal\Attributes\AssignToWorker;
 use Baldinof\RoadRunnerBundle\Temporal\ClientOptionsFactory;
 use Baldinof\RoadRunnerBundle\Temporal\Command\DebugClientsCommand;
 use Baldinof\RoadRunnerBundle\Temporal\Command\DebugWorkersCommand;
-use Baldinof\RoadRunnerBundle\Temporal\ServiceClientConfig;
 use Baldinof\RoadRunnerBundle\Temporal\Interceptors\DoctrineORMInterceptor;
 use Baldinof\RoadRunnerBundle\Temporal\Interceptors\RebootKernelInterceptor;
+use Baldinof\RoadRunnerBundle\Temporal\ServiceClientConfig;
 use Baldinof\RoadRunnerBundle\Temporal\ServiceClientFactory;
 use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
 use Doctrine\Persistence\ManagerRegistry;
@@ -449,7 +449,7 @@ class BaldinofRoadRunnerExtension extends Extension
             ]);
 
         $container->setParameter('temporal.clients_info', array_map(
-            fn($name, $options) => [
+            fn ($name, $options) => [
                 'name' => $name,
                 'address' => $options['address'],
                 'namespace' => $options['namespace'],

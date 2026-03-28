@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass;
 
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
-use Baldinof\RoadRunnerBundle\Temporal\Command\DebugWorkersCommand;
 use Baldinof\RoadRunnerBundle\Temporal\WorkerOptionsFactory;
 use Baldinof\RoadRunnerBundle\Worker\TemporalDependencies;
 use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
@@ -61,13 +60,13 @@ final class TemporalCompilerPass implements CompilerPassInterface
 
         $converters = array_keys($container->findTaggedServiceIds('temporal.data_converter'));
         $container->getDefinition(DataConverter::class)
-            ->setArguments(array_map(fn($id) => new Reference($id), $converters));
+            ->setArguments(array_map(fn ($id) => new Reference($id), $converters));
 
         /** @var array $defaultInterceptors */
         $defaultInterceptors = $container->getParameter('temporal.default_interceptors');
 
         $queues = array_column($config['workers'], 'queue');
-        if (count($queues) !== count(array_unique($queues))) {
+        if (\count($queues) !== \count(array_unique($queues))) {
             throw new InvalidArgumentException('Temporal workers must have unique task queues.');
         }
 

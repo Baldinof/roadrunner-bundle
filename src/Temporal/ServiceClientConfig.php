@@ -33,8 +33,6 @@ final class ServiceClientConfig
 
     /**
      * @param non-empty-string $address
-     *
-     * @return ServiceClientConfig
      */
     public function withAddress(string $address): self
     {
@@ -47,8 +45,6 @@ final class ServiceClientConfig
 
     /**
      * @param ?non-empty-string $crt
-     *
-     * @return ServiceClientConfig
      */
     public function withCrt(?string $crt = null): self
     {
@@ -61,8 +57,6 @@ final class ServiceClientConfig
 
     /**
      * @param ?non-empty-string $clientKey
-     *
-     * @return ServiceClientConfig
      */
     public function withClientKey(?string $clientKey = null): self
     {
@@ -75,8 +69,6 @@ final class ServiceClientConfig
 
     /**
      * @param ?non-empty-string $clientPem
-     *
-     * @return ServiceClientConfig
      */
     public function withClientPem(?string $clientPem = null): self
     {
@@ -89,8 +81,6 @@ final class ServiceClientConfig
 
     /**
      * @param ?non-empty-string $overrideServerName
-     *
-     * @return ServiceClientConfig
      */
     public function withOverrideServerName(?string $overrideServerName = null): self
     {

@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Temporal\Command;
 
-use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -23,10 +21,8 @@ class DebugClientsCommand extends Command
         parent::__construct();
     }
 
-
     protected function configure(): void
     {
-
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -36,7 +32,7 @@ class DebugClientsCommand extends Command
         $rows = [];
         foreach ($this->clientsInfo as $client) {
             $rows[] = [
-                $client['name'] . ($client['default'] ? ' *' : ''),
+                $client['name'].($client['default'] ? ' *' : ''),
                 $client['address'],
                 $client['namespace'],
             ];
@@ -46,5 +42,4 @@ class DebugClientsCommand extends Command
 
         return Command::SUCCESS;
     }
-
 }

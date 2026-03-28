@@ -13,7 +13,6 @@ use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 use Temporal\Client\WorkflowClientInterface;
-use Temporal\Workflow\WorkflowInterface;
 
 final class BaldinofRoadRunnerBundle extends Bundle
 {

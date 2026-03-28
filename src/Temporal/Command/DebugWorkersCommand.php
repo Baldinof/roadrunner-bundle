@@ -20,7 +20,6 @@ class DebugWorkersCommand extends Command
         parent::__construct();
     }
 
-
     protected function configure(): void
     {
         $this->addArgument('worker', InputArgument::OPTIONAL, 'Name of the worker to display details for');
@@ -37,6 +36,7 @@ class DebugWorkersCommand extends Command
             $worker = $this->temporalWorker->getWorkers()[$workerName] ?? null;
             if (!$worker) {
                 $io->error("Worker '$workerName' not configured.");
+
                 return Command::FAILURE;
             }
 
@@ -44,7 +44,7 @@ class DebugWorkersCommand extends Command
 
             $io->section('Workflows');
             $io->table(['Workflow'], array_map(
-                fn($w) => [$w->getClass()->getName()],
+                fn ($w) => [$w->getClass()->getName()],
                 iterator_to_array($worker->getWorkflows())
             ));
 
@@ -60,24 +60,20 @@ class DebugWorkersCommand extends Command
                 $rows[] = [$class, implode("\n", $methods)];
             }
             $io->table(['Class', 'Activities'], $rows);
-
-
         } else {
             $rows = [];
             foreach ($this->temporalWorker->getWorkers() as $name => $worker) {
                 $rows[] = [
                     $name,
                     $worker->getID(),
-                    count($worker->getWorkflows()),
-                    count($worker->getActivities())
+                    \count($worker->getWorkflows()),
+                    \count($worker->getActivities()),
                 ];
             }
 
-            $io->table([ 'Name', 'Queue', '# Workflow', '# Activities' ], $rows);
+            $io->table(['Name', 'Queue', '# Workflow', '# Activities'], $rows);
         }
-
 
         return Command::SUCCESS;
     }
-
 }

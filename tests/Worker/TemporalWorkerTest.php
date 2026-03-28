@@ -40,29 +40,6 @@ class TemporalWorkerTest extends TestCase
         );
     }
 
-    /**
-     * @return ObjectProphecy<TemporalWorkerInterface>
-     */
-    private function addWorker(string $name = 'default'): ObjectProphecy
-    {
-        $worker = $this->prophesize(TemporalWorkerInterface::class);
-        $worker->registerWorkflowTypes(Argument::cetera())->willReturn($worker->reveal());
-        $worker->registerActivity(Argument::cetera())->willReturn($worker->reveal());
-
-        $this->sdkWorkerFactory
-            ->newWorker('default', Argument::cetera())
-            ->willReturn($worker->reveal());
-
-        $this->worker->addWorker(
-            $name, 'default',
-            new WorkerOptions(),
-            $this->prophesize(ExceptionInterceptorInterface::class)->reveal(),
-            $this->prophesize(PipelineProvider::class)->reveal(),
-        );
-
-        return $worker;
-    }
-
     public function test_registerWorkflow_throws_on_unknown_worker(): void
     {
         self::expectException(\InvalidArgumentException::class);
@@ -159,9 +136,35 @@ class TemporalWorkerTest extends TestCase
             ->shouldHaveBeenCalled();
     }
 
+    /**
+     * @return ObjectProphecy<TemporalWorkerInterface>
+     */
+    private function addWorker(string $name = 'default'): ObjectProphecy
+    {
+        $worker = $this->prophesize(TemporalWorkerInterface::class);
+        $worker->registerWorkflowTypes(Argument::cetera())->willReturn($worker->reveal());
+        $worker->registerActivity(Argument::cetera())->willReturn($worker->reveal());
+
+        $this->sdkWorkerFactory
+            ->newWorker('default', Argument::cetera())
+            ->willReturn($worker->reveal());
+
+        $this->worker->addWorker(
+            $name, 'default',
+            new WorkerOptions(),
+            $this->prophesize(ExceptionInterceptorInterface::class)->reveal(),
+            $this->prophesize(PipelineProvider::class)->reveal(),
+        );
+
+        return $worker;
+    }
 }
 #[\Temporal\Workflow\WorkflowInterface]
-class DummyWorkflow {}
+class DummyWorkflow
+{
+}
 
 #[\Temporal\Activity\ActivityInterface]
-class DummyActivity {}
+class DummyActivity
+{
+}

@@ -33,7 +33,6 @@ use Symfony\Component\HttpKernel\Bundle\BundleInterface;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Routing\RouteCollectionBuilder;
-use Temporal\Client\WorkflowClientInterface;
 
 class BaldinofRoadRunnerBundleTest extends TestCase
 {

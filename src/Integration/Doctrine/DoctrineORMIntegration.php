@@ -6,8 +6,8 @@ namespace Baldinof\RoadRunnerBundle\Integration\Doctrine;
 
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception;
-use Doctrine\DBAL\DBALException; // for dbal 2.x
+use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Exception; // for dbal 2.x
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use ProxyManager\Proxy\LazyLoadingInterface;
@@ -23,8 +23,7 @@ final class DoctrineORMIntegration
         private readonly ContainerInterface $container,
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly LoggerInterface $logger,
-    )
-    {
+    ) {
     }
 
     public function preRequest(): void
@@ -90,5 +89,4 @@ final class DoctrineORMIntegration
             return false;
         }
     }
-
 }
