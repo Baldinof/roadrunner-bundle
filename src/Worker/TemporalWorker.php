@@ -21,21 +21,20 @@ final class TemporalWorker implements WorkerInterface
     private array $workers = [];
 
     public function __construct(
-        private KernelInterface $kernel,
-        private WorkerFactoryInterface $workerFactory,
+        private readonly KernelInterface $kernel,
+        private readonly WorkerFactoryInterface $workerFactory,
     ) {
     }
 
     public function addWorker(
         string $name,
-        string $queue,
-        PipelineProvider $workerInterceptors,
-        ExceptionInterceptorInterface $exceptionInterceptors,
+        string $taskQueue,
         WorkerOptions $workerOptions,
+        ExceptionInterceptorInterface $exceptionInterceptors,
+        PipelineProvider $workerInterceptors,
     ): void {
-        /* @phpstan-ignore-next-line */
         $this->workers[$name] = $this->workerFactory->newWorker(
-            $queue,
+            $taskQueue,
             $workerOptions,
             $exceptionInterceptors,
             $workerInterceptors
@@ -47,10 +46,12 @@ final class TemporalWorker implements WorkerInterface
      */
     public function registerWorkflow(string $workflowClass, ?string $workerName = null): void
     {
-        if (\array_key_exists((string) $workerName, $this->workers)) {
-            $this->workers[$workerName]->registerWorkflowTypes($workflowClass);
-
-            return;
+        if (!is_null($workerName)) {
+            if (\array_key_exists($workerName, $this->workers)) {
+                $this->workers[$workerName]->registerWorkflowTypes($workflowClass);
+                return;
+            }
+            throw new \InvalidArgumentException("Worker '$workerName' is not configured.");
         }
 
         foreach ($this->workers as $worker) {
@@ -62,10 +63,12 @@ final class TemporalWorker implements WorkerInterface
     {
         $factory = fn () => $this->getDependencies()->getActivity($class);
 
-        if (\array_key_exists((string) $workerName, $this->workers)) {
-            $this->workers[$workerName]->registerActivity($class, $factory);
-
-            return;
+        if (!is_null($workerName)) {
+            if (\array_key_exists($workerName, $this->workers)) {
+                $this->workers[$workerName]->registerActivity($class, $factory);
+                return;
+            }
+            throw new \InvalidArgumentException("Worker '$workerName' is not configured.");
         }
 
         foreach ($this->workers as $worker) {

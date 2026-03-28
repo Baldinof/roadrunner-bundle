@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass;
 
-use Baldinof\RoadRunnerBundle\Http\MiddlewareInterface;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Temporal\WorkerOptionsFactory;
 use Baldinof\RoadRunnerBundle\Worker\TemporalDependencies;
 use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerRegistryInterface;
 use Spiral\RoadRunner\Environment\Mode;
-use Symfony\Component\DependencyInjection\Argument\ServiceClosureArgument;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Compiler\ServiceLocatorTagPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -20,6 +18,7 @@ use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Temporal\DataConverter\DataConverter;
 use Temporal\Interceptor\SimplePipelineProvider;
 use Temporal\Internal\Interceptor\Interceptor as TemporalInterceptor;
 use Temporal\Worker\WorkerOptions;
@@ -40,9 +39,9 @@ final class TemporalCompilerPass implements CompilerPassInterface
         $config = (array) $container->getParameter('temporal.config');
 
         $activitiesMap = [];
-        foreach ($container->findTaggedServiceIds('temporal.activities') as $id => $attributes) {
+        foreach ($container->findTaggedServiceIds('temporal.activity') as $id => $attributes) {
             $activityDefinition = $container->getDefinition($id);
-            $activitiesMap[$activityDefinition->getClass()] = new ServiceClosureArgument(new Reference($id));
+            $activitiesMap[$activityDefinition->getClass()] = new Reference($id);
         }
 
         $container->register(TemporalDependencies::class, TemporalDependencies::class)
@@ -59,8 +58,17 @@ final class TemporalCompilerPass implements CompilerPassInterface
                 new Reference(TemporalWorkerFactory::class),
             ]);
 
+        $converters = array_keys($container->findTaggedServiceIds('temporal.data_converter'));
+        $container->getDefinition(DataConverter::class)
+            ->setArguments(array_map(fn($id) => new Reference($id), $converters));
+
         /** @var array $defaultInterceptors */
         $defaultInterceptors = $container->getParameter('temporal.default_interceptors');
+
+        $queues = array_column($config['workers'], 'queue');
+        if (count($queues) !== count(array_unique($queues))) {
+            throw new InvalidArgumentException('Temporal workers must have unique task queues.');
+        }
 
         foreach ($config['workers'] as $name => $options) {
             $useDefaultInterceptors = $options['default_interceptors'];
@@ -81,7 +89,7 @@ final class TemporalCompilerPass implements CompilerPassInterface
                 }
 
                 if (!is_a($class, TemporalInterceptor::class, true)) {
-                    throw new InvalidArgumentException(\sprintf("Service '%s' should implements '%s'.", $m, TemporalInterceptor::class));
+                    throw new InvalidArgumentException(\sprintf("Service '%s' should implement '%s'.", $m, TemporalInterceptor::class));
                 }
 
                 $interceptorReferences[] = new Reference($m);
@@ -93,15 +101,15 @@ final class TemporalCompilerPass implements CompilerPassInterface
             $container->register("temporal.worker.$name.options", WorkerOptions::class)
                 ->setFactory([WorkerOptionsFactory::class, 'createFromArray'])
                 ->setArguments([
-                    '$options' => $options['options'] ?? [],
+                    '$options' => $options['options'],
                 ]);
 
             $temporalWorkerDefinition->addMethodCall('addWorker', [
                 $name,
                 $options['queue'],
-                new Reference("temporal.worker.$name.interceptors"),
-                new Reference($options['exception_interceptor']),
                 new Reference("temporal.worker.$name.options"),
+                new Reference($options['exception_interceptor']),
+                new Reference("temporal.worker.$name.interceptors"),
             ]);
         }
 
@@ -116,20 +124,22 @@ final class TemporalCompilerPass implements CompilerPassInterface
 
     private function registerWorkflows(ContainerBuilder $container, Definition $temporalWorkerDefinition): void
     {
-        $workflows = $container->findTaggedServiceIds('temporal.workflows');
+        $workflows = $container->findTaggedServiceIds('temporal.workflow');
 
         foreach ($workflows as $key => $value) {
-            $temporalWorkerDefinition->addMethodCall('registerWorkflow', [$key, $value['worker_name'] ?? null]);
+            $class = $container->getDefinition($key)->getClass();
+            $temporalWorkerDefinition->addMethodCall('registerWorkflow', [$class, $value[0]['worker_name'] ?? null]);
         }
     }
 
     private function registerActivities(ContainerBuilder $container, Definition $temporalWorkerDefinition): void
     {
-        $activities = $container->findTaggedServiceIds('temporal.activities');
+        $activities = $container->findTaggedServiceIds('temporal.activity');
         foreach ($activities as $key => $value) {
+            $class = $container->getDefinition($key)->getClass();
             $temporalWorkerDefinition->addMethodCall('registerActivity', [
-                $key,
-                $value['worker_name'] ?? null,
+                $class,
+                $value[0]['worker_name'] ?? null,
             ]);
         }
     }

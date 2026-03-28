@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\Temporal\Attributes;
 
 #[\Attribute(\Attribute::TARGET_CLASS)]
-class AssignToWorker
+final class AssignToWorker
 {
-    public ?string $workerName = null;
-
-    public function __construct(?string $workerName = null)
+    public function __construct(public readonly string $workerName)
     {
-        $this->workerName = $workerName;
     }
 }

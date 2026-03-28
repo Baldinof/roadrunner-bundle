@@ -10,6 +10,7 @@ use Baldinof\RoadRunnerBundle\Worker\TemporalDependencies;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\HttpKernel\RebootableInterface;
+use Symfony\Contracts\Service\ResetInterface;
 use Temporal\Interceptor\ActivityInbound\ActivityInput;
 use Temporal\Interceptor\ActivityInboundInterceptor;
 use Temporal\Interceptor\Trait\ActivityInboundInterceptorTrait;
@@ -51,6 +52,10 @@ final class RebootKernelInterceptor implements ActivityInboundInterceptor
 
                 $this->dependencies = $deps;
                 $this->dependencies->getEventDispatcher()->dispatch(new WorkerKernelRebootedEvent());
+            } elseif ($this->kernel->getContainer()->has('services_resetter')) {
+                /** @var ResetInterface $resetter */
+                $resetter = $this->kernel->getContainer()->get('services_resetter');
+                $resetter->reset();
             }
 
             $this->dependencies->getKernelRebootStrategy()->clear();

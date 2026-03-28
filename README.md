@@ -299,10 +299,10 @@ baldinof_road_runner:
                 address: 'localhost:7233'
                 crt: <string>
                 client_key: <string>
-                client_pem: <sstring>
+                client_pem: <string>
                 override_server_name: <string>
                 identity: <string>
-                interceptors: {  } # array of service id
+                interceptors: [] # array of service id
                 query_reject_condition: <enum>
         workers:
             default:
@@ -323,7 +323,7 @@ baldinof_road_runner:
                     enable_session_worker: <bool>
                     session_resource_id: <string>
                     max_concurrent_session_execution_size: <int>
-                interceptors: {  } # array of service id
+                interceptors: [ ] # array of service id
 ```
 
 To register a workflow and activity, you just need to tag actual class with `#[WorkflowInterface]` and `#[ActivityInterface]`
@@ -341,6 +341,7 @@ use Temporal\Workflow\WorkflowInterface;
 use Temporal\Workflow\WorkflowMethod;
 
 #[WorkflowInterface]
+#[AssignToWorker('some-worker')] // optional Assignment to specific worker
 class ExampleWorkflow
 {
     /**
@@ -402,7 +403,7 @@ final class Example
 }
 ```
 
-Additional clients are registered under the service id `temporal.client.$name`.
+Additional clients are registered under the service id `temporal.client.$name.workflow`.
 
 
 ## Usage with Docker

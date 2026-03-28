@@ -12,15 +12,15 @@ final class ClientOptionsFactory
     {
         $clientOptions = new ClientOptions();
 
-        if (\array_key_exists('namespace', $options)) {
+        if (isset($options['namespace'])) {
             $clientOptions = $clientOptions->withNamespace($options['namespace']);
         }
 
-        if (\array_key_exists('identity', $options) && null !== $options['identity']) {
+        if (isset($options['identity'])) {
             $clientOptions = $clientOptions->withIdentity($options['identity']);
         }
 
-        if (\array_key_exists('query_rejection_condition', $options) && null !== $options['query_rejection_condition']) {
+        if (isset($options['query_rejection_condition'])) {
             $clientOptions = $clientOptions->withQueryRejectionCondition($options['query_rejection_condition']);
         }
 

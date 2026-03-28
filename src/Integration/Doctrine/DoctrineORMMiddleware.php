@@ -17,31 +17,25 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 final class DoctrineORMMiddleware implements MiddlewareInterface, InterceptorInterface
 {
-    use DoctrineORMTraits;
-
-    public function __construct(ManagerRegistry $managerRegistry, ContainerInterface $container, EventDispatcherInterface $eventDispatcher, LoggerInterface $logger)
+    public function __construct(private readonly DoctrineORMIntegration $integration)
     {
-        $this->managerRegistry = $managerRegistry;
-        $this->container = $container;
-        $this->logger = $logger;
-        $this->eventDispatcher = $eventDispatcher;
     }
 
     public function process(Request $request, HttpKernelInterface $next): \Iterator
     {
-        $this->preRequest();
+        $this->integration->preRequest();
 
         yield $next->handle($request);
 
-        $this->postResponse();
+        $this->integration->postResponse();
     }
 
     public function intercept(GrpcRequest $invocation, GrpcRequestInvokerInterface $next): \Iterator
     {
-        $this->preRequest();
+        $this->integration->preRequest();
 
         yield $next->invoke($invocation);
 
-        $this->postResponse();
+        $this->integration->postResponse();
     }
 }

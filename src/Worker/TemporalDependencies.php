@@ -19,9 +19,9 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 final class TemporalDependencies
 {
     public function __construct(
-        private KernelRebootStrategyInterface $kernelRebootStrategy,
-        private EventDispatcherInterface $eventDispatcher,
-        private ContainerInterface $activities,
+        private readonly KernelRebootStrategyInterface $kernelRebootStrategy,
+        private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly ContainerInterface $activities,
     ) {
     }
 
@@ -35,13 +35,10 @@ final class TemporalDependencies
         return $this->eventDispatcher;
     }
 
-    public function getActivities(): ContainerInterface
-    {
-        return $this->activities;
-    }
-
     public function getActivity(string $class): object
     {
-        return $this->activities->get($class);
+        /** @var object $activity */
+        $activity = $this->activities->get($class);
+        return $activity;
     }
 }

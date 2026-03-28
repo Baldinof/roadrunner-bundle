@@ -28,7 +28,7 @@ final class BaldinofRoadRunnerBundle extends Bundle
             $container->addCompilerPass(new InterceptorCompilerPass());
         }
 
-        if (interface_exists(WorkflowClientInterface::class) && class_exists(WorkflowInterface::class)) {
+        if (interface_exists(WorkflowClientInterface::class)) {
             $container->addCompilerPass(new TemporalCompilerPass());
         }
     }

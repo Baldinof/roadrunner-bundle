@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Temporal;
 
-final class Connection
+final class ServiceClientConfig
 {
     /**
      * @var non-empty-string
@@ -34,9 +34,9 @@ final class Connection
     /**
      * @param non-empty-string $address
      *
-     * @return Connection
+     * @return ServiceClientConfig
      */
-    public function withAddress(string $address): static
+    public function withAddress(string $address): self
     {
         $self = clone $this;
 
@@ -48,9 +48,9 @@ final class Connection
     /**
      * @param ?non-empty-string $crt
      *
-     * @return Connection
+     * @return ServiceClientConfig
      */
-    public function withCrt(?string $crt = null): static
+    public function withCrt(?string $crt = null): self
     {
         $self = clone $this;
 
@@ -62,9 +62,9 @@ final class Connection
     /**
      * @param ?non-empty-string $clientKey
      *
-     * @return Connection
+     * @return ServiceClientConfig
      */
-    public function withClientKey(?string $clientKey = null): static
+    public function withClientKey(?string $clientKey = null): self
     {
         $self = clone $this;
 
@@ -76,9 +76,9 @@ final class Connection
     /**
      * @param ?non-empty-string $clientPem
      *
-     * @return Connection
+     * @return ServiceClientConfig
      */
-    public function withClientPem(?string $clientPem = null): static
+    public function withClientPem(?string $clientPem = null): self
     {
         $self = clone $this;
 
@@ -90,14 +90,25 @@ final class Connection
     /**
      * @param ?non-empty-string $overrideServerName
      *
-     * @return Connection
+     * @return ServiceClientConfig
      */
-    public function withOverrideServerName(?string $overrideServerName = null): static
+    public function withOverrideServerName(?string $overrideServerName = null): self
     {
         $self = clone $this;
 
         $self->overrideServerName = $overrideServerName;
 
         return $self;
+    }
+
+    public static function createFromArray(array $options): self
+    {
+        $config = new ServiceClientConfig();
+
+        return $config->withAddress($options['address'])
+            ->withCrt($options['crt'])
+            ->withClientKey($options['client_key'])
+            ->withClientPem($options['client_pem'])
+            ->withOverrideServerName($options['override_server_name']);
     }
 }

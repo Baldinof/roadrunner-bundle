@@ -6,8 +6,8 @@ namespace Baldinof\RoadRunnerBundle\Integration\Doctrine;
 
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\DBALException; // for dbal 2.x
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\DBALException; // for dbal 2.x
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use ProxyManager\Proxy\LazyLoadingInterface;
@@ -16,17 +16,18 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\VarExporter\LazyObjectInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
-trait DoctrineORMTraits
+final class DoctrineORMIntegration
 {
-    private ManagerRegistry $managerRegistry;
+    public function __construct(
+        private readonly ManagerRegistry $managerRegistry,
+        private readonly ContainerInterface $container,
+        private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly LoggerInterface $logger,
+    )
+    {
+    }
 
-    private ContainerInterface $container;
-
-    private EventDispatcherInterface $eventDispatcher;
-
-    private LoggerInterface $logger;
-
-    private function preRequest(): void
+    public function preRequest(): void
     {
         $connectionServices = $this->managerRegistry->getConnectionNames();
 
@@ -49,7 +50,7 @@ trait DoctrineORMTraits
         }
     }
 
-    private function postResponse(): void
+    public function postResponse(): void
     {
         $managerNames = $this->managerRegistry->getManagerNames();
 
@@ -79,7 +80,7 @@ trait DoctrineORMTraits
         }
     }
 
-    private function ping(Connection $con): bool
+    public function ping(Connection $con): bool
     {
         try {
             $con->executeQuery($con->getDatabasePlatform()->getDummySelectSQL());
@@ -89,4 +90,5 @@ trait DoctrineORMTraits
             return false;
         }
     }
+
 }

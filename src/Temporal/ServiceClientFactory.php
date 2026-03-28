@@ -9,11 +9,11 @@ use Temporal\Client\GRPC\ServiceClientInterface;
 
 final class ServiceClientFactory
 {
-    private Connection $connection;
+    private ServiceClientConfig $connection;
 
-    public function __construct(Connection $connection)
+    public function __construct(ServiceClientConfig $clientConfig)
     {
-        $this->connection = $connection;
+        $this->connection = $clientConfig;
     }
 
     public function __invoke(): ServiceClientInterface

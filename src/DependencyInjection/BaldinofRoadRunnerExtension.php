@@ -9,6 +9,7 @@ use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\Integration\Blackfire\BlackfireMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineODMListener;
+use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMIntegration;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryListener;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
@@ -24,14 +25,10 @@ use Baldinof\RoadRunnerBundle\Reboot\MemoryRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Baldinof\RoadRunnerBundle\Temporal\Attributes\AssignToWorker;
 use Baldinof\RoadRunnerBundle\Temporal\ClientOptionsFactory;
-use Baldinof\RoadRunnerBundle\Temporal\Connection;
-use Baldinof\RoadRunnerBundle\Temporal\ConnectionFactory;
+use Baldinof\RoadRunnerBundle\Temporal\ServiceClientConfig;
 use Baldinof\RoadRunnerBundle\Temporal\Interceptors\DoctrineORMInterceptor;
 use Baldinof\RoadRunnerBundle\Temporal\Interceptors\RebootKernelInterceptor;
-use Baldinof\RoadRunnerBundle\Temporal\ScheduleClientFactory;
 use Baldinof\RoadRunnerBundle\Temporal\ServiceClientFactory;
-use Baldinof\RoadRunnerBundle\Temporal\WorkerFactory;
-use Baldinof\RoadRunnerBundle\Temporal\WorkflowClientFactory;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Sentry\SentryBundle\EventListener\TracingRequestListener;
@@ -61,8 +58,13 @@ use Temporal\Client\ScheduleClient;
 use Temporal\Client\ScheduleClientInterface;
 use Temporal\Client\WorkflowClient;
 use Temporal\Client\WorkflowClientInterface;
+use Temporal\DataConverter\BinaryConverter;
 use Temporal\DataConverter\DataConverter;
 use Temporal\DataConverter\DataConverterInterface;
+use Temporal\DataConverter\JsonConverter;
+use Temporal\DataConverter\NullConverter;
+use Temporal\DataConverter\ProtoConverter;
+use Temporal\DataConverter\ProtoJsonConverter;
 use Temporal\Interceptor\SimplePipelineProvider;
 use Temporal\WorkerFactory as TemporalWorkerFactory;
 use Temporal\Workflow\WorkflowInterface;
@@ -150,8 +152,8 @@ class BaldinofRoadRunnerExtension extends Extension
                 ->addTag('baldinof.roadrunner.grpc_service');
         }
 
-        if (interface_exists(WorkflowClientInterface::class) && class_exists(WorkflowInterface::class)) {
-            $this->configureTemporal($config, $container);
+        if (interface_exists(WorkflowClientInterface::class)) {
+            $this->configureTemporal($config['temporal'], $container);
         }
     }
 
@@ -195,7 +197,7 @@ class BaldinofRoadRunnerExtension extends Extension
             $beforeInterceptors[] = XdebugTriggerMiddleware::class;
         }
 
-        /** @var array */
+        /** @var array<string,mixed> $bundles */
         $bundles = $container->getParameter('kernel.bundles');
 
         if (class_exists(\BlackfireProbe::class)) {
@@ -234,12 +236,17 @@ class BaldinofRoadRunnerExtension extends Extension
 
         if (isset($bundles['DoctrineBundle'])) {
             $container
-                ->register(DoctrineORMMiddleware::class)
+                ->register(DoctrineORMIntegration::class)
                 ->addArgument(new Reference(ManagerRegistry::class))
                 ->addArgument(new Reference('service_container'))
                 ->addArgument(new Reference(EventDispatcherInterface::class))
                 ->addArgument(new Reference(LoggerInterface::class))
                 ->addTag('monolog.logger', ['channel' => self::MONOLOG_CHANNEL])
+            ;
+
+            $container
+                ->register(DoctrineORMMiddleware::class)
+                ->addArgument(new Reference(DoctrineORMIntegration::class))
             ;
 
             $beforeMiddlewares[] = DoctrineORMMiddleware::class;
@@ -293,8 +300,8 @@ class BaldinofRoadRunnerExtension extends Extension
             $container->register('cache.adapter.roadrunner.kv_'.$storage, KvCacheAdapter::class)
                 ->setFactory([KvCacheAdapter::class, 'createConnection'])
                 ->setArguments([
-                    '',
-                    [ // Symfony overrides the first argument with the DSN, so we pass an empty string
+                    '', // Symfony overrides the first argument with the DSN, so we pass an empty string
+                    [
                         'rpc' => $container->getDefinition(RPCInterface::class),
                         'storage' => $storage,
                     ],
@@ -304,40 +311,19 @@ class BaldinofRoadRunnerExtension extends Extension
 
     private function configureTemporal(array $config, ContainerBuilder $container): void
     {
-        /** @var array */
+        /** @var array<string,mixed> $bundles */
         $bundles = $container->getParameter('kernel.bundles');
 
-        $container->setParameter('temporal.config', $config['temporal']);
-        $config = $config['temporal'];
+        $container->setParameter('temporal.config', $config);
         $defaultInterceptors = [];
-
-        $workerAssignmentAttrExtractor = function (\ReflectionClass $class): ?string {
-            $workers = array_map(function (\ReflectionAttribute $attr): ?string {
-                return $attr->newInstance()->workerName;
-            }, $class->getAttributes(AssignToWorker::class));
-
-            return $workers[0] ?? null;
-        };
-
-        $registerServiceArray = function (array $services) use ($container): array {
-            return array_map(function (string $id) use ($container): Reference {
-                if (!$container->hasDefinition($id)) {
-                    $container->register($id)
-                        ->setAutoconfigured(true)
-                        ->setAutowired(true);
-                }
-
-                return new Reference($id);
-            }, $services);
-        };
 
         $container->registerAttributeForAutoconfiguration(
             WorkflowInterface::class,
             /** @phpstan-ignore-next-line */
-            function (ChildDefinition $definition, WorkflowInterface $attribute, \ReflectionClass $reflection) use ($workerAssignmentAttrExtractor): void {
+            function (ChildDefinition $definition, WorkflowInterface $attribute, \ReflectionClass $reflection): void {
                 $definition->addTag(
-                    'temporal.workflows',
-                    ['worker_name' => $workerAssignmentAttrExtractor($reflection)]
+                    'temporal.workflow',
+                    ['worker_name' => $this->getTemporalWorkerName($reflection)]
                 );
             }
         );
@@ -345,19 +331,30 @@ class BaldinofRoadRunnerExtension extends Extension
         $container->registerAttributeForAutoconfiguration(
             ActivityInterface::class,
             /** @phpstan-ignore-next-line */
-            function (ChildDefinition $definition, ActivityInterface $attribute, \ReflectionClass $reflection) use ($workerAssignmentAttrExtractor): void {
+            function (ChildDefinition $definition, ActivityInterface $attribute, \ReflectionClass $reflection): void {
                 $definition->addTag(
-                    'temporal.activities',
+                    'temporal.activity',
                     [
-                        'worker_name' => $workerAssignmentAttrExtractor($reflection),
+                        'worker_name' => $this->getTemporalWorkerName($reflection),
                         'prefix' => $attribute->prefix,
                     ]
                 );
             }
         );
 
+        $container->register('temporal.data_converter.null', NullConverter::class)
+            ->addTag('temporal.data_converter');
+        $container->register('temporal.data_converter.binary', BinaryConverter::class)
+            ->addTag('temporal.data_converter');
+        $container->register('temporal.data_converter.proto_json', ProtoJsonConverter::class)
+            ->addTag('temporal.data_converter');
+        $container->register('temporal.data_converter.proto', ProtoConverter::class)
+            ->addTag('temporal.data_converter');
+        $container->register('temporal.data_converter.json', JsonConverter::class)
+            ->addTag('temporal.data_converter');
+
         $container->register(DataConverter::class, DataConverter::class)
-            ->setArguments($registerServiceArray($config['data_converters'] ?? null));
+            ->setArguments([]); // will be overwritten in TemporalCompilerPass
 
         $container->setAlias('temporal.data_converter', DataConverter::class);
         $container->setAlias(DataConverterInterface::class, 'temporal.data_converter');
@@ -374,11 +371,7 @@ class BaldinofRoadRunnerExtension extends Extension
         if (isset($bundles['DoctrineBundle'])) {
             $container
                 ->register(DoctrineORMInterceptor::class)
-                ->addArgument(new Reference(ManagerRegistry::class))
-                ->addArgument(new Reference('service_container'))
-                ->addArgument(new Reference(EventDispatcherInterface::class))
-                ->addArgument(new Reference(LoggerInterface::class))
-                ->addTag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+                ->addArgument(new Reference(DoctrineORMIntegration::class))
             ;
 
             $defaultInterceptors[] = DoctrineORMInterceptor::class;
@@ -387,29 +380,27 @@ class BaldinofRoadRunnerExtension extends Extension
         $container->setParameter('temporal.default_interceptors', $defaultInterceptors);
 
         foreach ($config['clients'] as $name => $options) {
-            $container->register("temporal.client.{$name}.connection", Connection::class)
-                ->setFactory([ConnectionFactory::class, 'createFromArray'])
+            $container->register("temporal.client.$name.service_client_config", ServiceClientConfig::class)
+                ->setFactory([ServiceClientConfig::class, 'createFromArray'])
                 ->setArguments([
                     '$options' => [
                         'address' => $options['address'],
-                        'crt' => $options['client_key'] ?? null,
+                        'crt' => $options['crt'] ?? null,
                         'client_key' => $options['client_key'] ?? null,
                         'client_pem' => $options['client_pem'] ?? null,
                         'override_server_name' => $options['override_server_name'] ?? null,
                     ],
                 ]);
 
-            $container->register("temporal.client.{$name}.service_client.factory", ServiceClientFactory::class)
-                ->setArguments([
-                    '$connection' => new Reference("temporal.client.{$name}.connection"),
-                ]);
+            $container->register("temporal.client.$name.service_client.factory", ServiceClientFactory::class)
+                ->addArgument(new Reference("temporal.client.$name.service_client_config"));
 
-            $container->register("temporal.client.{$name}.service_client", ServiceClientInterface::class)
-                ->setFactory([new Reference("temporal.client.{$name}.service_client.factory"), '__invoke'])
+            $container->register("temporal.client.$name.service_client", ServiceClientInterface::class)
+                ->setFactory([new Reference("temporal.client.$name.service_client.factory"), '__invoke'])
                 ->setAutoconfigured(true)
                 ->setAutowired(true);
 
-            $container->register("temporal.client.{$name}.option", ClientOptions::class)
+            $container->register("temporal.client.$name.options", ClientOptions::class)
                 ->setFactory([ClientOptionsFactory::class, 'createFromArray'])
                 ->setArguments([
                     '$options' => [
@@ -419,51 +410,44 @@ class BaldinofRoadRunnerExtension extends Extension
                     ],
                 ]);
 
-            $container->register("temporal.client.{$name}.interceptors", SimplePipelineProvider::class)
+            $container->register("temporal.client.$name.interceptors", SimplePipelineProvider::class)
                 ->addArgument(array_map(service(...), $options['interceptors'] ?? []));
 
-            $container->register("temporal.client.{$name}.factory", WorkflowClientFactory::class)
+            $container->register("temporal.client.$name.workflow", WorkflowClientInterface::class)
+                ->setFactory([WorkflowClient::class, 'create'])
                 ->setArguments([
-                    '$serviceClient' => new Reference("temporal.client.{$name}.service_client"),
-                    '$dataConverter' => new Reference('temporal.data_converter'),
-                    '$clientOptions' => new Reference("temporal.client.{$name}.option"),
-                    '$interceptors' => new Reference("temporal.client.{$name}.interceptors"),
+                    new Reference("temporal.client.$name.service_client"),
+                    new Reference("temporal.client.$name.options"),
+                    new Reference('temporal.data_converter'),
+                    new Reference("temporal.client.$name.interceptors"),
                 ]);
 
-            $container->register("temporal.client.{$name}", WorkflowClient::class)
-                ->setFactory([new Reference("temporal.client.{$name}.factory"), '__invoke'])
-                ->setAutoconfigured(true)
-                ->setAutowired(true);
-
-            $container->register("temporal.client.{$name}.schedule.factory", ScheduleClientFactory::class)
+            $container->register("temporal.client.$name.schedule", ScheduleClientInterface::class)
+                ->setFactory([ScheduleClient::class, 'create'])
                 ->setArguments([
-                    '$serviceClient' => new Reference("temporal.client.{$name}.service_client"),
-                    '$dataConverter' => new Reference('temporal.data_converter'),
-                    '$clientOptions' => new Reference("temporal.client.{$name}.option"),
+                    new Reference("temporal.client.$name.service_client"),
+                    new Reference("temporal.client.$name.options"),
+                    new Reference('temporal.data_converter'),
                 ]);
-
-            $container->register("temporal.client.{$name}.schedule", ScheduleClient::class)
-                ->setFactory([new Reference("temporal.client.{$name}.schedule.factory"), '__invoke'])
-                ->setAutoconfigured(true)
-                ->setAutowired(true);
         }
 
-        if (!$container->hasDefinition("temporal.client.{$config['default_client']}")) {
+        if (!$container->hasDefinition("temporal.client.{$config['default_client']}.workflow")) {
             throw new \InvalidArgumentException(\sprintf('%s not found in service container', "temporal.client.{$config['default_client']}"));
         }
 
-        $container->setAlias(WorkflowClientInterface::class, "temporal.client.{$config['default_client']}");
+        $container->setAlias(WorkflowClientInterface::class, "temporal.client.{$config['default_client']}.workflow");
         $container->setAlias(ScheduleClientInterface::class, "temporal.client.{$config['default_client']}.schedule");
 
-        $container->register(WorkerFactory::class, WorkerFactory::class)
-            ->setArguments([new Reference(DataConverterInterface::class)])
-            ->setAutoconfigured(true)
-            ->setAutowired(true);
-
         $container->register(TemporalWorkerFactory::class)
-            ->setFactory([
-                new Reference(WorkerFactory::class),
-                '__invoke',
+            ->setFactory([TemporalWorkerFactory::class, 'create'])
+            ->setArguments([
+                new Reference('temporal.data_converter'),
             ]);
+    }
+
+    /** @param \ReflectionClass<object> $class */
+    private function getTemporalWorkerName(\ReflectionClass $class): ?string
+    {
+        return ($class->getAttributes(AssignToWorker::class)[0] ?? null)?->newInstance()->workerName;
     }
 }

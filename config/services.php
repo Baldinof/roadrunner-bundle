@@ -37,6 +37,7 @@ use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Temporal\Exception\ExceptionInterceptor;
+use Temporal\Exception\ExceptionInterceptorInterface;
 use Temporal\Workflow\WorkflowInterface;
 
 return static function (ContainerConfigurator $container) {
@@ -153,7 +154,7 @@ return static function (ContainerConfigurator $container) {
     }
 
     if (class_exists(WorkflowInterface::class)) {
-        $services->set('temporal.exception_interceptor', ExceptionInterceptor::class)
+        $services->set('temporal.exception_interceptor', ExceptionInterceptorInterface::class)
             ->factory([ExceptionInterceptor::class, 'createDefault']);
     }
 };

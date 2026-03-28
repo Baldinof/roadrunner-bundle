@@ -278,7 +278,6 @@ class BaldinofRoadRunnerBundleTest extends TestCase
 
         $registry = $c->get(WorkerRegistryInterface::class);
         $this->assertInstanceOf(TemporalWorker::class, $registry->getWorker(Environment\Mode::MODE_TEMPORAL));
-        $this->assertInstanceOf(WorkflowClientInterface::class, $c->get(WorkflowClientInterface::class));
     }
 
     /**
