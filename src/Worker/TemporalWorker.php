@@ -26,6 +26,11 @@ final class TemporalWorker implements WorkerInterface
     ) {
     }
 
+    public function getWorkers(): array
+    {
+        return $this->workers;
+    }
+
     public function addWorker(
         string $name,
         string $taskQueue,

@@ -25,10 +25,13 @@ use Baldinof\RoadRunnerBundle\Reboot\MemoryRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Baldinof\RoadRunnerBundle\Temporal\Attributes\AssignToWorker;
 use Baldinof\RoadRunnerBundle\Temporal\ClientOptionsFactory;
+use Baldinof\RoadRunnerBundle\Temporal\Command\DebugClientsCommand;
+use Baldinof\RoadRunnerBundle\Temporal\Command\DebugWorkersCommand;
 use Baldinof\RoadRunnerBundle\Temporal\ServiceClientConfig;
 use Baldinof\RoadRunnerBundle\Temporal\Interceptors\DoctrineORMInterceptor;
 use Baldinof\RoadRunnerBundle\Temporal\Interceptors\RebootKernelInterceptor;
 use Baldinof\RoadRunnerBundle\Temporal\ServiceClientFactory;
+use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
 use Doctrine\Persistence\ManagerRegistry;
 use Psr\Log\LoggerInterface;
 use Sentry\SentryBundle\EventListener\TracingRequestListener;
@@ -48,6 +51,7 @@ use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
+use Symfony\Component\DependencyInjection\Parameter;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -154,6 +158,7 @@ class BaldinofRoadRunnerExtension extends Extension
 
         if (interface_exists(WorkflowClientInterface::class)) {
             $this->configureTemporal($config['temporal'], $container);
+            $this->configureTemporalCommands($container);
         }
     }
 
@@ -397,8 +402,7 @@ class BaldinofRoadRunnerExtension extends Extension
 
             $container->register("temporal.client.$name.service_client", ServiceClientInterface::class)
                 ->setFactory([new Reference("temporal.client.$name.service_client.factory"), '__invoke'])
-                ->setAutoconfigured(true)
-                ->setAutowired(true);
+            ;
 
             $container->register("temporal.client.$name.options", ClientOptions::class)
                 ->setFactory([ClientOptionsFactory::class, 'createFromArray'])
@@ -443,6 +447,28 @@ class BaldinofRoadRunnerExtension extends Extension
             ->setArguments([
                 new Reference('temporal.data_converter'),
             ]);
+
+        $container->setParameter('temporal.clients_info', array_map(
+            fn($name, $options) => [
+                'name' => $name,
+                'address' => $options['address'],
+                'namespace' => $options['namespace'],
+                'default' => $name === $config['default_client'],
+            ],
+            array_keys($config['clients']),
+            $config['clients']
+        ));
+    }
+
+    private function configureTemporalCommands(ContainerBuilder $container): void
+    {
+        $container->register(DebugWorkersCommand::class)
+            ->addArgument(new Reference(TemporalWorker::class))
+            ->addTag('console.command');
+
+        $container->register(DebugClientsCommand::class)
+            ->addArgument(new Parameter('temporal.clients_info'))
+            ->addTag('console.command');
     }
 
     /** @param \ReflectionClass<object> $class */

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass;
 
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
+use Baldinof\RoadRunnerBundle\Temporal\Command\DebugWorkersCommand;
 use Baldinof\RoadRunnerBundle\Temporal\WorkerOptionsFactory;
 use Baldinof\RoadRunnerBundle\Worker\TemporalDependencies;
 use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
