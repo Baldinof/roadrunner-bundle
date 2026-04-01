@@ -7,6 +7,7 @@ namespace Baldinof\RoadRunnerBundle\Temporal\Interceptors;
 use Symfony\Contracts\Service\ResetInterface;
 use Temporal\Client\Workflow\WorkflowExecutionDescription;
 use Temporal\DataConverter\ValuesInterface;
+use Temporal\Interceptor\Trait\WorkflowClientCallsInterceptorTrait;
 use Temporal\Interceptor\WorkflowClient\CancelInput;
 use Temporal\Interceptor\WorkflowClient\DescribeInput;
 use Temporal\Interceptor\WorkflowClient\GetResultInput;
@@ -24,6 +25,8 @@ use Temporal\Workflow\WorkflowExecution;
 
 class CollectingClientInterceptor implements WorkflowClientCallsInterceptor, ResetInterface
 {
+    use WorkflowClientCallsInterceptorTrait;
+
     private array $interactions = [];
 
     public function __construct()
@@ -88,7 +91,10 @@ class CollectingClientInterceptor implements WorkflowClientCallsInterceptor, Res
             detail: $input->updateInput->updateName,
         );
 
-        return $next($input);
+        /** @var UpdateWithStartOutput $retval */
+        $retval = $next($input);
+
+        return $retval;
     }
 
     public function getResult(GetResultInput $input, callable $next): ?ValuesInterface
@@ -142,7 +148,10 @@ class CollectingClientInterceptor implements WorkflowClientCallsInterceptor, Res
             runId: $input->workflowExecution->getRunID(),
         );
 
-        return $next($input);
+        /** @var WorkflowExecutionDescription $retval */
+        $retval = $next($input); // @phpstan-ignore callable.void
+
+        return $retval;
     }
 
     public function reset(): void

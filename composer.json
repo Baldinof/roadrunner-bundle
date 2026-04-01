@@ -59,7 +59,7 @@
         "phpunit/phpunit": "^9.6",
         "phpspec/prophecy": "^1.11",
         "phpspec/prophecy-phpunit": "^2.0",
-        "temporal/sdk": "^2.0"
+        "temporal/sdk": "^2.14"
     },
     "conflict": {
         "doctrine/doctrine-bundle": "<2.1.1",
@@ -67,7 +67,7 @@
         "spiral/roadrunner-metrics": "<3.0.0",
         "symfony/proxy-manager-bridge": "<5.4",
         "symfony/runtime": "<6.4",
-        "temporal/sdk": "<2.0"
+        "temporal/sdk": "<2.14"
     },
     "scripts": {
         "test": "vendor/bin/phpunit --testdox --colors=always",
