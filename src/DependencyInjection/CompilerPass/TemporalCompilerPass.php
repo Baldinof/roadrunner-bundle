@@ -116,7 +116,7 @@ final class TemporalCompilerPass implements CompilerPassInterface
                 'name' => $name,
                 'queue' => $options['queue'],
                 'options' => $options['options'],
-                'interceptors' => $interceptors
+                'interceptors' => $interceptors,
             ];
         }
 

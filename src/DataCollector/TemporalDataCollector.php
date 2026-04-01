@@ -17,8 +17,7 @@ final class TemporalDataCollector extends DataCollector
         private readonly iterable $activities,
         private readonly array $clients,
         private readonly array $workers,
-    )
-    {
+    ) {
     }
 
     public function collect(Request $request, Response $response, ?\Throwable $exception = null): void

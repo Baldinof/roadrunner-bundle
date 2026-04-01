@@ -40,6 +40,7 @@ final class BaldinofRoadRunnerBundle extends AbstractBundle
         if (!$this->extension) {
             $this->extension = new BaldinofRoadRunnerExtension();
         }
+
         return $this->extension;
     }
 
