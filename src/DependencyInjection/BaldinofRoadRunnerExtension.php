@@ -52,6 +52,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\KernelInterface;
@@ -74,7 +75,7 @@ use Temporal\Interceptor\SimplePipelineProvider;
 use Temporal\WorkerFactory as TemporalWorkerFactory;
 use Temporal\Workflow\WorkflowInterface;
 
-class BaldinofRoadRunnerExtension extends Extension
+class BaldinofRoadRunnerExtension extends Extension implements PrependExtensionInterface
 {
     public const MONOLOG_CHANNEL = 'roadrunner';
 
@@ -158,6 +159,13 @@ class BaldinofRoadRunnerExtension extends Extension
         if (interface_exists(WorkflowClientInterface::class)) {
             $this->configureTemporal($config['temporal'], $container);
         }
+    }
+
+    public function prepend(ContainerBuilder $container): void
+    {
+        $container->prependExtensionConfig('twig', [
+            'paths' => [__DIR__.'/../../templates' => 'BaldinofRoadRunner'],
+        ]);
     }
 
     private function loadDebug(ContainerBuilder $container): void
