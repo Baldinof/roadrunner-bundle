@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\DependencyInjection;
 
 use Baldinof\RoadRunnerBundle\Cache\KvCacheAdapter;
+use Baldinof\RoadRunnerBundle\DataCollector\TemporalDataCollector;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
 use Baldinof\RoadRunnerBundle\Integration\Blackfire\BlackfireMiddleware;
@@ -27,6 +28,7 @@ use Baldinof\RoadRunnerBundle\Temporal\Attributes\AssignToWorker;
 use Baldinof\RoadRunnerBundle\Temporal\ClientOptionsFactory;
 use Baldinof\RoadRunnerBundle\Temporal\Command\DebugClientsCommand;
 use Baldinof\RoadRunnerBundle\Temporal\Command\DebugWorkersCommand;
+use Baldinof\RoadRunnerBundle\Temporal\Interceptors\CollectingClientInterceptor;
 use Baldinof\RoadRunnerBundle\Temporal\Interceptors\DoctrineORMInterceptor;
 use Baldinof\RoadRunnerBundle\Temporal\Interceptors\RebootKernelInterceptor;
 use Baldinof\RoadRunnerBundle\Temporal\ServiceClientConfig;
@@ -51,7 +53,6 @@ use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
-use Symfony\Component\DependencyInjection\Parameter;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -72,8 +73,6 @@ use Temporal\DataConverter\ProtoJsonConverter;
 use Temporal\Interceptor\SimplePipelineProvider;
 use Temporal\WorkerFactory as TemporalWorkerFactory;
 use Temporal\Workflow\WorkflowInterface;
-
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 class BaldinofRoadRunnerExtension extends Extension
 {
@@ -158,7 +157,6 @@ class BaldinofRoadRunnerExtension extends Extension
 
         if (interface_exists(WorkflowClientInterface::class)) {
             $this->configureTemporal($config['temporal'], $container);
-            $this->configureTemporalCommands($container);
         }
     }
 
@@ -384,6 +382,23 @@ class BaldinofRoadRunnerExtension extends Extension
 
         $container->setParameter('temporal.default_interceptors', $defaultInterceptors);
 
+        $collectingInterceptor = null;
+        if ($container->getParameter('kernel.debug')) {
+            $container->register('temporal.data_collector.client.interceptor', CollectingClientInterceptor::class)
+                ->addArgument(new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE))
+            ;
+            $container->register('data_collector.temporal', TemporalDataCollector::class)
+                ->addArgument(new Reference('temporal.data_collector.client.interceptor'))
+                ->addArgument([])
+                ->addArgument([])
+                ->addArgument([])
+                ->addArgument([])
+                ->addTag('data_collector', ['id' => 'temporal', 'template' => '@BaldinofRoadRunner/data_collector/temporal.html.twig'])
+            ;
+            $collectingInterceptor = new Reference('temporal.data_collector.client.interceptor');
+        }
+
+        $clients = [];
         foreach ($config['clients'] as $name => $options) {
             $container->register("temporal.client.$name.service_client_config", ServiceClientConfig::class)
                 ->setFactory([ServiceClientConfig::class, 'createFromArray'])
@@ -414,8 +429,13 @@ class BaldinofRoadRunnerExtension extends Extension
                     ],
                 ]);
 
+            $interceptorServices = array_map(static fn ($id) => new Reference($id), $options['interceptors'] ?? []);
+            if ($collectingInterceptor) {
+                array_unshift($interceptorServices, $collectingInterceptor);
+            }
+
             $container->register("temporal.client.$name.interceptors", SimplePipelineProvider::class)
-                ->addArgument(array_map(service(...), $options['interceptors'] ?? []));
+                ->addArgument($interceptorServices);
 
             $container->register("temporal.client.$name.workflow", WorkflowClientInterface::class)
                 ->setFactory([WorkflowClient::class, 'create'])
@@ -433,6 +453,12 @@ class BaldinofRoadRunnerExtension extends Extension
                     new Reference("temporal.client.$name.options"),
                     new Reference('temporal.data_converter'),
                 ]);
+
+            $clients[] = [
+                'name' => $name,
+                'options' => $options,
+                'interceptors' => array_map(strval(...), $interceptorServices),
+            ];
         }
 
         if (!$container->hasDefinition("temporal.client.{$config['default_client']}.workflow")) {
@@ -448,27 +474,17 @@ class BaldinofRoadRunnerExtension extends Extension
                 new Reference('temporal.data_converter'),
             ]);
 
-        $container->setParameter('temporal.clients_info', array_map(
-            fn ($name, $options) => [
-                'name' => $name,
-                'address' => $options['address'],
-                'namespace' => $options['namespace'],
-                'default' => $name === $config['default_client'],
-            ],
-            array_keys($config['clients']),
-            $config['clients']
-        ));
-    }
-
-    private function configureTemporalCommands(ContainerBuilder $container): void
-    {
         $container->register(DebugWorkersCommand::class)
             ->addArgument(new Reference(TemporalWorker::class))
             ->addTag('console.command');
 
         $container->register(DebugClientsCommand::class)
-            ->addArgument(new Parameter('temporal.clients_info'))
+            ->addArgument($clients)
             ->addTag('console.command');
+
+        if ($container->hasDefinition('data_collector.temporal')) {
+            $container->getDefinition('data_collector.temporal')->replaceArgument(3, $clients);
+        }
     }
 
     /** @param \ReflectionClass<object> $class */

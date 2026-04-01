@@ -70,6 +70,7 @@ final class TemporalCompilerPass implements CompilerPassInterface
             throw new InvalidArgumentException('Temporal workers must have unique task queues.');
         }
 
+        $workerInfo = [];
         foreach ($config['workers'] as $name => $options) {
             $useDefaultInterceptors = $options['default_interceptors'];
 
@@ -96,13 +97,12 @@ final class TemporalCompilerPass implements CompilerPassInterface
             }
 
             $container->register("temporal.worker.$name.interceptors", SimplePipelineProvider::class)
-                ->setArguments([$interceptorReferences]);
+                ->addArgument($interceptorReferences);
 
             $container->register("temporal.worker.$name.options", WorkerOptions::class)
                 ->setFactory([WorkerOptionsFactory::class, 'createFromArray'])
-                ->setArguments([
-                    '$options' => $options['options'],
-                ]);
+                ->addArgument($options['options'])
+            ;
 
             $temporalWorkerDefinition->addMethodCall('addWorker', [
                 $name,
@@ -111,6 +111,17 @@ final class TemporalCompilerPass implements CompilerPassInterface
                 new Reference($options['exception_interceptor']),
                 new Reference("temporal.worker.$name.interceptors"),
             ]);
+
+            $workerInfo[] = [
+                'name' => $name,
+                'queue' => $options['queue'],
+                'options' => $options['options'],
+                'interceptors' => $interceptors
+            ];
+        }
+
+        if ($container->hasDefinition('data_collector.temporal')) {
+            $container->getDefinition('data_collector.temporal')->replaceArgument(4, $workerInfo);
         }
 
         $workerRegistry = $container->findDefinition(WorkerRegistryInterface::class);
@@ -124,23 +135,31 @@ final class TemporalCompilerPass implements CompilerPassInterface
 
     private function registerWorkflows(ContainerBuilder $container, Definition $temporalWorkerDefinition): void
     {
-        $workflows = $container->findTaggedServiceIds('temporal.workflow');
-
-        foreach ($workflows as $key => $value) {
+        $workflows = [];
+        foreach ($container->findTaggedServiceIds('temporal.workflow') as $key => $value) {
             $class = $container->getDefinition($key)->getClass();
-            $temporalWorkerDefinition->addMethodCall('registerWorkflow', [$class, $value[0]['worker_name'] ?? null]);
+            $workerName = $value[0]['worker_name'] ?? null;
+            $temporalWorkerDefinition->addMethodCall('registerWorkflow', [$class, $workerName]);
+            $workflows[] = ['class' => $class, 'worker' => $workerName];
+        }
+
+        if ($container->hasDefinition('data_collector.temporal')) {
+            $container->getDefinition('data_collector.temporal')->replaceArgument(1, $workflows);
         }
     }
 
     private function registerActivities(ContainerBuilder $container, Definition $temporalWorkerDefinition): void
     {
-        $activities = $container->findTaggedServiceIds('temporal.activity');
-        foreach ($activities as $key => $value) {
+        $activities = [];
+        foreach ($container->findTaggedServiceIds('temporal.activity') as $key => $value) {
             $class = $container->getDefinition($key)->getClass();
-            $temporalWorkerDefinition->addMethodCall('registerActivity', [
-                $class,
-                $value[0]['worker_name'] ?? null,
-            ]);
+            $workerName = $value[0]['worker_name'] ?? null;
+            $temporalWorkerDefinition->addMethodCall('registerActivity', [$class, $workerName]);
+            $activities[] = ['class' => $class, 'worker' => $workerName];
+        }
+
+        if ($container->hasDefinition('data_collector.temporal')) {
+            $container->getDefinition('data_collector.temporal')->replaceArgument(2, $activities);
         }
     }
 }
