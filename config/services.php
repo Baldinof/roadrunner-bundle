@@ -70,17 +70,28 @@ return static function (ContainerConfigurator $container) {
 
     $services->set('baldinof_road_runner.http_foundation_streamed_responder', HttpFoundationWorker\ChunkedResponder::class)
         ->args([
-            [StreamedResponse::class, StreamedJsonResponse::class],
+            [StreamedResponse::class],
             param('baldinof_road_runner.http_foundation_streamed_responder.chunk_size'),
         ])
         ->tag('baldinof_road_runner.http_foundation_responder');
 
-    $services->set('baldinof_road_runner.http_foundation_event_streamed_responder', HttpFoundationWorker\ChunkedResponder::class)
-        ->args([
-            [EventStreamResponse::class],
-            1,
-        ])
-        ->tag('baldinof_road_runner.http_foundation_responder');
+    if (class_exists(StreamedJsonResponse::class)) {
+        $services->set('baldinof_road_runner.http_foundation_streamed_json_responder', HttpFoundationWorker\ChunkedResponder::class)
+            ->args([
+                [StreamedJsonResponse::class],
+                param('baldinof_road_runner.http_foundation_streamed_responder.chunk_size'),
+            ])
+            ->tag('baldinof_road_runner.http_foundation_responder');
+    }
+
+    if (class_exists(EventStreamResponse::class)) {
+        $services->set('baldinof_road_runner.http_foundation_event_streamed_responder', HttpFoundationWorker\ChunkedResponder::class)
+            ->args([
+                [EventStreamResponse::class],
+                1,
+            ])
+            ->tag('baldinof_road_runner.http_foundation_responder');
+    }
 
     $services->set('baldinof_road_runner.http_foundation_binary_file_responder', HttpFoundationWorker\ChunkedResponder::class)
         ->args([

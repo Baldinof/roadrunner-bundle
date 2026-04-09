@@ -19,6 +19,7 @@ use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedJsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpKernel\Kernel;
 
 class HttpFoundationWorkerTest extends TestCase
 {
@@ -160,12 +161,22 @@ class HttpFoundationWorkerTest extends TestCase
 
         $innerWorker = new MockWorker();
 
-        $responder = new HttpFoundationWorker\ChainResponder([
-            new HttpFoundationWorker\ChunkedResponder([StreamedResponse::class, StreamedJsonResponse::class], 1024 * 16),
+        $innerResponders = [
+            new HttpFoundationWorker\ChunkedResponder([StreamedResponse::class], 1024 * 16),
             new HttpFoundationWorker\ChunkedResponder([BinaryFileResponse::class], 1),
-            new HttpFoundationWorker\ChunkedResponder([EventStreamResponse::class], 1),
-            new HttpFoundationWorker\BufferedResponder(),
-        ]);
+        ];
+
+        if (class_exists(StreamedJsonResponse::class)) {
+            $innerResponders[] = new HttpFoundationWorker\ChunkedResponder([StreamedJsonResponse::class], 1024 * 16);
+        }
+
+        if (class_exists(EventStreamResponse::class)) {
+            $innerResponders[] = new HttpFoundationWorker\ChunkedResponder([EventStreamResponse::class], 1);
+        }
+
+        $innerResponders[] = new HttpFoundationWorker\BufferedResponder();
+
+        $responder = new HttpFoundationWorker\ChainResponder($innerResponders);
         $worker = new HttpFoundationWorker($innerWorker, $responder);
 
         $worker->respond($sfResponse);
@@ -347,114 +358,120 @@ class HttpFoundationWorkerTest extends TestCase
             },
         ];
 
-        yield 'streamed response from chunks' => [
-            new StreamedResponse([
-                'foo',
-                ' ',
-                'bar baz',
-                ' ',
-                'qux',
-            ]),
-            2,
-            function (RoadRunnerResponse $response): void {
-                $this->assertSame(200, $response->status);
-                $this->assertSame('foo bar baz qux', $response->content);
-                $this->assertCount(4, $response->chunks);
-                $this->assertSame(['foo', ' bar baz', ' qux', ''], $response->chunks);
-            },
-        ];
+        // In symfony >= 7.3.0 StreamedResponse supports iterable<string> in argument $callbackOrChunks (prev $callback)
+        if (Kernel::VERSION_ID > 70300) {
+            yield 'streamed response from chunks' => [
+                new StreamedResponse([
+                    'foo',
+                    ' ',
+                    'bar baz',
+                    ' ',
+                    'qux',
+                ]),
+                2,
+                function (RoadRunnerResponse $response): void {
+                    $this->assertSame(200, $response->status);
+                    $this->assertSame('foo bar baz qux', $response->content);
+                    $this->assertCount(4, $response->chunks);
+                    $this->assertSame(['foo', ' bar baz', ' qux', ''], $response->chunks);
+                },
+            ];
 
-        yield 'streamed response from chunks 2' => [
-            new StreamedResponse([
-                'foo',
-                ' ',
-                'bar baz',
-                ' ',
-                'qux',
-            ]),
-            4,
-            function (RoadRunnerResponse $response): void {
-                $this->assertSame(200, $response->status);
-                $this->assertSame('foo bar baz qux', $response->content);
-                $this->assertCount(4, $response->chunks);
-                $this->assertSame(['foo ', 'bar baz', ' qux', ''], $response->chunks);
-            },
-        ];
+            yield 'streamed response from chunks 2' => [
+                new StreamedResponse([
+                    'foo',
+                    ' ',
+                    'bar baz',
+                    ' ',
+                    'qux',
+                ]),
+                4,
+                function (RoadRunnerResponse $response): void {
+                    $this->assertSame(200, $response->status);
+                    $this->assertSame('foo bar baz qux', $response->content);
+                    $this->assertCount(4, $response->chunks);
+                    $this->assertSame(['foo ', 'bar baz', ' qux', ''], $response->chunks);
+                },
+            ];
 
-        yield 'streamed response from chunks 3' => [
-            new StreamedResponse([
-                'foo',
-                ' ',
-                'bar baz',
-                ' ',
-                'qux',
-            ]),
-            1024 * 16,
-            function (RoadRunnerResponse $response): void {
-                $this->assertSame(200, $response->status);
-                $this->assertSame('foo bar baz qux', $response->content);
-                $this->assertCount(1, $response->chunks);
-                $this->assertSame(['foo bar baz qux'], $response->chunks);
-            },
-        ];
+            yield 'streamed response from chunks 3' => [
+                new StreamedResponse([
+                    'foo',
+                    ' ',
+                    'bar baz',
+                    ' ',
+                    'qux',
+                ]),
+                1024 * 16,
+                function (RoadRunnerResponse $response): void {
+                    $this->assertSame(200, $response->status);
+                    $this->assertSame('foo bar baz qux', $response->content);
+                    $this->assertCount(1, $response->chunks);
+                    $this->assertSame(['foo bar baz qux'], $response->chunks);
+                },
+            ];
+        }
 
-        yield 'streamed json response array' => [
-            function () {
-                $data = [];
+        // In symfony >= 6.3.0 supports StreamedJsonResponse
+        if (Kernel::VERSION_ID > 60300) {
+            yield 'streamed json response array' => [
+                function () {
+                    $data = [];
 
-                for ($i = 0; $i < 3; ++$i) {
-                    $data[] = ['id' => $i, 'data' => 'Some data value'];
-                }
+                    for ($i = 0; $i < 3; ++$i) {
+                        $data[] = ['id' => $i, 'data' => 'Some data value'];
+                    }
 
-                return new StreamedJsonResponse($data);
-            },
-            10,
-            function (RoadRunnerResponse $response): void {
-                $this->assertSame(200, $response->status);
-                $this->assertSame(
-                    '[{"id":0,"data":"Some data value"},{"id":1,"data":"Some data value"},{"id":2,"data":"Some data value"}]',
-                    $response->content,
-                );
-                $this->assertCount(2, $response->chunks);
-                $this->assertSame(
-                    [
+                    return new StreamedJsonResponse($data);
+                },
+                10,
+                function (RoadRunnerResponse $response): void {
+                    $this->assertSame(200, $response->status);
+                    $this->assertSame(
                         '[{"id":0,"data":"Some data value"},{"id":1,"data":"Some data value"},{"id":2,"data":"Some data value"}]',
-                        '',
-                    ],
-                    $response->chunks,
-                );
-            },
-        ];
+                        $response->content,
+                    );
+                    $this->assertCount(2, $response->chunks);
+                    $this->assertSame(
+                        [
+                            '[{"id":0,"data":"Some data value"},{"id":1,"data":"Some data value"},{"id":2,"data":"Some data value"}]',
+                            '',
+                        ],
+                        $response->chunks,
+                    );
+                },
+            ];
 
-        yield 'streamed json response iterable' => [
-            function () {
-                $data = [];
+            yield 'streamed json response iterable' => [
+                function () {
+                    $data = [];
 
-                for ($i = 0; $i < 3; ++$i) {
-                    $data[] = ['id' => $i, 'data' => 'Some data value'];
-                }
+                    for ($i = 0; $i < 3; ++$i) {
+                        $data[] = ['id' => $i, 'data' => 'Some data value'];
+                    }
 
-                return new StreamedJsonResponse(new \ArrayObject($data));
-            },
-            10,
-            function (RoadRunnerResponse $response): void {
-                $this->assertSame(200, $response->status);
-                $this->assertSame(
-                    '[{"id":0,"data":"Some data value"},{"id":1,"data":"Some data value"},{"id":2,"data":"Some data value"}]',
-                    $response->content,
-                );
-                $this->assertCount(4, $response->chunks);
-                $this->assertSame(
-                    [
-                        '[{"id":0,"data":"Some data value"}',
-                        ',{"id":1,"data":"Some data value"}',
-                        ',{"id":2,"data":"Some data value"}',
-                        ']',
-                    ],
-                    $response->chunks,
-                );
-            },
-        ];
+                    return new StreamedJsonResponse(new \ArrayObject($data));
+                },
+                10,
+                function (RoadRunnerResponse $response): void {
+                    $this->assertSame(200, $response->status);
+                    $this->assertSame(
+                        '[{"id":0,"data":"Some data value"},{"id":1,"data":"Some data value"},{"id":2,"data":"Some data value"}]',
+                        $response->content,
+                    );
+                    $this->assertCount(4, $response->chunks);
+                    $this->assertSame(
+                        [
+                            '[{"id":0,"data":"Some data value"}',
+                            ',{"id":1,"data":"Some data value"}',
+                            ',{"id":2,"data":"Some data value"}',
+                            ']',
+                        ],
+                        $response->chunks,
+                    );
+                },
+            ];
+        }
     }
 
     public function test_it_overrides_SERVER_global()
