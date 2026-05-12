@@ -13,10 +13,13 @@ use Spiral\RoadRunner\Http\Request as RoadRunnerRequest;
 use Spiral\RoadRunner\WorkerInterface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\EventStreamResponse;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedJsonResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpKernel\Kernel;
 
 class HttpFoundationWorkerTest extends TestCase
 {
@@ -40,7 +43,7 @@ class HttpFoundationWorkerTest extends TestCase
         $innerWorker = new MockWorker();
         $innerWorker->nextRequest = $rrRequest;
 
-        $worker = new HttpFoundationWorker($innerWorker);
+        $worker = new HttpFoundationWorker($innerWorker, new HttpFoundationWorker\BufferedResponder());
         $symfonyRequest = $worker->waitRequest();
 
         $expectations($symfonyRequest);
@@ -149,8 +152,8 @@ class HttpFoundationWorkerTest extends TestCase
     /**
      * @dataProvider provideResponses
      *
-     * @param Response|(\Closure(): Response) $sfResponse
-     * @param \Closure<RoadRunnerResponse>: void $expectations
+     * @param Response|(\Closure(): Response)    $sfResponse
+     * @param \Closure(RoadRunnerResponse): void $expectations
      */
     public function test_it_convert_symfony_response_to_roadrunner($sfResponse, \Closure $expectations)
     {
@@ -158,13 +161,29 @@ class HttpFoundationWorkerTest extends TestCase
 
         $innerWorker = new MockWorker();
 
-        $worker = new HttpFoundationWorker($innerWorker);
+        $innerResponders = [
+            new HttpFoundationWorker\ChunkedResponder([StreamedResponse::class], 1024 * 16),
+            new HttpFoundationWorker\ChunkedResponder([BinaryFileResponse::class], 1),
+        ];
+
+        if (class_exists(StreamedJsonResponse::class)) {
+            $innerResponders[] = new HttpFoundationWorker\ChunkedResponder([StreamedJsonResponse::class], 1024 * 16);
+        }
+
+        if (class_exists(EventStreamResponse::class)) {
+            $innerResponders[] = new HttpFoundationWorker\ChunkedResponder([EventStreamResponse::class], 1);
+        }
+
+        $innerResponders[] = new HttpFoundationWorker\BufferedResponder();
+
+        $responder = new HttpFoundationWorker\ChainResponder($innerResponders);
+        $worker = new HttpFoundationWorker($innerWorker, $responder);
 
         $worker->respond($sfResponse);
 
         $this->assertNotNull($innerWorker->responded);
-
         $expectations($innerWorker->responded);
+        $this->assertTrue($innerWorker->responded->endOfStream);
     }
 
     public function provideResponses()
@@ -174,12 +193,16 @@ class HttpFoundationWorkerTest extends TestCase
             function (RoadRunnerResponse $roadRunnerResponse) {
                 $this->assertSame(200, $roadRunnerResponse->status);
                 $this->assertSame('', $roadRunnerResponse->content);
+                $this->assertCount(1, $roadRunnerResponse->chunks);
             },
         ];
 
         yield 'response with content' => [
             new Response('Hello world'),
-            fn (RoadRunnerResponse $response) => $this->assertSame('Hello world', $response->content),
+            function (RoadRunnerResponse $response) {
+                $this->assertSame('Hello world', $response->content);
+                $this->assertCount(1, $response->chunks);
+            },
         ];
 
         yield 'non 200 status code' => [
@@ -188,10 +211,13 @@ class HttpFoundationWorkerTest extends TestCase
         ];
 
         yield 'binary file response' => [
-            fn () => new BinaryFileResponse($this->createFile('binary-response.txt', 'hello')),
+            fn () => (new BinaryFileResponse($this->createFile('binary-response.txt', 'hello')))
+                ->setChunkSize(2),
             function (RoadRunnerResponse $roadRunnerResponse) {
                 $this->assertSame(200, $roadRunnerResponse->status);
                 $this->assertSame('hello', $roadRunnerResponse->content);
+                $this->assertCount(4, $roadRunnerResponse->chunks);
+                $this->assertSame(['he', 'll', 'o', ''], $roadRunnerResponse->chunks);
             },
         ];
 
@@ -215,6 +241,8 @@ class HttpFoundationWorkerTest extends TestCase
             function (RoadRunnerResponse $response) {
                 $this->assertSame(200, $response->status);
                 $this->assertSame('hello world', $response->content);
+                $this->assertCount(1, $response->chunks);
+                $this->assertSame(['hello world'], $response->chunks);
             },
         ];
 
@@ -253,6 +281,199 @@ class HttpFoundationWorkerTest extends TestCase
         ];
     }
 
+    /**
+     * @dataProvider provideStreamedResponses
+     *
+     * @param StreamedResponse|(\Closure(): StreamedResponse) $sfResponse
+     * @param non-negative-int                                $chunkSize
+     * @param \Closure(RoadRunnerResponse): void              $expectations
+     */
+    public function test_it_convert_symfony_streamed_response_to_roadrunner(
+        StreamedResponse|\Closure $sfResponse,
+        int $chunkSize,
+        \Closure $expectations,
+    ): void {
+        $sfResponse = $sfResponse instanceof StreamedResponse ? $sfResponse : $sfResponse();
+
+        $innerWorker = new MockWorker();
+        $responder = new HttpFoundationWorker\ChunkedResponder([StreamedResponse::class, StreamedJsonResponse::class], $chunkSize);
+        $worker = new HttpFoundationWorker($innerWorker, $responder);
+        $worker->respond($sfResponse);
+
+        $this->assertNotNull($innerWorker->responded);
+        $expectations($innerWorker->responded);
+        $this->assertTrue($innerWorker->responded->endOfStream);
+    }
+
+    public function provideStreamedResponses(): iterable
+    {
+        yield 'streamed response from callback' => [
+            new StreamedResponse(function () {
+                echo 'foo';
+                echo ' ';
+                echo 'bar baz';
+                echo ' ';
+                echo 'qux';
+            }),
+            2,
+            function (RoadRunnerResponse $response): void {
+                $this->assertSame(200, $response->status);
+                $this->assertSame('foo bar baz qux', $response->content);
+                $this->assertCount(4, $response->chunks);
+                $this->assertSame(['foo', ' bar baz', ' qux', ''], $response->chunks);
+            },
+        ];
+
+        yield 'streamed response from callback 2' => [
+            new StreamedResponse(function () {
+                echo 'foo';
+                echo ' ';
+                echo 'bar baz';
+                echo ' ';
+                echo 'qux';
+            }),
+            4,
+            function (RoadRunnerResponse $response): void {
+                $this->assertSame(200, $response->status);
+                $this->assertSame('foo bar baz qux', $response->content);
+                $this->assertCount(4, $response->chunks);
+                $this->assertSame(['foo ', 'bar baz', ' qux', ''], $response->chunks);
+            },
+        ];
+
+        yield 'streamed response from callback 3' => [
+            new StreamedResponse(function () {
+                echo 'foo';
+                echo ' ';
+                echo 'bar baz';
+                echo ' ';
+                echo 'qux';
+            }),
+            1024 * 16,
+            function (RoadRunnerResponse $response): void {
+                $this->assertSame(200, $response->status);
+                $this->assertSame('foo bar baz qux', $response->content);
+                $this->assertCount(1, $response->chunks);
+                $this->assertSame(['foo bar baz qux'], $response->chunks);
+            },
+        ];
+
+        // In symfony >= 7.3.0 StreamedResponse supports iterable<string> in argument $callbackOrChunks (prev $callback)
+        if (Kernel::VERSION_ID > 70300) {
+            yield 'streamed response from chunks' => [
+                new StreamedResponse([
+                    'foo',
+                    ' ',
+                    'bar baz',
+                    ' ',
+                    'qux',
+                ]),
+                2,
+                function (RoadRunnerResponse $response): void {
+                    $this->assertSame(200, $response->status);
+                    $this->assertSame('foo bar baz qux', $response->content);
+                    $this->assertCount(4, $response->chunks);
+                    $this->assertSame(['foo', ' bar baz', ' qux', ''], $response->chunks);
+                },
+            ];
+
+            yield 'streamed response from chunks 2' => [
+                new StreamedResponse([
+                    'foo',
+                    ' ',
+                    'bar baz',
+                    ' ',
+                    'qux',
+                ]),
+                4,
+                function (RoadRunnerResponse $response): void {
+                    $this->assertSame(200, $response->status);
+                    $this->assertSame('foo bar baz qux', $response->content);
+                    $this->assertCount(4, $response->chunks);
+                    $this->assertSame(['foo ', 'bar baz', ' qux', ''], $response->chunks);
+                },
+            ];
+
+            yield 'streamed response from chunks 3' => [
+                new StreamedResponse([
+                    'foo',
+                    ' ',
+                    'bar baz',
+                    ' ',
+                    'qux',
+                ]),
+                1024 * 16,
+                function (RoadRunnerResponse $response): void {
+                    $this->assertSame(200, $response->status);
+                    $this->assertSame('foo bar baz qux', $response->content);
+                    $this->assertCount(1, $response->chunks);
+                    $this->assertSame(['foo bar baz qux'], $response->chunks);
+                },
+            ];
+        }
+
+        // In symfony >= 6.3.0 supports StreamedJsonResponse
+        if (Kernel::VERSION_ID > 60300) {
+            yield 'streamed json response array' => [
+                function () {
+                    $data = [];
+
+                    for ($i = 0; $i < 3; ++$i) {
+                        $data[] = ['id' => $i, 'data' => 'Some data value'];
+                    }
+
+                    return new StreamedJsonResponse($data);
+                },
+                10,
+                function (RoadRunnerResponse $response): void {
+                    $this->assertSame(200, $response->status);
+                    $this->assertSame(
+                        '[{"id":0,"data":"Some data value"},{"id":1,"data":"Some data value"},{"id":2,"data":"Some data value"}]',
+                        $response->content,
+                    );
+                    $this->assertCount(2, $response->chunks);
+                    $this->assertSame(
+                        [
+                            '[{"id":0,"data":"Some data value"},{"id":1,"data":"Some data value"},{"id":2,"data":"Some data value"}]',
+                            '',
+                        ],
+                        $response->chunks,
+                    );
+                },
+            ];
+
+            yield 'streamed json response iterable' => [
+                function () {
+                    $data = [];
+
+                    for ($i = 0; $i < 3; ++$i) {
+                        $data[] = ['id' => $i, 'data' => 'Some data value'];
+                    }
+
+                    return new StreamedJsonResponse(new \ArrayObject($data));
+                },
+                10,
+                function (RoadRunnerResponse $response): void {
+                    $this->assertSame(200, $response->status);
+                    $this->assertSame(
+                        '[{"id":0,"data":"Some data value"},{"id":1,"data":"Some data value"},{"id":2,"data":"Some data value"}]',
+                        $response->content,
+                    );
+                    $this->assertCount(4, $response->chunks);
+                    $this->assertSame(
+                        [
+                            '[{"id":0,"data":"Some data value"}',
+                            ',{"id":1,"data":"Some data value"}',
+                            ',{"id":2,"data":"Some data value"}',
+                            ']',
+                        ],
+                        $response->chunks,
+                    );
+                },
+            ];
+        }
+    }
+
     public function test_it_overrides_SERVER_global()
     {
         $rrRequest = new RoadRunnerRequest(
@@ -266,7 +487,7 @@ class HttpFoundationWorkerTest extends TestCase
         $innerWorker = new MockWorker();
         $innerWorker->nextRequest = $rrRequest;
 
-        $worker = new HttpFoundationWorker($innerWorker);
+        $worker = new HttpFoundationWorker($innerWorker, new HttpFoundationWorker\BufferedResponder());
         $symfonyRequest = $worker->waitRequest();
 
         $this->assertSame('10.0.0.2', $symfonyRequest->server->get('REMOTE_ADDR'));
@@ -315,12 +536,30 @@ final class RoadRunnerResponse
     public int $status;
     public string $content;
     public array $headers;
+    public bool $endOfStream;
+    /** @var list<string> */
+    public array $chunks;
 
-    public function __construct(int $status, string $content, array $headers)
+    public function __construct(int $status, string $content, array $headers, bool $endOfStream)
     {
         $this->status = $status;
         $this->content = $content;
         $this->headers = $headers;
+        $this->endOfStream = $endOfStream;
+        $this->chunks[] = $content;
+    }
+
+    public function withChunk(string $chunk, bool $endOfStream): self
+    {
+        $response = new self(
+            status: $this->status,
+            content: $this->content.$chunk,
+            headers: $this->headers,
+            endOfStream: $endOfStream,
+        );
+        $response->chunks = array_merge($this->chunks, [$chunk]);
+
+        return $response;
     }
 }
 
@@ -337,13 +576,21 @@ class MockWorker implements HttpWorkerInterface
         return $req;
     }
 
-    public function respond(int $status, string|\Generator $body, array $headers = []): void
+    public function respond(int $status, string|\Generator $body, array $headers = [], bool $endOfStream = true): void
     {
-        $this->responded = new RoadRunnerResponse($status, $body, $headers);
+        if ($body instanceof \Generator) {
+            throw new \LogicException('Generator body not supported.');
+        }
+
+        if (null === $this->responded || true === $this->responded->endOfStream) {
+            $this->responded = new RoadRunnerResponse($status, $body, $headers, $endOfStream);
+        } else {
+            $this->responded = $this->responded->withChunk($body, $endOfStream);
+        }
     }
 
     public function getWorker(): WorkerInterface
     {
-        throw new \Exception('Not implemented');
+        throw new \LogicException('Not implemented');
     }
 }
