@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\Reboot;
 
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
+use Baldinof\RoadRunnerBundle\Event\WorkerExceptionEvent;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
@@ -38,6 +39,11 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
         }
 
         $this->exceptionCaught = $event->getThrowable();
+    }
+
+    public function onWorkerException(WorkerExceptionEvent $event): void
+    {
+        $this->exceptionCaught = $event->getException();
     }
 
     public function onForceKernelReboot(ForceKernelRebootEvent $event): void
@@ -89,6 +95,7 @@ class OnExceptionRebootStrategy implements KernelRebootStrategyInterface, EventS
     {
         return [
             KernelEvents::EXCEPTION => 'onException',
+            WorkerExceptionEvent::class => 'onWorkerException',
             ForceKernelRebootEvent::class => 'onForceKernelReboot',
         ];
     }

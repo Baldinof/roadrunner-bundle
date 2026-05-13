@@ -8,6 +8,7 @@ use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
+use Temporal\Api\Enums\V1\QueryRejectCondition;
 
 class Configuration implements ConfigurationInterface
 {
@@ -107,6 +108,110 @@ class Configuration implements ConfigurationInterface
                         ->arrayNode('storages')
                             ->defaultValue([])
                             ->scalarPrototype()->end()
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('temporal')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->scalarNode('default_client')->defaultValue('default')->end()
+                        ->arrayNode('clients')
+                            ->defaultValue([
+                                'default' => [
+                                    'namespace' => 'default',
+                                    'address' => 'localhost:7233',
+                                ],
+                            ])
+                            ->useAttributeAsKey('name')
+                            ->arrayPrototype()
+                                ->addDefaultsIfNotSet()
+                                ->children()
+                                    ->scalarNode('address')->defaultValue('localhost:7233')->cannotBeEmpty()->end()
+                                    ->scalarNode('namespace')->defaultValue('default')->cannotBeEmpty()->end()
+                                    ->scalarNode('crt')->end()
+                                    ->scalarNode('client_key')->end()
+                                    ->scalarNode('client_pem')->end()
+                                    ->scalarNode('override_server_name')->end()
+                                    ->scalarNode('identity')->end()
+                                    ->arrayNode('interceptors')
+                                            ->defaultValue([])
+                                            ->scalarPrototype()->end()
+                                    ->end()
+                                    ->enumNode('query_reject_condition')
+                                        ->values([
+                                            QueryRejectCondition::QUERY_REJECT_CONDITION_UNSPECIFIED,
+                                            QueryRejectCondition::QUERY_REJECT_CONDITION_NONE,
+                                            QueryRejectCondition::QUERY_REJECT_CONDITION_NOT_OPEN,
+                                            QueryRejectCondition::QUERY_REJECT_CONDITION_NOT_COMPLETED_CLEANLY,
+                                        ])
+                                        ->validate()
+                                            ->ifNotInArray([
+                                                QueryRejectCondition::QUERY_REJECT_CONDITION_UNSPECIFIED,
+                                                QueryRejectCondition::QUERY_REJECT_CONDITION_NONE,
+                                                QueryRejectCondition::QUERY_REJECT_CONDITION_NOT_OPEN,
+                                                QueryRejectCondition::QUERY_REJECT_CONDITION_NOT_COMPLETED_CLEANLY,
+                                            ])
+                                            ->thenInvalid(\sprintf('"queryRejectionCondition" value is not in the enum: %s', QueryRejectCondition::class))
+                                        ->end()
+                                    ->end()
+                                ->end()
+                            ->end()
+                        ->end()
+                        ->arrayNode('workers')
+                            ->defaultValue([
+                                'default' => [
+                                    'queue' => \Temporal\Worker\WorkerFactoryInterface::DEFAULT_TASK_QUEUE,
+                                    'exception_interceptor' => 'temporal.exception_interceptor',
+                                    'options' => [
+                                        'max_concurrent_activity_execution_size' => 0,
+                                        'worker_activities_per_second' => 0,
+                                        'max_concurrent_local_activity_execution_size' => 0,
+                                        'worker_local_activities_per_second' => 0,
+                                        'task_queue_activities_per_second' => 0,
+                                        'max_concurrent_activity_task_pollers' => 0,
+                                        'max_concurrent_workflow_task_execution_size' => 0,
+                                        'max_concurrent_workflow_task_pollers' => 0,
+                                        'sticky_schedule_to_start_timeout' => 0,
+                                        'worker_stop_timeout' => 0,
+                                        'enable_session_worker' => false,
+                                        'session_resource_id' => null,
+                                        'max_concurrent_session_execution_size' => 1000,
+                                    ],
+                                    'default_interceptors' => true,
+                                    'interceptors' => [],
+                                ],
+                            ])
+                            ->useAttributeAsKey('name')
+                            ->arrayPrototype()
+                                ->addDefaultsIfNotSet()
+                                ->children()
+                                    ->scalarNode('queue')->defaultValue(\Temporal\Worker\WorkerFactoryInterface::DEFAULT_TASK_QUEUE)->end()
+                                    ->scalarNode('exception_interceptor')->defaultValue('temporal.exception_interceptor')->end()
+                                    ->arrayNode('options')
+                                        ->addDefaultsIfNotSet()
+                                        ->children()
+                                            ->integerNode('max_concurrent_activity_execution_size')->min(0)->defaultValue(0)->end()
+                                            ->floatNode('worker_activities_per_second')->min(0)->defaultValue(0)->end()
+                                            ->integerNode('max_concurrent_local_activity_execution_size')->min(0)->defaultValue(0)->end()
+                                            ->floatNode('worker_local_activities_per_second')->min(0)->defaultValue(0)->end()
+                                            ->floatNode('task_queue_activities_per_second')->min(0)->defaultValue(0)->end()
+                                            ->integerNode('max_concurrent_activity_task_pollers')->min(0)->defaultValue(0)->end()
+                                            ->integerNode('max_concurrent_workflow_task_execution_size')->min(0)->defaultValue(0)->end()
+                                            ->integerNode('max_concurrent_workflow_task_pollers')->min(0)->defaultValue(0)->end()
+                                            ->integerNode('sticky_schedule_to_start_timeout')->min(0)->defaultValue(0)->end()
+                                            ->integerNode('worker_stop_timeout')->min(0)->defaultValue(0)->end()
+                                            ->booleanNode('enable_session_worker')->defaultFalse()->end()
+                                            ->scalarNode('session_resource_id')->defaultNull()->end()
+                                            ->integerNode('max_concurrent_session_execution_size')->min(0)->defaultValue(1000)->end()
+                                        ->end()
+                                    ->end()
+                                    ->booleanNode('default_interceptors')->defaultTrue()->end()
+                                    ->arrayNode('interceptors')
+                                        ->defaultValue([])
+                                        ->scalarPrototype()->end()
+                                    ->end()
+                                ->end()
+                            ->end()
                         ->end()
                     ->end()
                 ->end()

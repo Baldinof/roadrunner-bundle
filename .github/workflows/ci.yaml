@@ -1,7 +1,7 @@
 name: CI
 on:
   pull_request:
-  push: 
+  push:
     branches: [ "3.x" ]
   schedule:
     - cron:  '0 0 * * *'
@@ -36,7 +36,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '${{ matrix.php-versions }}'
-          extensions: mbstring,intl,mongodb
+          extensions: mbstring,intl,mongodb,grpc
           tools: composer:v2,flex
       - name: Install dependencies
         uses: ramsey/composer-install@v3

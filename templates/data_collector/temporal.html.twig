@@ -1,0 +1,177 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block toolbar %}
+    {% set interactions = collector.interactions|default([])|length %}
+    {% set icon %}
+        {{ include('@BaldinofRoadRunner/data_collector/temporal.svg') }}
+        <span class="sf-toolbar-value">{{ interactions }}</span>
+        <span class="sf-toolbar-label">Temporal</span>
+    {% endset %}
+
+    {% set text %}
+        <div class="sf-toolbar-info-piece">
+            <b>Client Interactions</b>
+            <span class="sf-toolbar-status">{{ interactions }}</span>
+        </div>
+    {% endset %}
+
+    {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { icon: icon, text: text, link: profiler_url }) }}
+{% endblock %}
+
+{% block menu %}
+    {% set interactions = collector.interactions|default([])|length %}
+    <span class="label {{ interactions == 0 ? 'disabled': '' }}">
+        <span class="icon">
+            {{ include('@BaldinofRoadRunner/data_collector/temporal.svg') }}
+        </span>
+        <strong>Temporal</strong>
+        {% if interactions > 0 %}
+            <span class="count">{{ interactions }}</span>
+        {% endif %}
+    </span>
+{% endblock %}
+
+{% block panel %}
+    <h2>Temporal</h2>
+
+    <div class="sf-tabs">
+        <div class="tab">
+            <h3 class="tab-title">Interactions <span class="badge">{{ collector.interactions|length }}</span></h3>
+            <div class="tab-content">
+                {% if collector.interactions is empty %}
+                    <div class="empty"><p>No client interactions recorded for this request.</p></div>
+                {% else %}
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Type</th>
+                            <th>Workflow</th>
+                            <th>Workflow ID</th>
+                            <th>Run ID</th>
+                            <th>Detail</th>
+                            <th>Data</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for i in collector.interactions %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ i.type }}</td>
+                                <td>{{ i.workflowType ?? '—' }}</td>
+                                <td>{{ i.workflowId ?? '—' }}</td>
+                                <td>{{ i.runId ?? '—' }}</td>
+                                <td>{{ i.detail ?? '' }}</td>
+                                <td>{{ profiler_dump(i.data) }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="tab">
+
+            <h3 class="tab-title">Workflows <span class="badge">{{ collector.workflows|length }}</span></h3>
+            <div class="tab-content">
+                <h4>Workflows</h4>
+                {% if collector.workflows is empty %}
+                    <div class="empty"><p>No workflows registered.</p></div>
+                {% else %}
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Type</th>
+                            <th>Worker</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for w in collector.workflows %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ w.class }}</td>
+                                <td>{{ w.worker|default('<all>') }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+                <h4>Activities</h4>
+                {% if collector.activities is empty %}
+                    <div class="empty"><p>No activities registered.</p></div>
+                {% else %}
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Type</th>
+                            <th>Worker</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for a in collector.activities %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ a.class }}</td>
+                                <td>{{ a.worker|default('<all>') }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="tab">
+            <h3 class="tab-title">Workers <span class="badge">{{ collector.workers|length }}</span></h3>
+            <div class="tab-content">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Queue</th>
+                        <th>Interceptors</th>
+                        <th>Options</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for w in collector.workers %}
+                        <tr>
+                            <td>{{ w.name }}</td>
+                            <td>{{ w.queue }}</td>
+                            <td>{{ dump(w.interceptors) }}</td>
+                            <td>{{ dump(w.options) }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab">
+            <h3 class="tab-title">Clients <span class="badge">{{ collector.clients|length }}</span></h3>
+            <div class="tab-content">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Interceptors</th>
+                        <th>Options</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for c in collector.clients %}
+                        <tr>
+                            <td>{{ c.name }}</td>
+                            <td>{{ dump(c.interceptors) }}</td>
+                            <td>{{ dump(c.options) }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}

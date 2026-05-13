@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Baldinof\RoadRunnerBundle\Integration\Doctrine;
 
 use Baldinof\RoadRunnerBundle\Event\ForceKernelRebootEvent;
+use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMIntegration;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DBALException;
@@ -59,12 +60,14 @@ class DoctrineORMMiddlewareTest extends TestCase
 
         $this->dispatcher = new EventDispatcher();
 
-        $this->middleware = new DoctrineORMMiddleware(
+        $integration = new DoctrineORMIntegration(
             $this->managerRegistryMock,
             $this->container,
             $this->dispatcher,
             new NullLogger()
         );
+
+        $this->middleware = new DoctrineORMMiddleware($integration);
     }
 
     public function test_skip_not_initialized_connections()

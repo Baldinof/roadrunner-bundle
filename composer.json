@@ -35,7 +35,9 @@
     "suggest": {
         "nyholm/psr7": "For a super lightweight PSR-7/17 implementation",
         "spiral/roadrunner-cli": "For easy installation of RoadRunner",
-        "symfony/proxy-manager-bridge": "For doctrine re-connection implementation"
+        "symfony/proxy-manager-bridge": "For doctrine re-connection implementation",
+        "temporal/sdk": "For using the temporal feature",
+        "ext-grpc": "When using a temporal client"
     },
     "require-dev": {
         "symfony/var-dumper": "^6.0 || ^7.0 || ^8.0",
@@ -56,14 +58,16 @@
         "phpstan/phpstan": "^1.10",
         "phpunit/phpunit": "^9.6",
         "phpspec/prophecy": "^1.11",
-        "phpspec/prophecy-phpunit": "^2.0"
+        "phpspec/prophecy-phpunit": "^2.0",
+        "temporal/sdk": "^2.14"
     },
     "conflict": {
         "doctrine/doctrine-bundle": "<2.1.1",
         "sentry/sentry-symfony": "<4.5.0",
         "spiral/roadrunner-metrics": "<3.0.0",
         "symfony/proxy-manager-bridge": "<5.4",
-        "symfony/runtime": "<6.4"
+        "symfony/runtime": "<6.4",
+        "temporal/sdk": "<2.14"
     },
     "scripts": {
         "test": "vendor/bin/phpunit --testdox --colors=always",

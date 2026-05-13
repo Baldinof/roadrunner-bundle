@@ -8,9 +8,11 @@ use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\GrpcServiceCompil
 use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\InterceptorCompilerPass;
 use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\MiddlewareCompilerPass;
 use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\RemoveConfigureVarDumperListenerPass;
+use Baldinof\RoadRunnerBundle\DependencyInjection\CompilerPass\TemporalCompilerPass;
 use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
+use Temporal\Client\WorkflowClientInterface;
 
 final class BaldinofRoadRunnerBundle extends Bundle
 {
@@ -23,6 +25,10 @@ final class BaldinofRoadRunnerBundle extends Bundle
         if (interface_exists(ServiceInterface::class)) {
             $container->addCompilerPass(new GrpcServiceCompilerPass());
             $container->addCompilerPass(new InterceptorCompilerPass());
+        }
+
+        if (interface_exists(WorkflowClientInterface::class)) {
+            $container->addCompilerPass(new TemporalCompilerPass());
         }
     }
 }
