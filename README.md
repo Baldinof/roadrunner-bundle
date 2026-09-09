@@ -229,6 +229,63 @@ class Calculator implements CalculatorInterface
 }
 ```
 
+Expected request failures can be configured to allow the gRPC worker to continue processing requests:
+
+```yaml
+# config/packages/baldinof_road_runner.yaml
+baldinof_road_runner:
+  grpc:
+    non_fatal_exceptions:
+      - App\Grpc\Exception\AuthenticationException
+      - App\Grpc\Exception\ExpectedRequestFailureInterface
+```
+
+The built-in `Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicy` matches exception classes, subclasses and interfaces using `instanceof`.
+The list defaults to `[]`, preserving the existing behavior. Spiral's `InvokeException` continues to bypass exception escalation independently of the policy.
+
+For a non-fatal exception, the bundle skips its error log, `WorkerExceptionEvent` and `worker->stop()`.
+The original gRPC error response is preserved. Service resets and the configured `kernel_reboot.strategy` still apply;
+rebooting the Symfony kernel/container is separate from stopping the PHP worker.
+
+Applications that need additional logic can implement `Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicyInterface`:
+
+```php
+<?php
+
+namespace App\Grpc;
+
+use Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicyInterface;
+use Spiral\RoadRunner\GRPC\Exception\GRPCExceptionInterface;
+use Spiral\RoadRunner\GRPC\StatusCode;
+
+final class ExceptionPolicy implements GrpcExceptionPolicyInterface
+{
+    public function shouldEscalate(\Throwable $exception): bool
+    {
+        return !$exception instanceof GRPCExceptionInterface
+            || $exception->getCode() !== StatusCode::UNAUTHENTICATED;
+    }
+}
+```
+
+Register the custom policy as a Symfony service and select it with `exception_policy`:
+
+```yaml
+# config/services.yaml
+services:
+  App\Grpc\ExceptionPolicy: ~
+```
+
+```yaml
+# config/packages/baldinof_road_runner.yaml
+baldinof_road_runner:
+  grpc:
+    exception_policy: App\Grpc\ExceptionPolicy
+```
+
+`exception_policy` defaults to `Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicy`.
+A custom policy replaces the built-in policy; `non_fatal_exceptions` configures only the built-in implementation.
+
 ## KV caching
 
 Roadrunner has a KV (Key-Value) plugin that can be used to cache data between requests. 
