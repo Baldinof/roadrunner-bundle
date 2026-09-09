@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\Worker;
 
+use Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicyInterface;
 use Baldinof\RoadRunnerBundle\Grpc\InterceptorStack;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
@@ -22,6 +23,7 @@ final class GrpcDependencies
         private InterceptorStack $requestHandler,
         private KernelRebootStrategyInterface $kernelRebootStrategy,
         private EventDispatcherInterface $eventDispatcher,
+        private GrpcExceptionPolicyInterface $exceptionPolicy,
     ) {
     }
 
@@ -38,5 +40,10 @@ final class GrpcDependencies
     public function getEventDispatcher(): EventDispatcherInterface
     {
         return $this->eventDispatcher;
+    }
+
+    public function getExceptionPolicy(): GrpcExceptionPolicyInterface
+    {
+        return $this->exceptionPolicy;
     }
 }

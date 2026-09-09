@@ -7,6 +7,8 @@ namespace Baldinof\RoadRunnerBundle\DependencyInjection;
 use Baldinof\RoadRunnerBundle\Cache\KvCacheAdapter;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
+use Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicy;
+use Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicyInterface;
 use Baldinof\RoadRunnerBundle\Integration\Blackfire\BlackfireMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineODMListener;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
@@ -107,6 +109,9 @@ class BaldinofRoadRunnerExtension extends Extension
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
         if (interface_exists(ServiceInterface::class)) {
             $container->setParameter('baldinof_road_runner.interceptors', $config['interceptors']);
+            $container->getDefinition(GrpcExceptionPolicy::class)
+                ->setArgument(0, $config['grpc']['non_fatal_exceptions']);
+            $container->setAlias(GrpcExceptionPolicyInterface::class, $config['grpc']['exception_policy']);
         }
 
         $this->loadIntegrations($container, $config);

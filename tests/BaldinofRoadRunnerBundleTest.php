@@ -7,6 +7,8 @@ namespace Tests\Baldinof\RoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\BaldinofRoadRunnerBundle;
 use Baldinof\RoadRunnerBundle\Cache\KvCacheAdapter;
 use Baldinof\RoadRunnerBundle\EventListener\DeclareMetricsListener;
+use Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicy;
+use Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicyInterface;
 use Baldinof\RoadRunnerBundle\Integration\Doctrine\DoctrineORMMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryMiddleware;
 use Baldinof\RoadRunnerBundle\Integration\Sentry\SentryTracingRequestListenerDecorator;
@@ -17,6 +19,7 @@ use Baldinof\RoadRunnerBundle\Reboot\ChainRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Baldinof\RoadRunnerBundle\Reboot\MaxJobsRebootStrategy;
 use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
+use Baldinof\RoadRunnerBundle\Worker\GrpcDependencies;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use PHPUnit\Framework\TestCase;
 use Sentry\SentryBundle\SentryBundle;
@@ -212,6 +215,50 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $this->assertInstanceOf(AlwaysRebootStrategy::class, $c->get(KernelRebootStrategyInterface::class));
     }
 
+    public function test_it_escalates_grpc_exceptions_by_default(): void
+    {
+        $kernel = $this->getKernel();
+        $kernel->boot();
+        $policy = $kernel->getContainer()->get(GrpcDependencies::class)->getExceptionPolicy();
+
+        $this->assertInstanceOf(GrpcExceptionPolicy::class, $policy);
+        $this->assertTrue($policy->shouldEscalate(new \RuntimeException()));
+    }
+
+    public function test_it_configures_non_fatal_grpc_exceptions(): void
+    {
+        $kernel = $this->getKernel([
+            'baldinof_road_runner' => [
+                'grpc' => ['non_fatal_exceptions' => [\RuntimeException::class]],
+            ],
+        ]);
+        $kernel->boot();
+        $policy = $kernel->getContainer()->get(GrpcDependencies::class)->getExceptionPolicy();
+
+        $this->assertFalse($policy->shouldEscalate(new \UnexpectedValueException()));
+        $this->assertTrue($policy->shouldEscalate(new \LogicException()));
+    }
+
+    public function test_a_custom_grpc_exception_policy_replaces_the_default(): void
+    {
+        $kernel = $this->getKernel([
+            'baldinof_road_runner' => [
+                'grpc' => [
+                    'exception_policy' => CustomGrpcExceptionPolicy::class,
+                    'non_fatal_exceptions' => [\RuntimeException::class],
+                ],
+            ],
+        ], configureServices: static function (ContainerBuilder $container): void {
+            $container->register(CustomGrpcExceptionPolicy::class);
+        });
+        $kernel->boot();
+        $policy = $kernel->getContainer()->get(GrpcDependencies::class)->getExceptionPolicy();
+
+        $this->assertInstanceOf(CustomGrpcExceptionPolicy::class, $policy);
+        $this->assertTrue($policy->shouldEscalate(new \RuntimeException()));
+        $this->assertFalse($policy->shouldEscalate(new \RuntimeException('', 16)));
+    }
+
     public function test_it_supports_multiple_strategies()
     {
         $k = $this->getKernel([
@@ -268,15 +315,15 @@ class BaldinofRoadRunnerBundleTest extends TestCase
     /**
      * @param BundleInterface[] $extraBundles
      */
-    public function getKernel(array $config = [], array $extraBundles = [], bool $debug = true): KernelInterface
+    public function getKernel(array $config = [], array $extraBundles = [], bool $debug = true, ?\Closure $configureServices = null): KernelInterface
     {
-        return new class('test', $debug, $config, $extraBundles) extends Kernel {
+        return new class('test', $debug, $config, $extraBundles, $configureServices) extends Kernel {
             use MicroKernelTrait;
 
             private $config;
             private $extraBundles;
 
-            public function __construct(string $env, bool $debug, array $config, array $extraBundles)
+            public function __construct(string $env, bool $debug, array $config, array $extraBundles, private ?\Closure $configureServices)
             {
                 (new Filesystem())->remove(__DIR__.'/__cache');
 
@@ -319,7 +366,19 @@ class BaldinofRoadRunnerBundleTest extends TestCase
                 foreach ($this->config as $key => $config) {
                     $c->loadFromExtension($key, $config);
                 }
+
+                if ($this->configureServices !== null) {
+                    ($this->configureServices)($c);
+                }
             }
         };
+    }
+}
+
+class CustomGrpcExceptionPolicy implements GrpcExceptionPolicyInterface
+{
+    public function shouldEscalate(\Throwable $exception): bool
+    {
+        return $exception->getCode() !== 16;
     }
 }

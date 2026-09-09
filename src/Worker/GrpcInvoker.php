@@ -64,6 +64,10 @@ final class GrpcInvoker implements InvokerInterface, GrpcTerminableInterface
 
     public function invokeThrowable(\Throwable $e): void
     {
+        if (!$this->dependencies->getExceptionPolicy()->shouldEscalate($e)) {
+            return;
+        }
+
         $this->logger->error('An error occured: '.$e->getMessage(), ['throwable' => $e]);
 
         $this->dependencies->getEventDispatcher()->dispatch(new WorkerExceptionEvent($e));
