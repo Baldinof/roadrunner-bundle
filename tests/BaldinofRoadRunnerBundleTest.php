@@ -91,6 +91,37 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $this->assertTrue($c->has(SentryTracingRequestListenerDecorator::class));
     }
 
+    public function test_sentry_tracing_decorator_implements_every_listener_method_of_the_decorated_listener()
+    {
+        $k = $this->getKernel([
+            'sentry' => [
+                'tracing' => [
+                    'enabled' => true,
+                ],
+            ],
+        ], [
+            new SentryBundle(),
+        ]);
+
+        $k->boot();
+
+        $listeners = $k->getContainer()->get('test.service_container')->get('event_dispatcher')->getListeners();
+
+        $methods = [];
+        foreach ($listeners as $eventListeners) {
+            foreach ($eventListeners as $listener) {
+                if (\is_array($listener) && $listener[0] instanceof SentryTracingRequestListenerDecorator) {
+                    $methods[] = $listener[1];
+                }
+            }
+        }
+
+        $this->assertNotEmpty($methods);
+        foreach ($methods as $method) {
+            $this->assertTrue(method_exists(SentryTracingRequestListenerDecorator::class, $method), "Missing method '$method'");
+        }
+    }
+
     public function test_sentry_tracing_finishes_the_transaction_on_kernel_response()
     {
         $k = $this->getKernel([
