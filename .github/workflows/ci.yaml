@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         sf-version: ["*"]
-        php-versions: ['8.1', '8.2', '8.3', '8.4']
+        php-versions: ['8.1', '8.2', '8.3', '8.4', '8.5']
         composer: [ "lowest", "highest" ]
         include:
           - sf-version: "5.4.*"
@@ -28,6 +28,10 @@ jobs:
           - sf-version: "8.0.*"
             php-versions: '8.4'
             composer: 'highest'
+          - sf-version: "8.*"
+            php-versions: '8.4'
+            composer: 'highest'
+            roadrunner: '3'
 
     steps:
       - name: Checkout
@@ -38,6 +42,12 @@ jobs:
           php-version: '${{ matrix.php-versions }}'
           extensions: mbstring,intl,mongodb
           tools: composer:v2,flex
+      - name: Require RoadRunner 3
+        if: matrix.roadrunner == '3'
+        run: |
+          composer require --no-update "spiral/roadrunner:^3.0"
+          # GHSA-g9pc-8g42-g6vq's "< 2025.1.0" range also matches 3.0.0, see github/advisory-database#10283
+          composer config audit.ignore --json '["GHSA-g9pc-8g42-g6vq"]'
       - name: Install dependencies
         uses: ramsey/composer-install@v3
         with:
