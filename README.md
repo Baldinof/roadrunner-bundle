@@ -57,6 +57,23 @@ Be aware that
 - middlewares are run outside of Symfony `Kernel::handle()`
 - the middleware stack is always resolved at worker start (can be a performance issue if your middleware initialization takes time)
 
+## Raw request body
+
+By default, RoadRunner parses `application/x-www-form-urlencoded` and `multipart/form-data` bodies, and `$request->getContent()` returns a JSON representation of the parsed data instead of the original body.
+
+If you need the original body (e.g. to verify a webhook signature), enable `raw_body` in RoadRunner:
+
+```yaml
+# .rr.yaml
+http:
+  raw_body: true
+```
+
+In this mode:
+- `$request->getContent()` returns the body as sent by the client
+- `application/x-www-form-urlencoded` bodies are still parsed by the bundle into `$request->request`
+- `multipart/form-data` bodies are **not** parsed: `$request->request` and `$request->files` are empty
+
 ## Kernel reboots
 
 The Symfony kernel and the dependency injection container are **preserved between requests**. If an exception is thrown during the request handling, the kernel is rebooted and a fresh container is used.
