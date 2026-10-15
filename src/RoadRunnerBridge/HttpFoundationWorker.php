@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Baldinof\RoadRunnerBundle\RoadRunnerBridge;
 
 use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker\HttpFoundationResponder;
+use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorker\MultipartFormDataParser;
 use Spiral\RoadRunner\Http\HttpWorkerInterface;
 use Spiral\RoadRunner\Http\Request as RoadRunnerRequest;
 use Spiral\RoadRunner\WorkerInterface;
@@ -17,16 +18,27 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
     private HttpWorkerInterface $httpWorker;
     private HttpFoundationResponder $responder;
     private array $originalServer;
+    private MultipartFormDataParser $multipartParser;
+    /** @var list<string> */
+    private array $tmpFiles = [];
 
     public function __construct(HttpWorkerInterface $httpWorker, HttpFoundationResponder $responder)
     {
         $this->httpWorker = $httpWorker;
         $this->responder = $responder;
         $this->originalServer = $_SERVER;
+        $this->multipartParser = new MultipartFormDataParser();
+    }
+
+    public function __destruct()
+    {
+        $this->removeTmpFiles();
     }
 
     public function waitRequest(): ?SymfonyRequest
     {
+        $this->removeTmpFiles();
+
         $rrRequest = $this->httpWorker->waitRequest();
 
         if ($rrRequest === null) {
@@ -54,11 +66,13 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
     {
         $_SERVER = $this->configureServer($rrRequest);
 
-        $files = $this->wrapUploads($rrRequest->uploads);
+        [$parsedBody, $uploads] = $this->parseBody($rrRequest);
+
+        $files = $this->wrapUploads($uploads);
 
         $request = new SymfonyRequest(
             $rrRequest->query,
-            $this->parseBody($rrRequest),
+            $parsedBody,
             $rrRequest->attributes,
             $rrRequest->cookies,
             $files,
@@ -73,28 +87,53 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
     /**
      * Must be called after configureServer(), as it relies on $_SERVER['CONTENT_TYPE'].
+     *
+     * @return array{0: array<mixed>, 1: array<mixed>} Parsed body and uploads (RoadRunner format)
      */
     private function parseBody(RoadRunnerRequest $rrRequest): array
     {
         if ($rrRequest->parsed) {
-            return $rrRequest->getParsedBody() ?? [];
+            return [$rrRequest->getParsedBody() ?? [], $rrRequest->uploads];
         }
 
         // With RoadRunner `http.raw_body: true`, the body is forwarded untouched:
-        // parse url encoded forms with the same rules RoadRunner applies when it parses the body.
+        // parse forms with the same rules RoadRunner applies when it parses the body.
         $contentType = \is_string($_SERVER['CONTENT_TYPE'] ?? null) ? $_SERVER['CONTENT_TYPE'] : '';
 
-        if (
-            $rrRequest->body !== ''
-            && !\in_array($rrRequest->method, ['HEAD', 'OPTIONS'], true)
-            && str_starts_with(strtolower($contentType), 'application/x-www-form-urlencoded')
-        ) {
-            parse_str($rrRequest->body, $data);
-
-            return $data;
+        if ($rrRequest->body === '' || \in_array($rrRequest->method, ['HEAD', 'OPTIONS'], true)) {
+            return [[], $rrRequest->uploads];
         }
 
-        return [];
+        if (str_starts_with(strtolower($contentType), 'application/x-www-form-urlencoded')) {
+            parse_str($rrRequest->body, $data);
+
+            return [$data, []];
+        }
+
+        if (str_starts_with(strtolower($contentType), 'multipart/form-data') && MultipartFormDataParser::isSupported()) {
+            [$data, $uploads, $tmpFiles] = $this->multipartParser->parse($contentType, $rrRequest->body);
+
+            array_push($this->tmpFiles, ...$tmpFiles);
+
+            return [$data, $uploads];
+        }
+
+        return [[], $rrRequest->uploads];
+    }
+
+    /**
+     * Uploads parsed from raw bodies must survive until kernel.terminate listeners
+     * are done, so they are removed when the next request comes in.
+     */
+    private function removeTmpFiles(): void
+    {
+        foreach ($this->tmpFiles as $tmpFile) {
+            if (is_file($tmpFile)) {
+                @unlink($tmpFile);
+            }
+        }
+
+        $this->tmpFiles = [];
     }
 
     private function configureServer(RoadRunnerRequest $request): array
