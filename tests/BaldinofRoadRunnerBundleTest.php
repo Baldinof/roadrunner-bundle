@@ -20,14 +20,21 @@ use Baldinof\RoadRunnerBundle\Reboot\OnExceptionRebootStrategy;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use PHPUnit\Framework\TestCase;
 use Sentry\SentryBundle\SentryBundle;
+use Sentry\State\HubInterface;
+use Sentry\Tracing\TransactionContext;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Bundle\BundleInterface;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\Kernel;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Routing\RouteCollectionBuilder;
 
@@ -82,6 +89,61 @@ class BaldinofRoadRunnerBundleTest extends TestCase
         $c = $k->getContainer()->get('test.service_container');
 
         $this->assertTrue($c->has(SentryTracingRequestListenerDecorator::class));
+    }
+
+    public function test_sentry_tracing_decorator_implements_every_listener_method_of_the_decorated_listener()
+    {
+        $k = $this->getKernel([
+            'sentry' => [
+                'tracing' => [
+                    'enabled' => true,
+                ],
+            ],
+        ], [
+            new SentryBundle(),
+        ]);
+
+        $k->boot();
+
+        $listeners = $k->getContainer()->get('test.service_container')->get('event_dispatcher')->getListeners();
+
+        $methods = [];
+        foreach ($listeners as $eventListeners) {
+            foreach ($eventListeners as $listener) {
+                if (\is_array($listener) && $listener[0] instanceof SentryTracingRequestListenerDecorator) {
+                    $methods[] = $listener[1];
+                }
+            }
+        }
+
+        $this->assertNotEmpty($methods);
+        foreach ($methods as $method) {
+            $this->assertTrue(method_exists(SentryTracingRequestListenerDecorator::class, $method), "Missing method '$method'");
+        }
+    }
+
+    public function test_sentry_tracing_finishes_the_transaction_on_kernel_response()
+    {
+        $k = $this->getKernel([
+            'sentry' => [
+                'tracing' => [
+                    'enabled' => true,
+                ],
+            ],
+        ], [
+            new SentryBundle(),
+        ]);
+
+        $k->boot();
+
+        $c = $k->getContainer()->get('test.service_container');
+        $hub = $c->get(HubInterface::class);
+        $transaction = $hub->startTransaction(new TransactionContext());
+        $hub->setSpan($transaction);
+
+        $c->get('event_dispatcher')->dispatch(new ResponseEvent($k, Request::create('/'), HttpKernelInterface::MAIN_REQUEST, new Response()), KernelEvents::RESPONSE);
+
+        $this->assertNotNull($transaction->getEndTimestamp());
     }
 
     public function test_it_does_not_load_sentry_middleware_if_not_needed()
