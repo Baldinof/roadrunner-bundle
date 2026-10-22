@@ -28,7 +28,7 @@ final class SentryTracingRequestListenerDecorator
         $this->innerListener->handleKernelResponseEvent($event);
 
         // sentry-symfony >= 5.14 collects response data in a later listener, the transaction is finished there
-        if (!method_exists($this->innerListener, 'collectKernelResponseData')) { // @phpstan-ignore function.impossibleType
+        if (!method_exists($this->innerListener, 'collectKernelResponseData')) { // @phpstan-ignore function.alreadyNarrowedType, function.impossibleType
             $this->hub->getTransaction()?->finish();
         }
     }
