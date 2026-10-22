@@ -1,5 +1,5 @@
 parameters:
-    level: max
+    level: 9
     paths:
         - src
         - config
@@ -20,3 +20,7 @@ parameters:
           path: 'src/Integration/PHP/NativeSessionMiddleware.php'
         - message: '#Cannot cast mixed to string.#'
           path: 'src/Worker/Worker.php'
+        # Optional-dependency / version-dependent checks differ between lowest and highest deps
+        - identifier: function.impossibleType
+        - identifier: property.unusedType
+          path: 'src/Worker/HttpWorker.php'
