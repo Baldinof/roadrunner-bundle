@@ -58,7 +58,7 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
         $request = new SymfonyRequest(
             $rrRequest->query,
-            $rrRequest->getParsedBody() ?? [],
+            $this->parseBody($rrRequest),
             $rrRequest->attributes,
             $rrRequest->cookies,
             $files,
@@ -69,6 +69,32 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
         $request->headers->add($rrRequest->headers);
 
         return $request;
+    }
+
+    /**
+     * Must be called after configureServer(), as it relies on $_SERVER['CONTENT_TYPE'].
+     */
+    private function parseBody(RoadRunnerRequest $rrRequest): array
+    {
+        if ($rrRequest->parsed) {
+            return $rrRequest->getParsedBody() ?? [];
+        }
+
+        // With RoadRunner `http.raw_body: true`, the body is forwarded untouched:
+        // parse url encoded forms with the same rules RoadRunner applies when it parses the body.
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+
+        if (
+            $rrRequest->body !== ''
+            && !\in_array($rrRequest->method, ['HEAD', 'OPTIONS'], true)
+            && str_starts_with(strtolower($contentType), 'application/x-www-form-urlencoded')
+        ) {
+            parse_str($rrRequest->body, $data);
+
+            return $data;
+        }
+
+        return [];
     }
 
     private function configureServer(RoadRunnerRequest $request): array

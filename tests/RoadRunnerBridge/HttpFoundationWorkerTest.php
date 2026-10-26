@@ -113,6 +113,86 @@ class HttpFoundationWorkerTest extends TestCase
             },
         ];
 
+        yield 'raw body: url encoded POST is parsed' => [
+            fn () => new RoadRunnerRequest(
+                method: 'POST',
+                headers: ['Content-Type' => ['application/x-www-form-urlencoded; charset=UTF-8']],
+                body: 'a=1&b[]=x&b[]=y',
+                parsed: false,
+            ),
+            function (SymfonyRequest $r) {
+                $this->assertSame(['a' => '1', 'b' => ['x', 'y']], $r->request->all());
+                $this->assertSame('a=1&b[]=x&b[]=y', $r->getContent());
+            },
+        ];
+
+        yield 'raw body: url encoded PUT is parsed' => [
+            fn () => new RoadRunnerRequest(
+                method: 'PUT',
+                headers: ['content-type' => ['application/x-www-form-urlencoded']],
+                body: 'a=1',
+                parsed: false,
+            ),
+            fn (SymfonyRequest $r) => $this->assertSame(['a' => '1'], $r->request->all()),
+        ];
+
+        yield 'raw body: url encoded QUERY is parsed' => [
+            fn () => new RoadRunnerRequest(
+                method: 'QUERY',
+                headers: ['Content-Type' => ['application/x-www-form-urlencoded']],
+                body: 'a=1',
+                parsed: false,
+            ),
+            fn (SymfonyRequest $r) => $this->assertSame(['a' => '1'], $r->request->all()),
+        ];
+
+        yield 'raw body: url encoded custom verb is parsed' => [
+            fn () => new RoadRunnerRequest(
+                method: 'PURGE',
+                headers: ['Content-Type' => ['application/x-www-form-urlencoded']],
+                body: 'a=1',
+                parsed: false,
+            ),
+            fn (SymfonyRequest $r) => $this->assertSame(['a' => '1'], $r->request->all()),
+        ];
+
+        yield 'raw body: url encoded OPTIONS is not parsed' => [
+            fn () => new RoadRunnerRequest(
+                method: 'OPTIONS',
+                headers: ['Content-Type' => ['application/x-www-form-urlencoded']],
+                body: 'a=1',
+                parsed: false,
+            ),
+            fn (SymfonyRequest $r) => $this->assertEmpty($r->request->all()),
+        ];
+
+        yield 'raw body: JSON is not parsed' => [
+            fn () => new RoadRunnerRequest(
+                method: 'POST',
+                headers: ['Content-Type' => ['application/json']],
+                body: '{"a":1}',
+                parsed: false,
+            ),
+            function (SymfonyRequest $r) {
+                $this->assertEmpty($r->request->all());
+                $this->assertSame('{"a":1}', $r->getContent());
+            },
+        ];
+
+        yield 'raw body: multipart is not parsed' => [
+            fn () => new RoadRunnerRequest(
+                method: 'POST',
+                headers: ['Content-Type' => ['multipart/form-data; boundary=XXX']],
+                body: "--XXX\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n1\r\n--XXX--\r\n",
+                parsed: false,
+            ),
+            function (SymfonyRequest $r) {
+                $this->assertEmpty($r->request->all());
+                $this->assertEmpty($r->files->all());
+                $this->assertSame("--XXX\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n1\r\n--XXX--\r\n", $r->getContent());
+            },
+        ];
+
         yield 'content-type & length added to $_SERVER' => [
             fn () => new RoadRunnerRequest(headers: [
                 'content-type' => ['application/json'],
