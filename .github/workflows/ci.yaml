@@ -25,7 +25,7 @@ jobs:
           - sf-version: "7.4.*"
             php-versions: '8.3'
             composer: 'highest'
-          - sf-version: "8.0.*"
+          - sf-version: "8.1.*"
             php-versions: '8.4'
             composer: 'highest'
 

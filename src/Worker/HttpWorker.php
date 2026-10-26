@@ -70,7 +70,9 @@ final class HttpWorker implements WorkerInterface
                     if (!\defined($const = Request::class.'::HEADER_'.strtr(strtoupper($header), '-', '_'))) {
                         throw new \InvalidArgumentException(\sprintf('The trusted header "%s" is not supported.', $header));
                     }
-                    $trustedHeaderSet |= \constant($const);
+                    $value = \constant($const);
+                    \assert(\is_int($value));
+                    $trustedHeaderSet |= $value;
                 }
             } else {
                 $trustedHeaderSet = $trustedHeaders ?? (Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO);
