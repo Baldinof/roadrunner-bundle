@@ -82,7 +82,7 @@ final class HttpFoundationWorker implements HttpFoundationWorkerInterface
 
         // With RoadRunner `http.raw_body: true`, the body is forwarded untouched:
         // parse url encoded forms with the same rules RoadRunner applies when it parses the body.
-        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        $contentType = \is_string($_SERVER['CONTENT_TYPE'] ?? null) ? $_SERVER['CONTENT_TYPE'] : '';
 
         if (
             $rrRequest->body !== ''
