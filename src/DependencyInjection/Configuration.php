@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Baldinof\RoadRunnerBundle\DependencyInjection;
 
+use Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicy;
 use Baldinof\RoadRunnerBundle\Reboot\KernelRebootStrategyInterface;
 use Symfony\Component\Config\Definition\Builder\ArrayNodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -58,6 +59,21 @@ class Configuration implements ConfigurationInterface
                         ->scalarNode('memory_threshold_mb')
                             ->info('Only used when `reboot_kernel.strategy: memory`. Memory threshold in megabytes')
                             ->defaultValue(128)
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('grpc')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->scalarNode('exception_policy')
+                            ->info('Service implementing GrpcExceptionPolicyInterface that decides whether a gRPC exception causes worker escalation.')
+                            ->defaultValue(GrpcExceptionPolicy::class)
+                            ->cannotBeEmpty()
+                        ->end()
+                        ->arrayNode('non_fatal_exceptions')
+                            ->info('Exception classes or interfaces that do not cause gRPC worker escalation. Only used by the default gRPC exception policy.')
+                            ->defaultValue([])
+                            ->scalarPrototype()->end()
                         ->end()
                     ->end()
                 ->end()

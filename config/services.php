@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Baldinof\RoadRunnerBundle\DependencyInjection\BaldinofRoadRunnerExtension;
+use Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicy;
+use Baldinof\RoadRunnerBundle\Grpc\GrpcExceptionPolicyInterface;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcRequestHandlerInterface;
 use Baldinof\RoadRunnerBundle\Grpc\GrpcServiceProvider;
 use Baldinof\RoadRunnerBundle\Grpc\InterceptorStack;
@@ -154,6 +156,7 @@ return static function (ContainerConfigurator $container) {
     if (interface_exists(GrpcServiceInterface::class)) {
         $services->set(GrpcServiceProvider::class);
         $services->set(GrpcInvoker::class);
+        $services->set(GrpcExceptionPolicy::class);
 
         $services->set(GrpcDependencies::class)
             ->public() // Manually retrieved on the DIC in the Worker if the kernel has been rebooted
@@ -161,6 +164,7 @@ return static function (ContainerConfigurator $container) {
                 service(InterceptorStack::class),
                 service(KernelRebootStrategyInterface::class),
                 service(EventDispatcherInterface::class),
+                service(GrpcExceptionPolicyInterface::class),
             ]);
 
         $services->set(InvocationHandler::class)
