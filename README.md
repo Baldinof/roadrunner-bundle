@@ -72,7 +72,11 @@ http:
 In this mode:
 - `$request->getContent()` returns the body as sent by the client
 - `application/x-www-form-urlencoded` bodies are still parsed by the bundle into `$request->request`
-- `multipart/form-data` bodies are **not** parsed: `$request->request` and `$request->files` are empty
+- `multipart/form-data` bodies are parsed into `$request->request` and `$request->files` only if [`riverline/multipart-parser`](https://github.com/Riverline/multipart-parser) is installed, otherwise both are empty:
+  ```
+  composer require riverline/multipart-parser
+  ```
+  Uploads follow the worker's `php.ini` settings (`file_uploads`, `max_file_uploads`, `upload_max_filesize`, `post_max_size`, `upload_tmp_dir`). Their temporary files are deleted when the worker receives the next request.
 
 ## Kernel reboots
 

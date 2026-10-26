@@ -14,6 +14,7 @@ use Spiral\RoadRunner\WorkerInterface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\EventStreamResponse;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,6 +24,14 @@ use Symfony\Component\HttpKernel\Kernel;
 
 class HttpFoundationWorkerTest extends TestCase
 {
+    private const MULTIPART_BODY = "--XXX\r\n"
+        ."Content-Disposition: form-data; name=\"a\"\r\n\r\n1\r\n"
+        ."--XXX\r\n"
+        ."Content-Disposition: form-data; name=\"b[c]\"\r\n\r\n2\r\n"
+        ."--XXX\r\n"
+        ."Content-Disposition: form-data; name=\"doc\"; filename=\"doc.txt\"\r\nContent-Type: text/plain\r\n\r\nDoc content\r\n"
+        ."--XXX--\r\n";
+
     private static vfsStreamDirectory $vfs;
 
     public static function setUpBeforeClass(): void
@@ -179,17 +188,24 @@ class HttpFoundationWorkerTest extends TestCase
             },
         ];
 
-        yield 'raw body: multipart is not parsed' => [
+        yield 'raw body: multipart is parsed' => [
             fn () => new RoadRunnerRequest(
                 method: 'POST',
                 headers: ['Content-Type' => ['multipart/form-data; boundary=XXX']],
-                body: "--XXX\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n1\r\n--XXX--\r\n",
+                body: self::MULTIPART_BODY,
                 parsed: false,
             ),
             function (SymfonyRequest $r) {
-                $this->assertEmpty($r->request->all());
-                $this->assertEmpty($r->files->all());
-                $this->assertSame("--XXX\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\n1\r\n--XXX--\r\n", $r->getContent());
+                $this->assertSame(['a' => '1', 'b' => ['c' => '2']], $r->request->all());
+
+                $doc = $r->files->get('doc');
+                $this->assertInstanceOf(UploadedFile::class, $doc);
+                $this->assertTrue($doc->isValid());
+                $this->assertSame('doc.txt', $doc->getClientOriginalName());
+                $this->assertSame('text/plain', $doc->getClientMimeType());
+                $this->assertSame('Doc content', $doc->getContent());
+
+                $this->assertSame(self::MULTIPART_BODY, $r->getContent());
             },
         ];
 
@@ -552,6 +568,27 @@ class HttpFoundationWorkerTest extends TestCase
                 },
             ];
         }
+    }
+
+    public function test_multipart_uploads_are_removed_on_next_request()
+    {
+        $innerWorker = new MockWorker();
+        $worker = new HttpFoundationWorker($innerWorker, new HttpFoundationWorker\BufferedResponder());
+
+        $innerWorker->nextRequest = new RoadRunnerRequest(
+            method: 'POST',
+            headers: ['Content-Type' => ['multipart/form-data; boundary=XXX']],
+            body: self::MULTIPART_BODY,
+            parsed: false,
+        );
+        $tmpFile = $worker->waitRequest()->files->get('doc')->getPathname();
+
+        $this->assertFileExists($tmpFile);
+
+        $innerWorker->nextRequest = new RoadRunnerRequest();
+        $worker->waitRequest();
+
+        $this->assertFileDoesNotExist($tmpFile);
     }
 
     public function test_it_overrides_SERVER_global()
