@@ -18,7 +18,7 @@ If you don't use Symfony Flex:
 
 ## Usage
 
-- require the RoadRunner download utility: `composer require --dev spiral/roadrunner-cli`
+- require the RoadRunner download utility: `composer require --dev roadrunner/cli`
 - get the RoadRunner binary: `vendor/bin/rr get --location bin/`
 - run RoadRunner with `bin/rr serve` or `bin/rr serve -c .rr.dev.yaml` (watch mode)
 - visit your app at http://localhost:8080
@@ -161,12 +161,14 @@ Start RoadRunner with the dev config file:
 bin/rr serve -c .rr.dev.yaml
 ```
 
-Reference: https://roadrunner.dev/docs/beep-beep-reload
+Reference: https://docs.roadrunner.dev/docs/php-worker/developer
 
 If you use the Symfony VarDumper, dumps will not be shown in the HTTP Response body. You can view dumps with `bin/console server:dump` or in the profiler.
 
 ## Metrics
-Roadrunner can [collect application metrics](https://roadrunner.dev/docs/beep-beep-metrics), and expose a prometheus endpoint.
+Roadrunner can [collect application metrics](https://docs.roadrunner.dev/docs/logging-and-observability/metrics), and expose a prometheus endpoint.
+
+This requires the `roadrunner/metrics` composer dependency.
 
 Example configuration:
 
@@ -186,13 +188,13 @@ And configure RoadRunner:
 ```yaml
 # .rr.yaml
 rpc:
-  listen: "tcp:127.0.0.1:6001"
+  listen: "tcp://127.0.0.1:6001"
 
 metrics:
   address: "0.0.0.0:9180" # prometheus endpoint
 ```
 
-Then simply inject `Spiral\RoadRunner\MetricsInterface` to record metrics:
+Then simply inject `Spiral\RoadRunner\Metrics\MetricsInterface` to record metrics:
 
 ```php
 class YouController
@@ -208,9 +210,9 @@ class YouController
 
 ## gRPC
 
-gRPC support was added by the roadrunner-grpc plugin for RoadRunner 2 (https://github.com/spiral/roadrunner-grpc).
+gRPC support is provided by the RoadRunner gRPC plugin, and requires the [`roadrunner/grpc`](https://github.com/roadrunner-php/grpc) composer dependency.
 
-To configure Roadrunner for gRPC, refer to the configuration reference at https://roadrunner.dev/docs/beep-beep-grpc. Basic configuration example:
+To configure Roadrunner for gRPC, refer to the configuration reference at https://docs.roadrunner.dev/docs/grpc/grpc. Basic configuration example:
 
 ```yaml
 server:
@@ -250,8 +252,8 @@ class Calculator implements CalculatorInterface
 
 Roadrunner has a KV (Key-Value) plugin that can be used to cache data between requests. 
 
-To use it, refer to the configuration reference at https://roadrunner.dev/docs/kv-overview. 
-This requires the `spiral/roadrunner-kv`, `spiral/goridge` and `symfony/cache` composer dependencies. Basic configuration example:
+To use it, refer to the configuration reference at https://docs.roadrunner.dev/docs/key-value/overview-kv. 
+This requires the `roadrunner/kv`, `roadrunner/goridge` and `symfony/cache` composer dependencies. Basic configuration example:
 
 Example configuration:
 

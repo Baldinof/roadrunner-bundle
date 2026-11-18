@@ -19,7 +19,7 @@ baldinof_road_runner:
            - Symfony\Contracts\HttpClient\Exception\ExceptionInterface
 
     # Allow to send prometheus metrics to the main RoadRunner process,
-    # via a `Spiral\RoadRunner\MetricsInterface` service.
+    # via a `Spiral\RoadRunner\Metrics\MetricsInterface` service.
     # See https://github.com/baldinof/roadrunner-bundle#metrics
     metrics:
         enabled: false

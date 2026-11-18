@@ -9,7 +9,7 @@ http:
   address: 0.0.0.0:8080
   pool:
     debug: false
-  middleware: [ "static", "gzip" ]
+  middleware: [ "gzip", "static" ] # requests go through middleware from left to right, gzip must come first to compress static files
   uploads:
     forbid: [ ".php", ".exe", ".bat" ]
   static:
@@ -18,13 +18,15 @@ http:
 
 logs:
   mode: production
-  channels:
+  channels: # channels do not inherit the root settings, set the mode on each one
     http:
+      mode: production
       level: debug # Log all http requests, set to info to disable
     server:
       level: info # Everything written to worker stderr is logged
       mode: raw
     metrics:
+      mode: production
       level: error
 
 # Uncomment to use metrics integration
