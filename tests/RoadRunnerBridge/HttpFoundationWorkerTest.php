@@ -204,6 +204,14 @@ class HttpFoundationWorkerTest extends TestCase
             },
         ];
 
+        yield 'numeric header name' => [
+            // PHP turns the numeric string key "123" into an int key
+            fn () => new RoadRunnerRequest(headers: [
+                '123' => ['numeric'],
+            ]),
+            fn (SymfonyRequest $r) => $this->assertSame('numeric', $r->headers->get('123')),
+        ];
+
         yield 'basic authorization' => [
             fn () => new RoadRunnerRequest(headers: [
                 'Authorization' => ['Basic '.base64_encode('user:pass')],
