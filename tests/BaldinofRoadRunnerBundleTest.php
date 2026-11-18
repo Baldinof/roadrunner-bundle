@@ -353,6 +353,12 @@ class BaldinofRoadRunnerBundleTest extends TestCase
                 return __DIR__.'/__cache';
             }
 
+            // Symfony >= 7.4 writes config/reference.php in the project dir, keep it out of the bundle config dir
+            public function getProjectDir(): string
+            {
+                return __DIR__.'/__cache';
+            }
+
             public function registerBundles(): iterable
             {
                 yield new FrameworkBundle();
