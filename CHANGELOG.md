@@ -4,6 +4,142 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0] - Unreleased
+
+### Changed
+
+- The RoadRunner PHP packages were renamed from `spiral/*` to `roadrunner/*`: the bundle now requires `roadrunner/roadrunner`, `roadrunner/worker`, `roadrunner/goridge` and `roadrunner/http`, and the optional integrations use `roadrunner/metrics`, `roadrunner/grpc` and `roadrunner/kv`. PHP namespaces are unchanged. See [UPGRADE-3-6.md](./UPGRADE-3-6.md)
+- PHP 8.2 and RoadRunner 3 are now required, as the renamed packages require them
+- The default `.rr.yaml` and `.rr.dev.yaml` put the `gzip` middleware before `static`, because RoadRunner 3 runs middleware from left to right
+- The default `.rr.yaml` logs the `http` and `metrics` channels as JSON, like the root logger
+- Conflict with `spiral/roadrunner` releases before 3.0 (including RoadRunner 2023, 2024 and 2025)
+
+### Fixed
+
+- `TypeError` when a request has a numeric header name (e.g. `123`), which `roadrunner/http` >= 4.2 passes as an integer key
+
+### Removed
+
+- Support of PHP 8.1
+- Support of RoadRunner 2023, 2024 and 2025
+
+## [3.5.0] - 2026-10-26
+
+### Added
+
+- Support of RoadRunner 3 and PHP 8.5. Thank you [@Teko012](https://github.com/Teko012), see [#190](https://github.com/Baldinof/roadrunner-bundle/pull/190)
+- Support of the RoadRunner `http.raw_body` option: `$request->getContent()` returns the original body, and `application/x-www-form-urlencoded` bodies are parsed by the bundle. Thank you [@dt-thomas-durand](https://github.com/dt-thomas-durand), see [#191](https://github.com/Baldinof/roadrunner-bundle/pull/191)
+
+### Fixed
+
+- Compatibility with `sentry/sentry-symfony` 5.14. Thank you [@bosvaldas](https://github.com/bosvaldas), see [#189](https://github.com/Baldinof/roadrunner-bundle/pull/189)
+
+## [3.4.0] - 2026-05-27
+
+### Added
+
+- Support of streamed and file responses. Thank you [@Kenny1911](https://github.com/Kenny1911), see [#184](https://github.com/Baldinof/roadrunner-bundle/pull/184)
+
+## [3.3.2] - 2026-01-09
+
+### Added
+
+- Xdebug integration, allowing Xdebug in trigger mode in RoadRunner workers. Thank you [@dt-thomas-durand](https://github.com/dt-thomas-durand), see [#183](https://github.com/Baldinof/roadrunner-bundle/pull/183)
+
+## [3.3.1] - 2025-12-08
+
+### Added
+
+- Support of Symfony 8. Thank you [@dt-thomas-durand](https://github.com/dt-thomas-durand), see [#182](https://github.com/Baldinof/roadrunner-bundle/pull/182)
+
+## [3.3.0] - 2025-10-20
+
+The `3.2.4` tag points to the same commit as `3.3.0`.
+
+### Added
+
+- `summary` metric type. Thank you [@crazy-weasel](https://github.com/crazy-weasel), see [#167](https://github.com/Baldinof/roadrunner-bundle/pull/167)
+- `APP_RUNTIME_MODE` is set by the runtime, so the web profiler log panel works. Thank you [@crazy-weasel](https://github.com/crazy-weasel), see [#164](https://github.com/Baldinof/roadrunner-bundle/pull/164)
+- `memory` kernel reboot strategy, configured with `kernel_reboot.memory_threshold_mb`. Thank you [@AtCliffUnderline](https://github.com/AtCliffUnderline), see [#177](https://github.com/Baldinof/roadrunner-bundle/pull/177)
+
+## [3.2.3] - 2025-05-12
+
+### Added
+
+- Support of RoadRunner 2025. Thank you [@okorneliuk](https://github.com/okorneliuk), see [#168](https://github.com/Baldinof/roadrunner-bundle/pull/168)
+
+### Fixed
+
+- Race condition when a kernel reboot is triggered. Thank you [@mikael-titinovskii](https://github.com/mikael-titinovskii), see [#169](https://github.com/Baldinof/roadrunner-bundle/pull/169)
+
+## [3.2.2] - 2025-03-17
+
+### Added
+
+- Support of Symfony 5.4. Thank you [@Nyholm](https://github.com/Nyholm), see [#163](https://github.com/Baldinof/roadrunner-bundle/pull/163)
+
+### Changed
+
+- `tools/` and `.php-cs-fixer.dist.php` are no longer included in the package archive. Thank you [@dmitryuk](https://github.com/dmitryuk), see [#154](https://github.com/Baldinof/roadrunner-bundle/pull/154)
+
+## [3.2.1] - 2025-03-17
+
+### Changed
+
+- More detailed error message when the RoadRunner request URI cannot be parsed. Thank you [@dmitryuk](https://github.com/dmitryuk), see [#155](https://github.com/Baldinof/roadrunner-bundle/pull/155)
+
+## [3.2.0] - 2025-02-19
+
+### Added
+
+- gRPC interceptors, and `kernel_reboot.strategy` now applies to gRPC workers. Thank you [@dt-thomas-durand](https://github.com/dt-thomas-durand), see [#152](https://github.com/Baldinof/roadrunner-bundle/pull/152)
+
+## [3.1.3] - 2024-12-06
+
+### Fixed
+
+- Follow the `trusted_headers` and `trusted_proxies` changes of Symfony 7.2. Thank you [@okorneliuk](https://github.com/okorneliuk), see [#149](https://github.com/Baldinof/roadrunner-bundle/pull/149)
+
+## [3.1.2] - 2024-06-21
+
+### Added
+
+- Support of RoadRunner 2024. Thank you [@okorneliuk](https://github.com/okorneliuk), see [#142](https://github.com/Baldinof/roadrunner-bundle/pull/142)
+
+### Changed
+
+- `MiddlewareStack` implements `RequestHandlerInterface`, see [#145](https://github.com/Baldinof/roadrunner-bundle/pull/145)
+
+## [3.1.1] - 2024-04-29
+
+### Added
+
+- Support of `sentry/sentry-symfony` 5. Thank you [@WaylandAce](https://github.com/WaylandAce), see [#141](https://github.com/Baldinof/roadrunner-bundle/pull/141)
+
+## [3.1.0] - 2024-03-19
+
+### Added
+
+- KV cache adapters. Thank you [@StanJansen](https://github.com/StanJansen), see [#137](https://github.com/Baldinof/roadrunner-bundle/pull/137)
+
+## [3.0.3] - 2023-12-05
+
+### Fixed
+
+- Symfony 7 compatibility: use `MAIN_REQUEST` instead of `MASTER_REQUEST`. Thank you [@FluffyDiscord](https://github.com/FluffyDiscord), see [#133](https://github.com/Baldinof/roadrunner-bundle/pull/133)
+
+## [3.0.2] - 2023-11-16
+
+### Fixed
+
+- Allow installation with Symfony 6.0+ again
+
+## [3.0.1] - 2023-11-16
+
+### Added
+
+- Support of Symfony 7. Thank you [@endroid](https://github.com/endroid), see [#128](https://github.com/Baldinof/roadrunner-bundle/pull/128)
+
 ## [3.0.0] - 2023-05-17
 ### Added
 - Support of RoadRunner 2023
@@ -179,7 +315,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.0] - 2020-04-02
 ### Added
-- [RoadRunner metrics](https://roadrunner.dev/docs/beep-beep-metrics) support.  Thank you [@vsychov](https://github.com/vsychov).
+- [RoadRunner metrics](https://docs.roadrunner.dev/docs/logging-and-observability/metrics) support.  Thank you [@vsychov](https://github.com/vsychov).
 
 ## [1.0.2] - 2020-03-26
 ### Fixed

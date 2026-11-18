@@ -225,7 +225,7 @@ class BaldinofRoadRunnerExtension extends Extension
     private function configureMetrics(array $config, ContainerBuilder $container): void
     {
         if (!interface_exists(MetricsInterface::class)) {
-            throw new LogicException('RoadRunner Metrics support cannot be enabled as spiral/roadrunner-metrics is not installed. Try running "composer require spiral/roadrunner-metrics".');
+            throw new LogicException('RoadRunner Metrics support cannot be enabled as roadrunner/metrics is not installed. Try running "composer require roadrunner/metrics".');
         }
 
         $listenerDef = $container->register(DeclareMetricsListener::class)
@@ -246,11 +246,11 @@ class BaldinofRoadRunnerExtension extends Extension
     private function configureKv(array $config, ContainerBuilder $container): void
     {
         if (!class_exists(Factory::class)) {
-            throw new LogicException('RoadRunner KV support cannot be enabled as spiral/roadrunner-kv is not installed. Try running "composer require spiral/roadrunner-kv".');
+            throw new LogicException('RoadRunner KV support cannot be enabled as roadrunner/kv is not installed. Try running "composer require roadrunner/kv".');
         }
 
         if (!class_exists(RPC::class)) {
-            throw new LogicException('RoadRunner KV support cannot be enabled as spiral/goridge is not installed. Try running "composer require spiral/goridge".');
+            throw new LogicException('RoadRunner KV support cannot be enabled as roadrunner/goridge is not installed. Try running "composer require roadrunner/goridge".');
         }
 
         if (!interface_exists(AdapterInterface::class)) {

@@ -7,7 +7,7 @@ server:
 
 http:
   address: 0.0.0.0:8080
-  middleware: [ "static", "gzip" ]
+  middleware: [ "gzip", "static" ] # requests go through middleware from left to right, gzip must come first to compress static files
   pool:
     debug: true
   uploads:
