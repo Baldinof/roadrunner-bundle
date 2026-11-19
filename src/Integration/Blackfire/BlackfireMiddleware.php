@@ -22,16 +22,40 @@ final class BlackfireMiddleware implements MiddlewareInterface
         $query = $request->headers->get('x-blackfire-query');
         $probe = new \BlackfireProbe($query);
 
-        $probe->enable();
+        // The prolog written by enable() carries the name, so it must be set first.
+        if (method_exists(\BlackfireProbe::class, 'setTransactionName')) { // @phpstan-ignore function.alreadyNarrowedType, function.impossibleType
+            \BlackfireProbe::setTransactionName($request->getMethod().' '.$request->getPathInfo());
+        }
 
-        $response = $next->handle($request);
+        if (!$probe->enable()) {
+            yield $next->handle($request);
+
+            return;
+        }
+
+        \BlackfireProbe::addMarker('request:start');
+
+        try {
+            $response = $next->handle($request);
+        } catch (\Throwable $e) {
+            if ($probe->isEnabled()) {
+                \BlackfireProbe::addMarker('request:end');
+                $probe->close();
+            }
+
+            throw $e;
+        }
 
         if ($probe->isEnabled()) {
+            \BlackfireProbe::addMarker('request:end');
             $probe->close();
 
-            $probeHeader = explode(':', $probe->getResponseLine(), 2);
+            $responseLine = $probe->getResponseLine();
+            if (\is_string($responseLine) && str_contains($responseLine, ':')) {
+                [$name, $value] = explode(':', $responseLine, 2);
 
-            $response->headers->set('x-'.$probeHeader[0], trim($probeHeader[1]));
+                $response->headers->set('x-'.$name, trim($value));
+            }
         }
 
         yield $response;
